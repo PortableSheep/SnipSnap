@@ -1,0 +1,169 @@
+{
+  "" : {
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SnipSnapCaptureAgent-primary.dia",
+    "emit-module-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SnipSnapCaptureAgent-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SnipSnapCaptureAgent-primary-emit-module.dia",
+    "pch" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SnipSnapCaptureAgent-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SnipSnapCaptureAgent-primary.swiftdeps"
+  },
+  "/Users/portablesheep/snipsnap/CaptureAgentSources/CaptureAgentServer.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentServer.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentServer.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentServer.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentServer.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentServer.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentServer.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentServer.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentServer~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/CaptureAgentSources/main.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/main.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/main.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/main.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/main.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/main.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/main.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/main.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/main~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/IPC/CaptureAgentIPC.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentIPC.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentIPC.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentIPC.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentIPC.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentIPC.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentIPC.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentIPC.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentIPC~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/IPC/CaptureAgentOverlaySettings.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentOverlaySettings.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentOverlaySettings.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentOverlaySettings.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentOverlaySettings.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentOverlaySettings.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentOverlaySettings.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentOverlaySettings.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/CaptureAgentOverlaySettings~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Permissions/AccessibilityPermission.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/AccessibilityPermission.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/AccessibilityPermission.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/AccessibilityPermission.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/AccessibilityPermission.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/AccessibilityPermission.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/AccessibilityPermission.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/AccessibilityPermission.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/AccessibilityPermission~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Permissions/InputMonitoringPermission.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/InputMonitoringPermission.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/InputMonitoringPermission.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/InputMonitoringPermission.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/InputMonitoringPermission.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/InputMonitoringPermission.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/InputMonitoringPermission.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/InputMonitoringPermission.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/InputMonitoringPermission~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Permissions/PermissionDiagnostics.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/PermissionDiagnostics.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/PermissionDiagnostics.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/PermissionDiagnostics.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/PermissionDiagnostics.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/PermissionDiagnostics.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/PermissionDiagnostics.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/PermissionDiagnostics.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/PermissionDiagnostics~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Permissions/ScreenRecordingPermission.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenRecordingPermission.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenRecordingPermission.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenRecordingPermission.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenRecordingPermission.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenRecordingPermission.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenRecordingPermission.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenRecordingPermission.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenRecordingPermission~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Preferences/HUDPlacement.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/HUDPlacement.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/HUDPlacement.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/HUDPlacement.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/HUDPlacement.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/HUDPlacement.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/HUDPlacement.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/HUDPlacement.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/HUDPlacement~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Recording/OverlayEventTap.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEventTap.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEventTap.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEventTap.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEventTap.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEventTap.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEventTap.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEventTap.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEventTap~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Recording/OverlayEvents.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEvents.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEvents.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEvents.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEvents.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEvents.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEvents.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEvents.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayEvents~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Recording/OverlayPreviewWindowController.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayPreviewWindowController.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayPreviewWindowController.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayPreviewWindowController.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayPreviewWindowController.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayPreviewWindowController.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayPreviewWindowController.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayPreviewWindowController.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/OverlayPreviewWindowController~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Recording/RecordingProtocol.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/RecordingProtocol.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/RecordingProtocol.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/RecordingProtocol.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/RecordingProtocol.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/RecordingProtocol.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/RecordingProtocol.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/RecordingProtocol.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/RecordingProtocol~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Recording/ScreenCaptureKitRecorder.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenCaptureKitRecorder.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenCaptureKitRecorder.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenCaptureKitRecorder.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenCaptureKitRecorder.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenCaptureKitRecorder.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenCaptureKitRecorder.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenCaptureKitRecorder.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/ScreenCaptureKitRecorder~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Recording/SystemScreencaptureRecorder.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureRecorder.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureRecorder.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureRecorder.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureRecorder.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureRecorder.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureRecorder.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureRecorder.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureRecorder~partial.swiftmodule"
+  },
+  "/Users/portablesheep/snipsnap/Sources/Recording/SystemScreencaptureScreenshotter.swift" : {
+    "const-values" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureScreenshotter.swiftconstvalues",
+    "dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureScreenshotter.d",
+    "diagnostics" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureScreenshotter.dia",
+    "index-unit-output-path" : "/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureScreenshotter.o",
+    "llvm-bc" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureScreenshotter.bc",
+    "object" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureScreenshotter.o",
+    "swift-dependencies" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureScreenshotter.swiftdeps",
+    "swiftmodule" : "/Users/portablesheep/snipsnap/.derivedData/Build/Intermediates.noindex/SnipSnapMac.build/Debug/SnipSnapCaptureAgent.build/Objects-normal/arm64/SystemScreencaptureScreenshotter~partial.swiftmodule"
+  }
+}

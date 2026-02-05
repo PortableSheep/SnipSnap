@@ -1,0 +1,87 @@
+name: SnipSnapMac
+options:
+  bundleIdPrefix: com.snipsnap
+settings:
+  base:
+    MACOSX_DEPLOYMENT_TARGET: 13.0
+    SWIFT_VERSION: 5.0
+    # Local dev signing (no Apple Developer Program required).
+    # Create a self-signed Code Signing certificate in Keychain Access matching
+    # `SNIPSNAP_CODE_SIGN_IDENTITY` and trust it, then regenerate the project.
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Manual
+    SNIPSNAP_CODE_SIGN_IDENTITY: "SnipSnap Local Dev"
+    CODE_SIGN_IDENTITY: "$(SNIPSNAP_CODE_SIGN_IDENTITY)"
+    CODE_SIGNING_ALLOWED: YES
+    CODE_SIGNING_REQUIRED: YES
+    # Prevent entitlement injection that changes the signature hash between builds
+    CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+    # Use anchor-based designated requirement so TCC recognizes rebuilds as the same app
+    OTHER_CODE_SIGN_FLAGS: "--timestamp=none -o runtime"
+    INFOPLIST_FILE: Info.plist
+  configs:
+    Debug:
+      # Disable Swift debug dylib to avoid code signing mismatch with self-signed certificate.
+      # The dylib gets signed with ad-hoc identity before our signing runs, causing Team ID errors.
+      SWIFT_ENABLE_INCREMENTAL_COMPILATION: NO
+
+targets:
+  SnipSnapMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources
+        excludes:
+          - "**/CaptureAgentClient.swift"
+    dependencies:
+      - target: CaptureService
+        embed: true
+        codeSign: true
+        copyPhase:
+          destination: xpcServices
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.snipsnap.Snipsnap
+    entitlements:
+      path: SnipSnapMac.entitlements
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: SnipSnap
+        CFBundleName: SnipSnap
+        CFBundleShortVersionString: 0.1.0
+        CFBundleVersion: "1"
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHumanReadableCopyright: ""
+        NSHighResolutionCapable: true
+        LSUIElement: true
+        NSScreenCaptureUsageDescription: SnipSnap needs Screen Recording permission to capture your screen.
+
+  CaptureService:
+    type: xpc-service
+    platform: macOS
+    sources:
+      - path: CaptureServiceXPC
+      - path: Sources/IPC/CaptureServiceProtocol.swift
+      - path: Sources/Recording
+      - path: Sources/Permissions
+      - path: Sources/Preferences/HUDPlacement.swift
+    settings:
+      base:
+        PRODUCT_NAME: com.snipsnap.CaptureService
+        PRODUCT_BUNDLE_IDENTIFIER: com.snipsnap.CaptureService
+        INFOPLIST_FILE: CaptureServiceXPC/Info.plist
+        SKIP_INSTALL: YES
+    entitlements:
+      path: CaptureServiceXPC/CaptureService.entitlements
+    info:
+      path: CaptureServiceXPC/Info.plist
+      properties:
+        CFBundleDisplayName: SnipSnap Capture Service
+        CFBundleName: CaptureService
+        CFBundleShortVersionString: 0.1.0
+        CFBundleVersion: "1"
+        CFBundlePackageType: XPC!
+        XPCService:
+          ServiceType: Application
+        NSScreenCaptureUsageDescription: SnipSnap needs Screen Recording permission to capture your screen.

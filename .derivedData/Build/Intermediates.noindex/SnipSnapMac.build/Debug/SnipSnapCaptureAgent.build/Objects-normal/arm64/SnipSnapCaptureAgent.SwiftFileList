@@ -1,0 +1,16 @@
+/Users/portablesheep/snipsnap/Sources/Permissions/AccessibilityPermission.swift
+/Users/portablesheep/snipsnap/Sources/IPC/CaptureAgentIPC.swift
+/Users/portablesheep/snipsnap/Sources/IPC/CaptureAgentOverlaySettings.swift
+/Users/portablesheep/snipsnap/CaptureAgentSources/CaptureAgentServer.swift
+/Users/portablesheep/snipsnap/Sources/Preferences/HUDPlacement.swift
+/Users/portablesheep/snipsnap/Sources/Permissions/InputMonitoringPermission.swift
+/Users/portablesheep/snipsnap/Sources/Recording/OverlayEventTap.swift
+/Users/portablesheep/snipsnap/Sources/Recording/OverlayEvents.swift
+/Users/portablesheep/snipsnap/Sources/Recording/OverlayPreviewWindowController.swift
+/Users/portablesheep/snipsnap/Sources/Permissions/PermissionDiagnostics.swift
+/Users/portablesheep/snipsnap/Sources/Recording/RecordingProtocol.swift
+/Users/portablesheep/snipsnap/Sources/Recording/ScreenCaptureKitRecorder.swift
+/Users/portablesheep/snipsnap/Sources/Permissions/ScreenRecordingPermission.swift
+/Users/portablesheep/snipsnap/Sources/Recording/SystemScreencaptureRecorder.swift
+/Users/portablesheep/snipsnap/Sources/Recording/SystemScreencaptureScreenshotter.swift
+/Users/portablesheep/snipsnap/CaptureAgentSources/main.swift
