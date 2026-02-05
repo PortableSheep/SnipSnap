@@ -12,11 +12,21 @@ A native macOS screen capture and annotation app built with Swift and AppKit. Li
 
 **Pro stuff:** GIF export, video trimming, OCR indexing, cloud sync, annotation templates.
 
-## Building
+## Installation
+
+Install the latest release with a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/portablesheep/snipsnap/main/scripts/install.sh | bash
+```
+
+Or download the DMG/ZIP from the [Releases](https://github.com/portablesheep/snipsnap/releases) page.
+
+## Building from Source
 
 Requires Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
-```
+```bash
 brew install xcodegen
 xcodegen generate
 open SnipSnapMac.xcodeproj
