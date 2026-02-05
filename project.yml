@@ -31,8 +31,6 @@ targets:
     platform: macOS
     sources:
       - path: Sources
-        excludes:
-          - "**/CaptureAgentClient.swift"
     dependencies:
       - target: CaptureService
         embed: true
