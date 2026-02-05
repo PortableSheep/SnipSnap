@@ -1,81 +1,72 @@
-# SnipSnapMac (native macOS pivot)
+# SnipSnap
 
-This folder is the start of a macOS-native Swift/AppKit app.
+A native macOS screen capture and annotation app built with Swift and AppKit. Lives in your menu bar.
 
-## Why XcodeGen?
-We keep the project file generated from `project.yml` so it’s easy to review changes in git.
+## What it does
 
-## Prereqs
-- Xcode installed
-- Install XcodeGen: `brew install xcodegen`
+**Capture:** Record your screen or capture regions/windows. Uses ScreenCaptureKit under the hood. Optional click and keystroke overlays baked into recordings.
 
-## Generate + Run
-From repo root:
+**Annotate:** Full-featured image editor with arrows, shapes, blur/pixelate, numbered steps, callouts, text, freehand marker, spotlight, and more. Pixel-aware measurement tool too.
 
-- `xcodegen generate`
-- Open `SnipSnapMac.xcodeproj` in Xcode.
-- Run the `SnipSnapMac` scheme.
+**Organize:** Captures show up in a dockable strip that snaps to screen edges. Click to edit, drag to present.
 
-## Dev permissions (Capture Agent)
-If you’re developing without stable signing, macOS privacy grants (Screen Recording / Accessibility / Input Monitoring) can re-prompt frequently.
+**Pro stuff:** GIF export, video trimming, OCR indexing, cloud sync, annotation templates.
 
-To make iteration smoother, capture runs in a separate helper app target:
+## Building
 
-- Run the `SnipSnapCaptureAgent` scheme once and grant permissions to the agent.
-- Then run `SnipSnapMac` normally; it sends capture commands to the agent via local IPC.
-- Rebuild the main app as often as you want; avoid rebuilding the agent unless needed.
+Requires Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
-## Local code signing (self-signed)
-If Screen Recording permission won’t “stick” while ad-hoc signed, use a self-signed Code Signing certificate so the app has a stable signing identity across rebuilds.
+```
+brew install xcodegen
+xcodegen generate
+open SnipSnapMac.xcodeproj
+```
 
-1) Create a self-signed Code Signing certificate
-- Open **Keychain Access** → **Certificate Assistant** → **Create a Certificate…**
-- Name: `SnipSnap Local Dev` (must match `SNIPSNAP_CODE_SIGN_IDENTITY` in `project.yml`)
-- Identity Type: **Self Signed Root**
-- Certificate Type: **Code Signing**
-- Create it in your **login** keychain
+Run the `SnipSnapMac` scheme.
 
-2) Trust it
-- In Keychain Access, find the certificate → double click → **Trust** → set to **Always Trust**
+## Self-signed certificate (recommended for dev)
 
-3) Regenerate + build
-- `xcodegen generate`
-- Build/run `SnipSnapCaptureAgent` once, then enable permissions for the agent.
+macOS ties Screen Recording permission to your app's code signature. With ad-hoc signing, permission resets every time you rebuild. To avoid this:
 
-If you want to change the cert name later, update `SNIPSNAP_CODE_SIGN_IDENTITY` in `project.yml` and regenerate.
+1. Open Keychain Access → Certificate Assistant → Create a Certificate
+2. Name it `SnipSnap Local Dev`, type Self Signed Root, certificate type Code Signing
+3. Double-click the cert → Trust → Always Trust
+4. Regenerate the project (`xcodegen generate`)
 
-## Dev install (stable path)
-Some macOS privacy permissions behave more reliably when the app lives at a stable path (instead of changing DerivedData build locations).
-
-This repo’s `project.yml` includes a post-build step that copies the built apps into a stable Applications folder:
-
-- Default install dir: `~/Applications`
-- Override install dir: set env var `SNIPSNAP_DEV_INSTALL_DIR` (e.g. `/Applications` if you have write access)
-
-To enable it:
-
-- Run `xcodegen generate` (regenerates the Xcode project with the build script)
-
-To debug the installed copy from Xcode:
-
-- Xcode → Product → Scheme → Edit Scheme… → Run → Executable → “Other…”
-- Pick `~/Applications/SnipSnap.app` (or your `SNIPSNAP_DEV_INSTALL_DIR`)
-
-This keeps the bundle location stable while still using the debugger.
-
-## Current functionality
-- Menu bar app (no dock icon)
-- Start/Stop screen recording (native ScreenCaptureKit + AVAssetWriter pipeline)
-- Saves recordings into `~/Library/Application Support/SnipSnap/captures/`
-- Dockable thumbnail strip window (drag near an edge to snap: left/right/top/bottom)
-- Global hotkeys:
-	- Cmd+Shift+6: start/stop recording
-	- Cmd+Shift+S: show/hide strip
-- Preferences (Cmd+,): click ripple color, HUD placement, overlay toggles
-	- Includes live preview + tabs (Recording / Overlays / Hotkeys / About)
+The project already references this identity in `project.yml`. Change `SNIPSNAP_CODE_SIGN_IDENTITY` if you use a different name.
 
 ## Permissions
-- Screen Recording: required for recording; macOS will prompt.
-- Accessibility: required for global hotkeys on many setups, and for click/keystroke overlays.
 
-Next step is adding overlays (clicks + keystrokes) and then bringing over annotations.
+The app will prompt for:
+
+- **Screen Recording** – required for capture
+- **Accessibility** – required for global hotkeys and overlay event capture
+
+## Hotkeys
+
+Defaults (configurable in Preferences):
+
+| Action | Shortcut |
+|--------|----------|
+| Start/stop recording | ⌘⇧6 |
+| Show/hide strip | ⌘⇧S |
+| Capture region | ⌘⇧4 |
+| Capture window | ⌘⇧5 |
+
+## Project layout
+
+```
+Sources/
+  App/         – Main app (menu bar, capture coordination)
+  Editor/      – Annotation editor and canvas
+  Strip/       – Thumbnail strip window
+  Recording/   – ScreenCaptureKit + AVAssetWriter pipeline
+  Hotkeys/     – Global hotkey registration
+  Pro/         – GIF export, OCR, cloud sync, templates
+  Preferences/ – Settings UI
+  Licensing/   – License validation
+
+CaptureServiceXPC/  – XPC service for capture (stable signing target)
+```
+
+Captures are stored in `~/Library/Application Support/SnipSnap/captures/`.
