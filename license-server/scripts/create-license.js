@@ -19,8 +19,11 @@ if (!signingKey) {
   process.exit(1);
 }
 
-// Build payload
+const signingKeyId = process.env.SIGNING_KEY_ID || 'v1';
+
+// Build payload with key ID for rotation support
 const payload = {
+  kid: signingKeyId,
   product: 'snipsnap-pro',
   email: email,
   issuedAt: Math.floor(Date.now() / 1000),

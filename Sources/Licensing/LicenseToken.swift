@@ -2,12 +2,23 @@ import CryptoKit
 import Foundation
 
 struct LicenseToken: Codable {
+  var kid: String?  // Key ID for key rotation support
   var product: String
   var email: String?
   var issuedAt: Int?
   var features: [String]?
 
   static let expectedProduct = "snipsnap-pro"
+
+  // Public keys indexed by key ID. Add new keys here when rotating.
+  // Old keys remain so existing licenses continue to work.
+  // Format: "kid": "base64-encoded-32-byte-ed25519-public-key"
+  private static let publicKeys: [String: String] = [
+    // Default key (v1) - replace REPLACE_ME with your actual public key from generate-keys
+    "v1": "REPLACE_ME_PUBLIC_KEY_BASE64"
+    // When rotating keys, add new entry:
+    // "v2": "new-public-key-base64"
+  ]
 
   static func verifyAndDecode(_ token: String) -> LicenseToken? {
     // Token format: base64url(payload).base64url(signature)
@@ -17,11 +28,21 @@ struct LicenseToken: Codable {
     guard let payloadData = Data(base64URLEncoded: String(parts[0])) else { return nil }
     guard let sigData = Data(base64URLEncoded: String(parts[1])) else { return nil }
 
-    // Public key (Curve25519) for production signing.
-    // Replace with your real public key when you start issuing licenses.
-    // NOTE: This is intentionally a placeholder; without a matching private key, tokens won't validate.
-    let publicKeyBase64 = "REPLACE_ME_PUBLIC_KEY_BASE64"
+    // Decode payload first to get kid
+    let decoded: LicenseToken
+    do {
+      decoded = try JSONDecoder().decode(LicenseToken.self, from: payloadData)
+    } catch {
+      return nil
+    }
 
+    // Look up public key by kid (default to "v1" for backwards compatibility)
+    let kid = decoded.kid ?? "v1"
+    guard let publicKeyBase64 = publicKeys[kid] else {
+      return nil  // Unknown key ID
+    }
+
+    // Check for placeholder
     guard publicKeyBase64 != "REPLACE_ME_PUBLIC_KEY_BASE64" else { return nil }
     guard let pubData = Data(base64Encoded: publicKeyBase64) else { return nil }
 
@@ -29,7 +50,6 @@ struct LicenseToken: Codable {
       let pub = try Curve25519.Signing.PublicKey(rawRepresentation: pubData)
       guard pub.isValidSignature(sigData, for: payloadData) else { return nil }
 
-      let decoded = try JSONDecoder().decode(LicenseToken.self, from: payloadData)
       guard decoded.product == expectedProduct else { return nil }
       return decoded
 

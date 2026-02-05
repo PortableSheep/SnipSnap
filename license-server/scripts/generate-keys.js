@@ -31,6 +31,7 @@ console.log(adminSecret);
 // Save to .env file (gitignored)
 const envContent = `# License server secrets - DO NOT COMMIT
 SIGNING_KEY=${privBase64}
+SIGNING_KEY_ID=v1
 ADMIN_SECRET=${adminSecret}
 `;
 
@@ -43,6 +44,13 @@ if (existsSync('.env')) {
 }
 
 console.log('\n=== NEXT STEPS ===');
-console.log('1. Copy PUBLIC KEY to Sources/Licensing/LicenseToken.swift');
-console.log('2. Add SIGNING_KEY and ADMIN_SECRET to Railway environment variables');
-console.log('3. Deploy: railway up (or connect GitHub repo)\n');
+console.log('1. Copy PUBLIC KEY to Sources/Licensing/LicenseToken.swift (in publicKeys["v1"])');
+console.log('2. Add SIGNING_KEY, SIGNING_KEY_ID, and ADMIN_SECRET to Railway environment variables');
+console.log('3. Deploy: railway up (or connect GitHub repo)');
+console.log('\n=== KEY ROTATION ===');
+console.log('When you need to rotate keys:');
+console.log('1. Run generate-keys again to get a new keypair');
+console.log('2. Add new public key to LicenseToken.swift as "v2" (keep "v1")');
+console.log('3. Ship app update with both keys');
+console.log('4. Update SIGNING_KEY and set SIGNING_KEY_ID=v2 on server');
+console.log('5. Old licenses (signed with v1) continue to work\n');

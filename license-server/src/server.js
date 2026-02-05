@@ -10,6 +10,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 const SIGNING_KEY = process.env.SIGNING_KEY;
+const SIGNING_KEY_ID = process.env.SIGNING_KEY_ID || 'v1';  // Key ID for rotation support
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 // Health check
@@ -35,8 +36,9 @@ app.post('/api/create-license', (req, res) => {
   }
 
   try {
-    // Build payload
+    // Build payload with key ID for rotation support
     const payload = {
+      kid: SIGNING_KEY_ID,
       product: 'snipsnap-pro',
       email: email,
       issuedAt: Math.floor(Date.now() / 1000),

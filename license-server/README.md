@@ -40,6 +40,7 @@ npm run create-license -- user@example.com
 2. Connect your GitHub repo or use `railway up`
 3. Add environment variables in Railway dashboard:
    - `SIGNING_KEY` - your private key (from generate-keys)
+   - `SIGNING_KEY_ID` - key version, e.g. `v1` (for key rotation)
    - `ADMIN_SECRET` - your admin secret (from generate-keys)
 4. Railway auto-detects Node.js and runs `npm start`
 
@@ -61,6 +62,7 @@ Response:
 {
   "token": "eyJwcm9k...signature",
   "payload": {
+    "kid": "v1",
     "product": "snipsnap-pro",
     "email": "user@example.com",
     "issuedAt": 1707091200,
@@ -76,3 +78,30 @@ Response:
 - Admin secret required for all license creation
 - Licenses are validated offline in the app (no network calls needed)
 - All communication over HTTPS (Railway provides SSL automatically)
+
+## Key Rotation
+
+Tokens include a `kid` (key ID) field that enables key rotation without invalidating existing licenses.
+
+**To rotate keys:**
+
+1. Generate a new keypair:
+   ```bash
+   npm run generate-keys
+   ```
+
+2. Add the new public key to `Sources/Licensing/LicenseToken.swift`:
+   ```swift
+   private static let publicKeys: [String: String] = [
+     "v1": "old-public-key-base64",  // Keep existing key
+     "v2": "new-public-key-base64"   // Add new key
+   ]
+   ```
+
+3. Ship an app update with both keys
+
+4. Update Railway environment variables:
+   - `SIGNING_KEY` = new private key
+   - `SIGNING_KEY_ID` = `v2`
+
+5. New licenses will use v2, old licenses (v1) continue to work
