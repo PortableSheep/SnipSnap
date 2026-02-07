@@ -25,8 +25,17 @@ enum ImageFilters {
 
     let ci = CIImage(cgImage: source)
 
-    // Crop region (CI uses bottom-left origin in pixel coords; our coords match CG drawing space)
-    let cropped = ci.cropped(to: r)
+    // Convert rect from Core Graphics coordinates (top-left origin)
+    // to Core Image coordinates (bottom-left origin)
+    let ciRect = CGRect(
+      x: r.minX,
+      y: sourceH - r.maxY,
+      width: r.width,
+      height: r.height
+    )
+
+    // Crop region using CI coordinates
+    let cropped = ci.cropped(to: ciRect)
 
     let out: CIImage
     switch mode {
@@ -34,14 +43,14 @@ enum ImageFilters {
       let f = CIFilter.pixellate()
       f.inputImage = cropped
       f.scale = Float(max(1, amount))
-      // Pixellate also expands; re-crop.
-      out = (f.outputImage ?? cropped).cropped(to: r)
+      // Pixellate also expands; re-crop to CI coordinates
+      out = (f.outputImage ?? cropped).cropped(to: ciRect)
       
     case .redact:
       // For "redact" mode, return nil - will be drawn as a filled rect
       return nil
     }
 
-    return ciContext.createCGImage(out, from: r)
+    return ciContext.createCGImage(out, from: ciRect)
   }
 }
