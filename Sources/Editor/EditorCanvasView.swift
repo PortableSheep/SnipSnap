@@ -48,41 +48,35 @@ struct EditorCanvasView: View {
   }
 
   private func drawBaseImage(context: inout GraphicsContext, size: CGSize) {
-    let imageRect = fitRect(imageSize: doc.imageSize, in: size)
+    let baseImageRect = fitRect(imageSize: doc.imageSize, in: size)
     
-    // Calculate frame dimensions if mac window is enabled
-    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding : 0
-    let scale = imageRect.width / doc.imageSize.width
-    let scaledPadding = padding * scale
+    // Calculate dimensions
+    let scale = baseImageRect.width / doc.imageSize.width
+    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
+    let titleBarHeight: CGFloat = doc.showMacWindow ? 28 * scale : 0
+    let windowMargin: CGFloat = doc.showMacWindow ? 8 * scale : 0
     
-    var actualImageRect = imageRect
-    var frameRect = imageRect
-    var backgroundRect = imageRect.insetBy(dx: -scaledPadding, dy: -scaledPadding)
+    // Calculate the total frame that includes window chrome, padding, and margin
+    let totalFrameRect = CGRect(
+      x: baseImageRect.minX - padding - windowMargin,
+      y: baseImageRect.minY - padding - windowMargin - titleBarHeight,
+      width: baseImageRect.width + padding * 2 + windowMargin * 2,
+      height: baseImageRect.height + padding * 2 + windowMargin * 2 + titleBarHeight
+    )
     
-    if doc.showMacWindow {
-      // Add window chrome dimensions
-      let titleBarHeight: CGFloat = 28 * scale
-      let windowPadding: CGFloat = 0
-      
-      frameRect = CGRect(
-        x: imageRect.minX - windowPadding - scaledPadding,
-        y: imageRect.minY - windowPadding - scaledPadding,
-        width: imageRect.width + windowPadding * 2 + scaledPadding * 2,
-        height: imageRect.height + titleBarHeight + windowPadding + scaledPadding * 2
-      )
-      
-      actualImageRect = CGRect(
-        x: frameRect.minX,
-        y: frameRect.minY,
-        width: frameRect.width,
-        height: frameRect.height - titleBarHeight
-      )
-      
-      backgroundRect = frameRect
-    }
+    // The actual image rect (where screenshot goes) - below title bar, inside window/padding
+    let imageRect = CGRect(
+      x: totalFrameRect.minX + windowMargin,
+      y: totalFrameRect.minY + titleBarHeight + windowMargin,
+      width: totalFrameRect.width - windowMargin * 2,
+      height: totalFrameRect.height - titleBarHeight - windowMargin * 2
+    )
     
-    // If background is set, draw it first
-    if doc.backgroundStyle != .none || doc.showMacWindow {
+    // Background rect (for wallpaper/gradient) - inside window but fills all content area
+    let backgroundRect = imageRect.insetBy(dx: -padding, dy: -padding)
+    
+    // Draw background (wallpaper, gradient, etc.) if enabled
+    if doc.backgroundStyle != .none {
       
       // Draw background
       switch doc.backgroundStyle {
@@ -131,7 +125,7 @@ struct EditorCanvasView: View {
       
       // Draw shadow if enabled
       if doc.backgroundShadowEnabled {
-        let shadowTargetRect = doc.showMacWindow ? frameRect : imageRect
+        let shadowTargetRect = backgroundRect
         context.drawLayer { ctx in
           ctx.addFilter(.shadow(color: .black.opacity(doc.backgroundShadowOpacity), radius: doc.backgroundShadowRadius * scale))
           ctx.fill(Path(shadowTargetRect), with: .color(.white))
@@ -142,37 +136,39 @@ struct EditorCanvasView: View {
     // Draw macOS window frame if enabled
     if doc.showMacWindow {
       let cornerRadius: CGFloat = 10 * scale
-      let titleBarHeight: CGFloat = 28 * scale
+      let windowRect = totalFrameRect.insetBy(dx: windowMargin, dy: windowMargin)
       
-      // Window background
+      // Window background with rounded corners
       let windowColor = doc.macWindowColor
       context.fill(
-        Path(roundedRect: frameRect, cornerRadius: cornerRadius),
+        Path(roundedRect: windowRect, cornerRadius: cornerRadius),
         with: .color(windowColor)
       )
       
-      // Title bar
+      // Title bar at the TOP
       let titleBarRect = CGRect(
-        x: frameRect.minX,
-        y: frameRect.maxY - titleBarHeight,
-        width: frameRect.width,
+        x: windowRect.minX,
+        y: windowRect.minY,
+        width: windowRect.width,
         height: titleBarHeight
       )
+      
+      // Title bar background (slightly darker)
       context.fill(
         Path(titleBarRect),
-        with: .color(windowColor.opacity(0.98))
+        with: .color(windowColor.opacity(0.96))
       )
       
-      // Traffic lights
+      // Traffic lights at top left
       let lightRadius: CGFloat = 6 * scale
-      let lightY = titleBarRect.midY
+      let lightY = titleBarRect.minY + titleBarHeight / 2
       let lightColors: [Color] = [
         Color(red: 1, green: 0.38, blue: 0.35),  // Red
         Color(red: 1, green: 0.78, blue: 0.25),  // Yellow
         Color(red: 0.15, green: 0.8, blue: 0.25)  // Green
       ]
       for (i, color) in lightColors.enumerated() {
-        let x = frameRect.minX + 14 * scale + CGFloat(i) * 20 * scale
+        let x = windowRect.minX + 14 * scale + CGFloat(i) * 20 * scale
         let circleRect = CGRect(
           x: x - lightRadius,
           y: lightY - lightRadius,
@@ -183,18 +179,32 @@ struct EditorCanvasView: View {
       }
     }
     
-    // Draw the actual image
-    context.draw(Image(decorative: doc.cgImage, scale: 1), in: actualImageRect)
+    // Draw the actual screenshot image (properly positioned)
+    let finalImageRect = backgroundRect.insetBy(dx: padding, dy: padding)
+    context.draw(Image(decorative: doc.cgImage, scale: 1), in: finalImageRect)
   }
 
   private func drawAnnotations(context: inout GraphicsContext, size: CGSize) {
-    let rect = fitRect(imageSize: doc.imageSize, in: size)
-    let scale = rect.width / doc.imageSize.width
+    let baseImageRect = fitRect(imageSize: doc.imageSize, in: size)
+    let scale = baseImageRect.width / doc.imageSize.width
+    
+    // Calculate the actual image rect accounting for window chrome and padding
+    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
+    let titleBarHeight: CGFloat = doc.showMacWindow ? 28 * scale : 0
+    let windowMargin: CGFloat = doc.showMacWindow ? 8 * scale : 0
+    
+    // The actual image position (where annotations should be drawn)
+    let actualImageRect = CGRect(
+      x: baseImageRect.minX + windowMargin + padding,
+      y: baseImageRect.minY + titleBarHeight + windowMargin + padding,
+      width: baseImageRect.width,
+      height: baseImageRect.height
+    )
 
     // Blur/pixelate first (underlays)
     for a in doc.annotations {
       if case .blur = a {
-        draw(annotation: a, context: &context, scale: scale, offset: rect.origin)
+        draw(annotation: a, context: &context, scale: scale, offset: actualImageRect.origin)
       }
     }
 
@@ -204,23 +214,23 @@ struct EditorCanvasView: View {
       return nil
     }
     if !spotlights.isEmpty {
-      drawCombinedSpotlights(spotlights, context: &context, scale: scale, offset: rect.origin)
+      drawCombinedSpotlights(spotlights, context: &context, scale: scale, offset: actualImageRect.origin)
     }
 
     // Then all other overlays (skip spotlights, already drawn)
     for a in doc.annotations {
       if case .blur = a { continue }
       if case .spotlight = a { continue }
-      draw(annotation: a, context: &context, scale: scale, offset: rect.origin)
+      draw(annotation: a, context: &context, scale: scale, offset: actualImageRect.origin)
     }
 
     // Selection outline always on top
     if let sel = doc.selectedID, let a = doc.annotations.first(where: { $0.id == sel }) {
-      drawSelection(for: a, context: &context, scale: scale, offset: rect.origin)
+      drawSelection(for: a, context: &context, scale: scale, offset: actualImageRect.origin)
     }
 
     // Draw redaction suggestion indicators
-    drawRedactionSuggestions(context: &context, scale: scale, offset: rect.origin)
+    drawRedactionSuggestions(context: &context, scale: scale, offset: actualImageRect.origin)
   }
 
   /// Draws dashed outlines around detected sensitive areas
@@ -323,9 +333,22 @@ struct EditorCanvasView: View {
     guard activeSelectInteraction == nil else { return }
     guard let start = dragStartImagePoint, let curr = dragCurrentImagePoint else { return }
 
-    let rectFit = fitRect(imageSize: doc.imageSize, in: size)
-    let scale = rectFit.width / doc.imageSize.width
-    let offset = rectFit.origin
+    let baseImageRect = fitRect(imageSize: doc.imageSize, in: size)
+    let scale = baseImageRect.width / doc.imageSize.width
+    
+    // Calculate the actual image rect accounting for window chrome and padding
+    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
+    let titleBarHeight: CGFloat = doc.showMacWindow ? 28 * scale : 0
+    let windowMargin: CGFloat = doc.showMacWindow ? 8 * scale : 0
+    
+    let actualImageRect = CGRect(
+      x: baseImageRect.minX + windowMargin + padding,
+      y: baseImageRect.minY + titleBarHeight + windowMargin + padding,
+      width: baseImageRect.width,
+      height: baseImageRect.height
+    )
+    
+    let offset = actualImageRect.origin
 
     if let tool = ToolRegistry.tool(for: doc.tool), tool.capabilities.contains(.usesDrag), let preview = tool.preview(doc: doc, start: start, current: curr, isShiftDown: isShiftDown) {
       draw(annotation: preview, context: &context, scale: scale, offset: offset)
@@ -546,10 +569,11 @@ struct EditorCanvasView: View {
   private func fitRect(imageSize: CGSize, in viewSize: CGSize) -> CGRect {
     // Calculate total size including background padding and window frame
     let padding = doc.backgroundStyle != .none ? doc.backgroundPadding : 0
-    let windowTitleBar: CGFloat = doc.showMacWindow ? 28 : 0
+    let titleBarHeight: CGFloat = doc.showMacWindow ? 28 : 0
+    let windowMargin: CGFloat = doc.showMacWindow ? 8 : 0
     
-    let totalWidth = imageSize.width + (padding * 2)
-    let totalHeight = imageSize.height + (padding * 2) + windowTitleBar
+    let totalWidth = imageSize.width + (padding * 2) + (windowMargin * 2)
+    let totalHeight = imageSize.height + (padding * 2) + (windowMargin * 2) + titleBarHeight
     
     let scale = min(viewSize.width / totalWidth, viewSize.height / totalHeight)
     let w = imageSize.width * scale
@@ -560,16 +584,42 @@ struct EditorCanvasView: View {
   }
 
   private func viewToImage(point: CGPoint, viewSize: CGSize) -> CGPoint {
-    let rect = fitRect(imageSize: doc.imageSize, in: viewSize)
-    let scale = rect.width / doc.imageSize.width
-    let p = CGPoint(x: (point.x - rect.minX) / scale, y: (point.y - rect.minY) / scale)
+    let baseImageRect = fitRect(imageSize: doc.imageSize, in: viewSize)
+    let scale = baseImageRect.width / doc.imageSize.width
+    
+    // Calculate the actual image rect accounting for window chrome and padding
+    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
+    let titleBarHeight: CGFloat = doc.showMacWindow ? 28 * scale : 0
+    let windowMargin: CGFloat = doc.showMacWindow ? 8 * scale : 0
+    
+    let actualImageRect = CGRect(
+      x: baseImageRect.minX + windowMargin + padding,
+      y: baseImageRect.minY + titleBarHeight + windowMargin + padding,
+      width: baseImageRect.width,
+      height: baseImageRect.height
+    )
+    
+    let p = CGPoint(x: (point.x - actualImageRect.minX) / scale, y: (point.y - actualImageRect.minY) / scale)
     return CGPoint(x: max(0, min(doc.imageSize.width, p.x)), y: max(0, min(doc.imageSize.height, p.y)))
   }
 
   private func imageToView(point: CGPoint, viewSize: CGSize) -> CGPoint {
-    let rect = fitRect(imageSize: doc.imageSize, in: viewSize)
-    let scale = rect.width / doc.imageSize.width
-    return CGPoint(x: rect.minX + point.x * scale, y: rect.minY + point.y * scale)
+    let baseImageRect = fitRect(imageSize: doc.imageSize, in: viewSize)
+    let scale = baseImageRect.width / doc.imageSize.width
+    
+    // Calculate the actual image rect accounting for window chrome and padding
+    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
+    let titleBarHeight: CGFloat = doc.showMacWindow ? 28 * scale : 0
+    let windowMargin: CGFloat = doc.showMacWindow ? 8 * scale : 0
+    
+    let actualImageRect = CGRect(
+      x: baseImageRect.minX + windowMargin + padding,
+      y: baseImageRect.minY + titleBarHeight + windowMargin + padding,
+      width: baseImageRect.width,
+      height: baseImageRect.height
+    )
+    
+    return CGPoint(x: actualImageRect.minX + point.x * scale, y: actualImageRect.minY + point.y * scale)
   }
 
   // Tool preview/commit math lives in ToolRegistry.
