@@ -60,7 +60,7 @@ enum EditorRenderer {
     guard let annotatedImage = renderAnnotatedCGImage(doc: doc) else { return nil }
 
     // If no background or device frame, return simple annotated image
-    if doc.backgroundStyle == .none && doc.deviceFrame == .none {
+    if doc.backgroundStyle == .none && !doc.showMacWindow {
       return annotatedImage
     }
 
@@ -68,12 +68,12 @@ enum EditorRenderer {
     let imageH = CGFloat(annotatedImage.height)
     let padding = doc.backgroundStyle != .none ? doc.backgroundPadding : 0
     let cornerRadius = doc.backgroundCornerRadius
-    let hasDeviceFrame = doc.deviceFrame != .none
+    let hasDeviceFrame = doc.showMacWindow
 
     // Calculate device frame dimensions if applicable
     let (frameImageRect, frameRect, totalSize) = calculateFrameDimensions(
       imageSize: CGSize(width: imageW, height: imageH),
-      deviceFrame: doc.deviceFrame,
+      deviceFrame: doc.showMacWindow ? .window : .none,
       padding: padding
     )
 
@@ -116,9 +116,9 @@ enum EditorRenderer {
     // Draw device frame or rounded image
     if hasDeviceFrame {
       drawDeviceFrame(
-        frame: doc.deviceFrame,
-        frameColor: doc.deviceFrameColor,
-        customColor: doc.deviceFrameCustomColor,
+        frame: .window,
+        frameColor: .custom,
+        customColor: doc.macWindowColor,
         frameRect: frameRect,
         imageRect: frameImageRect,
         image: annotatedImage,

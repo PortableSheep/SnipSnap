@@ -177,94 +177,128 @@ struct EditorView: View {
   // MARK: - Redaction Suggestions Banner
 
   private var redactionSuggestionsBanner: some View {
-    HStack(spacing: 12) {
-      Image(systemName: "eye.trianglebadge.exclamationmark")
-        .foregroundColor(.orange)
-        .font(.system(size: 14))
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(spacing: 12) {
+        Image(systemName: "eye.trianglebadge.exclamationmark")
+          .foregroundColor(.orange)
+          .font(.system(size: 14))
 
-      if doc.suggestedRedactions.isEmpty {
-        Text("PII suggestions dismissed")
-          .font(.system(size: 12))
-          .foregroundColor(.secondary)
-      } else {
-        Text("**\(doc.suggestedRedactions.count)** sensitive item\(doc.suggestedRedactions.count == 1 ? "" : "s") detected")
-          .font(.system(size: 12))
+        if doc.suggestedRedactions.isEmpty {
+          Text("PII suggestions dismissed")
+            .font(.system(size: 12))
+            .foregroundColor(.secondary)
+        } else {
+          Text("**\(doc.suggestedRedactions.count)** sensitive item\(doc.suggestedRedactions.count == 1 ? "" : "s") detected")
+            .font(.system(size: 12))
+        }
 
-        // Show what was found
-        HStack(spacing: 6) {
-          ForEach(doc.suggestedRedactions.prefix(3)) { suggestion in
-            HStack(spacing: 3) {
-              Image(systemName: suggestion.icon)
-                .font(.system(size: 10))
-              Text(truncatedMatch(suggestion.matchedText))
-                .font(.system(size: 11, design: .monospaced))
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Color.orange.opacity(0.15))
-            .cornerRadius(4)
-          }
-          if doc.suggestedRedactions.count > 3 {
-            Text("+\(doc.suggestedRedactions.count - 3) more")
+        Spacer()
+        
+        // Redaction style picker (only when suggestions exist)
+        if !doc.suggestedRedactions.isEmpty {
+          HStack(spacing: 4) {
+            Text("as")
               .font(.system(size: 11))
               .foregroundColor(.secondary)
-          }
-        }
-      }
-
-      Spacer()
-      
-      // Redaction style picker (only when suggestions exist)
-      if !doc.suggestedRedactions.isEmpty {
-        HStack(spacing: 4) {
-          Text("as")
-            .font(.system(size: 11))
-            .foregroundColor(.secondary)
-          Picker("", selection: $doc.redactionStyle) {
-            ForEach(BlurMode.allCases) { mode in
-              Text(mode.label).tag(mode)
+            Picker("", selection: $doc.redactionStyle) {
+              ForEach(BlurMode.allCases) { mode in
+                Text(mode.label).tag(mode)
+              }
             }
+            .labelsHidden()
+            .frame(width: 100)
+            .font(.system(size: 12))
           }
-          .labelsHidden()
-          .frame(width: 100)
-          .font(.system(size: 12))
         }
-      }
 
-      // Actions
-      Button {
-        doc.loadRedactionSuggestions()
-      } label: {
-        Image(systemName: "arrow.clockwise")
-      }
-      .buttonStyle(.borderless)
-      .font(.system(size: 12))
-      .foregroundColor(.secondary)
-      .help("Reload PII suggestions")
-      
-      if !doc.suggestedRedactions.isEmpty {
-        Button("Dismiss All") {
-          doc.dismissAllRedactions()
+        // Actions
+        Button {
+          doc.loadRedactionSuggestions()
+        } label: {
+          Image(systemName: "arrow.clockwise")
         }
         .buttonStyle(.borderless)
         .font(.system(size: 12))
         .foregroundColor(.secondary)
-
-        Button {
-          doc.acceptAllRedactions()
-        } label: {
-          HStack(spacing: 4) {
-            Image(systemName: "eye.slash.fill")
-            Text("Redact All")
+        .help("Reload PII suggestions")
+        
+        if !doc.suggestedRedactions.isEmpty {
+          Button("Dismiss") {
+            doc.dismissAllRedactions()
           }
-          .font(.system(size: 12, weight: .medium))
-          .padding(.horizontal, 10)
-          .padding(.vertical, 4)
-          .background(Color.orange)
-          .foregroundColor(.white)
-          .cornerRadius(4)
+          .buttonStyle(.borderless)
+          .font(.system(size: 12))
+          .foregroundColor(.secondary)
+
+          Button {
+            doc.acceptAllRedactions()
+          } label: {
+            HStack(spacing: 4) {
+              Image(systemName: "eye.slash.fill")
+              Text("Apply")
+            }
+            .font(.system(size: 12, weight: .medium))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Color.orange)
+            .foregroundColor(.white)
+            .cornerRadius(4)
+          }
+          .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+      }
+      
+      // List of suggestions with checkboxes
+      if !doc.suggestedRedactions.isEmpty {
+        VStack(alignment: .leading, spacing: 4) {
+          ForEach(doc.suggestedRedactions) { suggestion in
+            HStack(spacing: 8) {
+              Button {
+                doc.toggleRedactionSelection(suggestion.id)
+              } label: {
+                Image(systemName: suggestion.isSelected ? "checkmark.square.fill" : "square")
+                  .foregroundColor(suggestion.isSelected ? .orange : .secondary)
+              }
+              .buttonStyle(.plain)
+              
+              HStack(spacing: 4) {
+                Image(systemName: suggestion.icon)
+                  .font(.system(size: 10))
+                  .foregroundColor(.secondary)
+                Text(suggestion.kind.rawValue)
+                  .font(.system(size: 11, weight: .medium))
+                  .foregroundColor(.secondary)
+                Text("•")
+                  .foregroundColor(.secondary.opacity(0.5))
+                Text(truncatedMatch(suggestion.matchedText))
+                  .font(.system(size: 11, design: .monospaced))
+                  .foregroundColor(.primary)
+              }
+              .padding(.horizontal, 6)
+              .padding(.vertical, 2)
+              .background(suggestion.isSelected ? Color.orange.opacity(0.15) : Color.clear)
+              .cornerRadius(4)
+              
+              Spacer()
+            }
+          }
+          
+          // Select/Deselect all controls
+          HStack(spacing: 12) {
+            Button("Select All") {
+              doc.selectAllRedactions()
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11))
+            
+            Button("Deselect All") {
+              doc.deselectAllRedactions()
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11))
+          }
+          .padding(.top, 2)
+        }
       }
     }
     .padding(.horizontal, 12)
@@ -701,38 +735,23 @@ struct EditorView: View {
 
   private var presentationInspector: some View {
     VStack(alignment: .leading, spacing: 12) {
-      // Device Frame
+      // Mac Window Frame
       VStack(alignment: .leading, spacing: 6) {
-        HStack {
-          Text("Device")
-            .frame(width: 60, alignment: .leading)
-          Picker("", selection: Binding(get: {
-            doc.deviceFrame
-          }, set: { newFrame in
-            doc.deviceFrame = newFrame
-          })) {
-            ForEach(DeviceFrame.allCases) { frame in
-              Label(frame.label, systemImage: frame.icon).tag(frame)
-            }
+        Toggle(isOn: $doc.showMacWindow) {
+          HStack {
+            Image(systemName: "macwindow")
+              .font(.system(size: 14))
+            Text("macOS Window")
           }
-          .labelsHidden()
         }
+        .toggleStyle(.switch)
 
-        if doc.deviceFrame != .none {
+        if doc.showMacWindow {
           HStack {
             Text("Color")
               .frame(width: 60, alignment: .leading)
-            Picker("", selection: $doc.deviceFrameColor) {
-              ForEach(DeviceFrameColor.allCases) { c in
-                Text(c.label).tag(c)
-              }
-            }
-            .labelsHidden()
-
-            if doc.deviceFrameColor == .custom {
-              ColorPicker("", selection: $doc.deviceFrameCustomColor)
-                .labelsHidden()
-            }
+            ColorPicker("", selection: $doc.macWindowColor)
+              .labelsHidden()
           }
         }
       }

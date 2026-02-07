@@ -9,6 +9,7 @@ struct RedactionSuggestion: Identifiable, Hashable {
   let matchedText: String
   /// Rect in image coordinates (origin top-left, in pixels).
   let rect: CGRect
+  var isSelected: Bool = true
 
   var kindLabel: String {
     switch kind {
@@ -51,6 +52,9 @@ final class AnnotationDocument: ObservableObject {
   
   /// Track if redaction metadata exists (even if suggestions are dismissed)
   @Published var hasRedactionMetadata: Bool = false
+  
+  /// Track annotation IDs that were created from PII redaction
+  private var piiRedactionAnnotationIDs: Set<UUID> = []
 
   @Published var tool: AnnotationTool = .select
   @Published var annotations: [Annotation] = [] {
@@ -115,10 +119,9 @@ final class AnnotationDocument: ObservableObject {
   // Active freehand stroke (while drawing)
   @Published var activeFreehandStroke: FreehandAnnotation? = nil
 
-  // Device frame settings (Pro feature)
-  @Published var deviceFrame: DeviceFrame = .none
-  @Published var deviceFrameColor: DeviceFrameColor = .black
-  @Published var deviceFrameCustomColor: Color = Color(white: 0.15)
+  // Device frame settings
+  @Published var showMacWindow: Bool = false
+  @Published var macWindowColor: Color = Color(white: 0.95)
 
   // Background settings (Pro feature)
   @Published var backgroundStyle: BackgroundStyle = .none
@@ -259,27 +262,56 @@ final class AnnotationDocument: ObservableObject {
   func dismissAllRedactions() {
     suggestedRedactions.removeAll()
   }
+  
+  func toggleRedactionSelection(_ suggestionID: UUID) {
+    if let index = suggestedRedactions.firstIndex(where: { $0.id == suggestionID }) {
+      suggestedRedactions[index].isSelected.toggle()
+    }
+  }
+  
+  func selectAllRedactions() {
+    for index in suggestedRedactions.indices {
+      suggestedRedactions[index].isSelected = true
+    }
+  }
+  
+  func deselectAllRedactions() {
+    for index in suggestedRedactions.indices {
+      suggestedRedactions[index].isSelected = false
+    }
+  }
 
   /// Accept all remaining suggestions.
   func acceptAllRedactions() {
     guard !suggestedRedactions.isEmpty else { return }
     pushUndoCheckpoint()
     
-    for suggestion in suggestedRedactions {
+    // Remove any previous PII redaction annotations
+    annotations.removeAll { annotation in
+      piiRedactionAnnotationIDs.contains(annotation.id)
+    }
+    piiRedactionAnnotationIDs.removeAll()
+    
+    // Apply redactions only for selected suggestions
+    for suggestion in suggestedRedactions where suggestion.isSelected {
       if redactionStyle == .redact {
         let rect = RectAnnotation(
           rect: suggestion.rect,
           stroke: StrokeStyleModel(color: .black, lineWidth: 0),
           fill: FillStyleModel(color: .black, enabled: true)
         )
-        annotations.append(.rect(rect))
+        let annotation = Annotation.rect(rect)
+        annotations.append(annotation)
+        piiRedactionAnnotationIDs.insert(annotation.id)
       } else {
         let blur = BlurAnnotation(
           rect: suggestion.rect,
           mode: redactionStyle,
           amount: 12
         )
-        annotations.append(.blur(blur))
+        let annotation = Annotation.blur(blur)
+        annotations.append(annotation)
+        piiRedactionAnnotationIDs.insert(annotation.id)
       }
     }
     
