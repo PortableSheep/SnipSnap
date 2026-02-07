@@ -85,7 +85,6 @@ enum MeasurementOrientation: String, Hashable {
 
 struct MeasurementTool: EditorTool {
   let id: AnnotationTool = .measurement
-  let requiredFeature: ProFeature? = .measurementAnnotations
   let capabilities: ToolCapabilities = [.usesDrag]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {

@@ -65,6 +65,8 @@ jobs:
           echo "Version: $VERSION, Build: $BUILD_NUMBER"
         
       - name: Build Release
+        env:
+          SS_LICENSE_PUBLIC_KEY_V1: ${{ secrets.SS_LICENSE_PUBLIC_KEY_V1 }}
         run: |
           xcodebuild \
             -project $PROJECT \
@@ -76,6 +78,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             MARKETING_VERSION="${{ steps.version.outputs.version }}" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            SS_LICENSE_PUBLIC_KEY_V1="$SS_LICENSE_PUBLIC_KEY_V1" \
             build
 
       - name: Create DMG

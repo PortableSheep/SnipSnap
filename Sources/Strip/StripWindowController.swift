@@ -52,7 +52,7 @@ final class StripWindowController: NSObject {
 
     panel.delegate = self
 
-    let root = StripView(library: library, state: state, license: LicenseManager.shared, onOpen: { [weak self] item in
+    let root = StripView(library: library, state: state, onOpen: { [weak self] item in
       guard let self else { return }
       switch item.kind {
       case .image:

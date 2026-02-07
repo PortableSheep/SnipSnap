@@ -83,6 +83,37 @@ struct EditorCanvasView: View {
     if let sel = doc.selectedID, let a = doc.annotations.first(where: { $0.id == sel }) {
       drawSelection(for: a, context: &context, scale: scale, offset: rect.origin)
     }
+
+    // Draw redaction suggestion indicators
+    drawRedactionSuggestions(context: &context, scale: scale, offset: rect.origin)
+  }
+
+  /// Draws dashed outlines around detected sensitive areas
+  private func drawRedactionSuggestions(context: inout GraphicsContext, scale: CGFloat, offset: CGPoint) {
+    guard !doc.suggestedRedactions.isEmpty else { return }
+
+    for suggestion in doc.suggestedRedactions {
+      let r = suggestion.rect
+      let scaled = CGRect(
+        x: offset.x + r.minX * scale,
+        y: offset.y + r.minY * scale,
+        width: r.width * scale,
+        height: r.height * scale
+      )
+
+      // Dashed orange border
+      context.stroke(
+        Path(roundedRect: scaled, cornerRadius: 4),
+        with: .color(.orange),
+        style: StrokeStyle(lineWidth: 2, dash: [6, 4])
+      )
+
+      // Semi-transparent orange fill
+      context.fill(
+        Path(roundedRect: scaled, cornerRadius: 4),
+        with: .color(.orange.opacity(0.1))
+      )
+    }
   }
 
   /// Draws all spotlights as a single dimming layer with multiple cutouts

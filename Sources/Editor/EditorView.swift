@@ -4,7 +4,6 @@ import SwiftUI
 
 struct EditorView: View {
   @ObservedObject var doc: AnnotationDocument
-  @ObservedObject var license: LicenseManager
 
   let onClose: () -> Void
 
@@ -24,6 +23,11 @@ struct EditorView: View {
         .background(.ultraThinMaterial)
 
       Divider()
+
+      // Redaction suggestions banner (Pro feature)
+      if !doc.suggestedRedactions.isEmpty {
+        redactionSuggestionsBanner
+      }
 
       // Main content: sidebar + canvas + inspector
       HStack(spacing: 0) {
@@ -170,6 +174,78 @@ struct EditorView: View {
     }
   }
 
+  // MARK: - Redaction Suggestions Banner
+
+  private var redactionSuggestionsBanner: some View {
+    HStack(spacing: 12) {
+      Image(systemName: "eye.trianglebadge.exclamationmark")
+        .foregroundColor(.orange)
+        .font(.system(size: 14))
+
+      Text("**\(doc.suggestedRedactions.count)** sensitive item\(doc.suggestedRedactions.count == 1 ? "" : "s") detected")
+        .font(.system(size: 12))
+
+      // Show what was found
+      HStack(spacing: 6) {
+        ForEach(doc.suggestedRedactions.prefix(3)) { suggestion in
+          HStack(spacing: 3) {
+            Image(systemName: suggestion.icon)
+              .font(.system(size: 10))
+            Text(truncatedMatch(suggestion.matchedText))
+              .font(.system(size: 11, design: .monospaced))
+          }
+          .padding(.horizontal, 6)
+          .padding(.vertical, 2)
+          .background(Color.orange.opacity(0.15))
+          .cornerRadius(4)
+        }
+        if doc.suggestedRedactions.count > 3 {
+          Text("+\(doc.suggestedRedactions.count - 3) more")
+            .font(.system(size: 11))
+            .foregroundColor(.secondary)
+        }
+      }
+
+      Spacer()
+
+      // Actions
+      Button("Dismiss All") {
+        doc.dismissAllRedactions()
+      }
+      .buttonStyle(.borderless)
+      .font(.system(size: 12))
+      .foregroundColor(.secondary)
+
+      Button {
+        doc.acceptAllRedactions()
+      } label: {
+        HStack(spacing: 4) {
+          Image(systemName: "eye.slash.fill")
+          Text("Redact All")
+        }
+        .font(.system(size: 12, weight: .medium))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(Color.orange)
+        .foregroundColor(.white)
+        .cornerRadius(4)
+      }
+      .buttonStyle(.plain)
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 6)
+    .background(Color.orange.opacity(0.1))
+  }
+
+  private func truncatedMatch(_ text: String) -> String {
+    if text.count <= 16 {
+      return text
+    }
+    let prefix = text.prefix(8)
+    let suffix = text.suffix(4)
+    return "\(prefix)...\(suffix)"
+  }
+
   // MARK: - Tool Sidebar (left)
 
   private var toolSidebar: some View {
@@ -212,8 +288,7 @@ struct EditorView: View {
 
   private func sidebarToolButton(_ tool: AnnotationTool) -> some View {
     let isSelected = doc.tool == tool
-    let requiredFeature = ToolRegistry.requiredFeature(for: tool)
-    let isPro = requiredFeature != nil && !license.has(requiredFeature!)
+    let isPro = false  // All features are now free
     let shortcut = tool.shortcutKey ?? ""
 
     return Button {
@@ -247,12 +322,7 @@ struct EditorView: View {
   }
 
   private func selectTool(_ tool: AnnotationTool) {
-    if let feature = ToolRegistry.requiredFeature(for: tool), !license.has(feature) {
-      LicenseWindowController.shared.show(license: license)
-      doc.tool = .select
-    } else {
-      doc.tool = tool
-    }
+    doc.tool = tool
   }
 
   // MARK: - Inspector Panel (right)
@@ -614,23 +684,13 @@ struct EditorView: View {
           Picker("", selection: Binding(get: {
             doc.deviceFrame
           }, set: { newFrame in
-            if newFrame != .none && !license.has(.advancedAnnotations) {
-              LicenseWindowController.shared.show(license: license)
-            } else {
-              doc.deviceFrame = newFrame
-            }
+            doc.deviceFrame = newFrame
           })) {
             ForEach(DeviceFrame.allCases) { frame in
               Label(frame.label, systemImage: frame.icon).tag(frame)
             }
           }
           .labelsHidden()
-
-          if doc.deviceFrame != .none && !license.has(.advancedAnnotations) {
-            Image(systemName: "star.fill")
-              .font(.system(size: 10))
-              .foregroundColor(.yellow)
-          }
         }
 
         if doc.deviceFrame != .none {
@@ -662,23 +722,13 @@ struct EditorView: View {
           Picker("", selection: Binding(get: {
             doc.backgroundStyle
           }, set: { newStyle in
-            if newStyle != .none && !license.has(.advancedAnnotations) {
-              LicenseWindowController.shared.show(license: license)
-            } else {
-              doc.backgroundStyle = newStyle
-            }
+            doc.backgroundStyle = newStyle
           })) {
             ForEach(BackgroundStyle.allCases) { style in
               Text(style.label).tag(style)
             }
           }
           .labelsHidden()
-
-          if doc.backgroundStyle != .none && !license.has(.advancedAnnotations) {
-            Image(systemName: "star.fill")
-              .font(.system(size: 10))
-              .foregroundColor(.yellow)
-          }
         }
 
         if doc.backgroundStyle != .none {

@@ -7,12 +7,6 @@ final class EditorWindowController {
   private var monitors: [URL: Any] = [:]
   private var delegates: [URL: NSWindowDelegate] = [:]
 
-  private let license: LicenseManager
-
-  init(license: LicenseManager) {
-    self.license = license
-  }
-
   func openEditor(for url: URL) {
     if let existing = windows[url] {
       AppActivation.bringToFront(existing)
@@ -22,7 +16,7 @@ final class EditorWindowController {
     do {
       let doc = try AnnotationDocument(sourceURL: url)
 
-      let view = EditorView(doc: doc, license: license) { [weak self] in
+      let view = EditorView(doc: doc) { [weak self] in
         self?.close(url: url)
       }
 
@@ -108,16 +102,7 @@ final class EditorWindowController {
             ]
 
             if let tool = toolShortcuts[char] {
-              // Check if Pro feature required
-              if let feature = ToolRegistry.requiredFeature(for: tool) {
-                if self.license.has(feature) {
-                  doc.tool = tool
-                } else {
-                  LicenseWindowController.shared.show(license: self.license)
-                }
-              } else {
-                doc.tool = tool
-              }
+              doc.tool = tool
               return nil
             }
           }

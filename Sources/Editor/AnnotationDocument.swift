@@ -2,10 +2,38 @@ import AppKit
 import Foundation
 import SwiftUI
 
+/// A redaction suggestion loaded from capture metadata.
+struct RedactionSuggestion: Identifiable, Hashable {
+  let id: UUID
+  let kind: RedactionKind
+  let matchedText: String
+  /// Rect in image coordinates (origin top-left, in pixels).
+  let rect: CGRect
+
+  var kindLabel: String {
+    switch kind {
+    case .email: return "Email"
+    case .creditCard: return "Credit Card"
+    case .token: return "API Key / Token"
+    }
+  }
+
+  var icon: String {
+    switch kind {
+    case .email: return "envelope.fill"
+    case .creditCard: return "creditcard.fill"
+    case .token: return "key.fill"
+    }
+  }
+}
+
 final class AnnotationDocument: ObservableObject {
   let sourceURL: URL
   let cgImage: CGImage
   let imageSize: CGSize
+
+  /// Suggested redactions from OCR detection (Pro feature).
+  @Published var suggestedRedactions: [RedactionSuggestion] = []
 
   @Published var tool: AnnotationTool = .select
   @Published var annotations: [Annotation] = [] {
@@ -127,6 +155,76 @@ final class AnnotationDocument: ObservableObject {
     // Initial state is "saved" (no edits yet).
     savedAnnotationsHash = annotationsHash(annotations)
     hasUnsavedChanges = false
+
+    // Load redaction suggestions from metadata if available.
+    loadRedactionSuggestions()
+  }
+
+  private func loadRedactionSuggestions() {
+    let metadataStore = CaptureMetadataStore()
+    guard let metadata = metadataStore.load(for: sourceURL),
+          let candidates = metadata.redactionCandidates, !candidates.isEmpty else {
+      return
+    }
+
+    // Convert Vision coordinates (bottom-left origin, normalized 0-1)
+    // to image coordinates (top-left origin, pixels).
+    suggestedRedactions = candidates.map { candidate in
+      let box = candidate.boundingBox
+      // Vision: origin at bottom-left, y increases upward
+      // Image: origin at top-left, y increases downward
+      let x = box.x * imageSize.width
+      let y = (1.0 - box.y - box.height) * imageSize.height
+      let w = box.width * imageSize.width
+      let h = box.height * imageSize.height
+
+      return RedactionSuggestion(
+        id: UUID(),
+        kind: candidate.kind,
+        matchedText: candidate.matchedText,
+        rect: CGRect(x: x, y: y, width: w, height: h)
+      )
+    }
+  }
+
+  /// Accept a redaction suggestion - adds a blur annotation.
+  func acceptRedaction(_ suggestion: RedactionSuggestion) {
+    // Add a pixelate blur annotation at the suggestion rect
+    let blur = BlurAnnotation(
+      rect: suggestion.rect,
+      mode: .pixelate,
+      amount: 12
+    )
+    pushUndoCheckpoint()
+    annotations.append(.blur(blur))
+
+    // Remove from suggestions
+    suggestedRedactions.removeAll { $0.id == suggestion.id }
+  }
+
+  /// Dismiss a redaction suggestion without adding a blur.
+  func dismissRedaction(_ suggestion: RedactionSuggestion) {
+    suggestedRedactions.removeAll { $0.id == suggestion.id }
+  }
+
+  /// Dismiss all remaining suggestions.
+  func dismissAllRedactions() {
+    suggestedRedactions.removeAll()
+  }
+
+  /// Accept all remaining suggestions.
+  func acceptAllRedactions() {
+    guard !suggestedRedactions.isEmpty else { return }
+    pushUndoCheckpoint()
+    for suggestion in suggestedRedactions {
+      let blur = BlurAnnotation(
+        rect: suggestion.rect,
+        mode: .pixelate,
+        amount: 12
+      )
+      annotations.append(.blur(blur))
+    }
+    suggestedRedactions.removeAll()
   }
 
   func markSaved() {

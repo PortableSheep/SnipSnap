@@ -1,29 +1,25 @@
 import Foundation
 
 final class CaptureBackgroundServices {
-  private let license: LicenseManager
   private let proPrefs: ProPreferencesStore
   private let metadataStore: CaptureMetadataStore
 
   private let cloud = CloudSyncManager()
 
-  init(license: LicenseManager, proPrefs: ProPreferencesStore, metadataStore: CaptureMetadataStore) {
-    self.license = license
+  init(proPrefs: ProPreferencesStore, metadataStore: CaptureMetadataStore) {
     self.proPrefs = proPrefs
     self.metadataStore = metadataStore
   }
 
   @MainActor
   func handleLibraryItems(_ items: [CaptureItem]) {
-    guard license.isProUnlocked else { return }
-
-    if proPrefs.enableOCRIndexing && license.has(.ocrIndexing) {
+    if proPrefs.enableOCRIndexing {
       for item in items where item.kind == .image {
         scheduleOCRIfNeeded(for: item.url, createdAt: item.createdAt)
       }
     }
 
-    if proPrefs.enableCloudSync && license.has(.cloudSync) {
+    if proPrefs.enableCloudSync {
       for item in items {
         mirrorToICloudBestEffort(item.url)
       }
@@ -34,7 +30,7 @@ final class CaptureBackgroundServices {
   private func scheduleOCRIfNeeded(for url: URL, createdAt: Date) {
     guard !metadataStore.isIndexed(for: url) else { return }
 
-    let shouldDetectRedactions = proPrefs.enableSmartRedaction && license.has(.smartRedaction)
+    let shouldDetectRedactions = proPrefs.enableSmartRedaction
 
     let metadataStore = metadataStore
 

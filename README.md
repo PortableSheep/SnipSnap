@@ -1,6 +1,6 @@
 # SnipSnap
 
-A native macOS screen capture and annotation app built with Swift and AppKit. Lives in your menu bar.
+A native macOS screen capture and annotation app built with Swift and AppKit. Lives in your menu bar. **Free and open source donationware.**
 
 ## What it does
 
@@ -10,7 +10,7 @@ A native macOS screen capture and annotation app built with Swift and AppKit. Li
 
 **Organize:** Captures show up in a dockable strip that snaps to screen edges. Click to edit, drag to present.
 
-**Pro stuff:** GIF export, video trimming, OCR indexing, cloud sync, annotation templates.
+**Pro features (now free!):** GIF export, video trimming, OCR indexing, cloud sync, annotation templates, presentation mode.
 
 ## Installation
 
@@ -80,3 +80,12 @@ CaptureServiceXPC/  – XPC service for capture (stable signing target)
 ```
 
 Captures are stored in `~/Library/Application Support/SnipSnap/captures/`.
+
+## Support Development
+
+SnipSnap is free and open source. If you find it useful, please consider supporting its development:
+
+- **One-time donation:** [Stripe](https://buy.stripe.com/aFa6oHbuj9a9f2M4Hk5Ne02)
+- **Monthly sponsorship:** [GitHub Sponsors](https://github.com/sponsors/PortableSheep)
+
+Your support helps keep the project alive and enables new features. Thank you! ❤️

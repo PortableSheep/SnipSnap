@@ -5,13 +5,13 @@ import SwiftUI
 final class PreferencesWindowController {
   private var window: NSWindow?
 
-  func show(prefs: OverlayPreferencesStore, proPrefs: ProPreferencesStore, license: LicenseManager) {
+  func show(prefs: OverlayPreferencesStore, proPrefs: ProPreferencesStore) {
     if let window {
       AppActivation.bringToFront(window)
       return
     }
 
-    let view = PreferencesRootView(prefs: prefs, proPrefs: proPrefs, license: license)
+    let view = PreferencesRootView(prefs: prefs, proPrefs: proPrefs)
     let hosting = NSHostingView(rootView: view)
 
     let win = NSWindow(

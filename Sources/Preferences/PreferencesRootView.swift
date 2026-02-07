@@ -4,7 +4,6 @@ import SwiftUI
 struct PreferencesRootView: View {
   @ObservedObject var prefs: OverlayPreferencesStore
   @ObservedObject var proPrefs: ProPreferencesStore
-  @ObservedObject var license: LicenseManager
   @ObservedObject var hotkeyPrefs = HotkeyPreferencesStore.shared
 
   @State private var page: PreferencesPage = .general
@@ -32,19 +31,6 @@ struct PreferencesRootView: View {
       }
 
       Spacer()
-
-      // Pro badge at bottom
-      if license.isProUnlocked {
-        HStack(spacing: 6) {
-          Image(systemName: "star.fill")
-            .foregroundColor(.yellow)
-          Text("Pro Active")
-            .font(.system(size: 11, weight: .medium))
-            .foregroundColor(.secondary)
-        }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 8)
-      }
     }
     .padding(.vertical, 12)
     .padding(.horizontal, 8)
@@ -84,13 +70,13 @@ struct PreferencesRootView: View {
     ScrollView {
       switch page {
       case .general:
-        GeneralPreferencesView(proPrefs: proPrefs, license: license)
+        GeneralPreferencesView(proPrefs: proPrefs)
       case .overlays:
         OverlaysPreferencesView(prefs: prefs)
       case .shortcuts:
         ShortcutsPreferencesView(hotkeyPrefs: hotkeyPrefs)
       case .about:
-        AboutPreferencesView(license: license)
+        AboutPreferencesView()
       }
     }
     .padding(24)
@@ -101,7 +87,6 @@ struct PreferencesRootView: View {
 
 private struct GeneralPreferencesView: View {
   @ObservedObject var proPrefs: ProPreferencesStore
-  @ObservedObject var license: LicenseManager
   @AppStorage("LaunchAtLogin") private var launchAtLogin = false
 
   var body: some View {
@@ -119,44 +104,23 @@ private struct GeneralPreferencesView: View {
       }
 
       // Pro Features
-      PreferenceSection("Pro Features") {
+      PreferenceSection("Features") {
         PreferenceRow(icon: "text.viewfinder", title: "OCR + Indexing", subtitle: "Extract text from captures for search") {
           Toggle("", isOn: $proPrefs.enableOCRIndexing)
             .toggleStyle(.switch)
             .controlSize(.small)
-            .disabled(!license.has(.ocrIndexing))
         }
 
         PreferenceRow(icon: "eye.trianglebadge.exclamationmark", title: "Smart Redaction", subtitle: "Detect sensitive info (emails, keys)") {
           Toggle("", isOn: $proPrefs.enableSmartRedaction)
             .toggleStyle(.switch)
             .controlSize(.small)
-            .disabled(!license.has(.smartRedaction))
         }
 
         PreferenceRow(icon: "icloud", title: "Cloud Sync", subtitle: "Mirror captures to iCloud Drive") {
           Toggle("", isOn: $proPrefs.enableCloudSync)
             .toggleStyle(.switch)
             .controlSize(.small)
-            .disabled(!license.has(.cloudSync))
-        }
-
-        if !license.isProUnlocked {
-          Button {
-            LicenseWindowController.shared.show(license: license)
-          } label: {
-            HStack {
-              Image(systemName: "star.fill")
-                .foregroundColor(.yellow)
-              Text("Unlock Pro Features")
-                .font(.system(size: 12, weight: .medium))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(RoundedRectangle(cornerRadius: 6).fill(Color.accentColor.opacity(0.15)))
-          }
-          .buttonStyle(.plain)
-          .padding(.top, 4)
         }
       }
 
@@ -429,8 +393,6 @@ private struct ShortcutRecorderKeyHandler: NSViewRepresentable {
 // MARK: - About Preferences
 
 private struct AboutPreferencesView: View {
-  @ObservedObject var license: LicenseManager
-
   var body: some View {
     VStack(alignment: .leading, spacing: 24) {
       // App Icon & Name
@@ -445,14 +407,9 @@ private struct AboutPreferencesView: View {
           Text("Version 1.0.0")
             .font(.system(size: 13))
             .foregroundColor(.secondary)
-          if license.isProUnlocked {
-            HStack(spacing: 4) {
-              Image(systemName: "star.fill")
-                .foregroundColor(.yellow)
-              Text("Pro")
-                .font(.system(size: 12, weight: .semibold))
-            }
-          }
+          Text("Free & Open Source")
+            .font(.system(size: 12, weight: .medium))
+            .foregroundColor(.green)
         }
       }
 
@@ -471,7 +428,9 @@ private struct AboutPreferencesView: View {
         FeatureRow(icon: "record.circle", text: "Screen Recording with Audio")
         FeatureRow(icon: "pencil.and.outline", text: "Powerful Annotation Editor")
         FeatureRow(icon: "cursorarrow.click.2", text: "Click & Keystroke Visualization")
-        FeatureRow(icon: "star.fill", text: "Pro: GIF Export, Presentation Mode, OCR", isPro: true)
+        FeatureRow(icon: "film", text: "GIF Export & Video Trimming")
+        FeatureRow(icon: "text.viewfinder", text: "OCR Indexing & Smart Redaction")
+        FeatureRow(icon: "play.rectangle.fill", text: "Presentation Mode")
       }
 
       Spacer()

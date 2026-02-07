@@ -20,14 +20,10 @@ enum ToolRegistry {
     allTools[id]
   }
 
-  static func requiredFeature(for id: AnnotationTool) -> ProFeature? {
-    tool(for: id)?.requiredFeature
-  }
 }
 
 private struct RectTool: EditorTool {
   let id: AnnotationTool = .rect
-  let requiredFeature: ProFeature? = nil
   let capabilities: ToolCapabilities = [.usesDrag]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
@@ -51,7 +47,6 @@ private struct RectTool: EditorTool {
 
 private struct LineTool: EditorTool {
   let id: AnnotationTool = .line
-  let requiredFeature: ProFeature? = nil
   let capabilities: ToolCapabilities = [.usesDrag]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
@@ -75,7 +70,6 @@ private struct LineTool: EditorTool {
 
 private struct ArrowTool: EditorTool {
   let id: AnnotationTool = .arrow
-  let requiredFeature: ProFeature? = nil
   let capabilities: ToolCapabilities = [.usesDrag]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
@@ -99,7 +93,6 @@ private struct ArrowTool: EditorTool {
 
 private struct TextTool: EditorTool {
   let id: AnnotationTool = .text
-  let requiredFeature: ProFeature? = nil
   let capabilities: ToolCapabilities = [.clickOnly]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
@@ -130,7 +123,6 @@ private struct TextTool: EditorTool {
 
 private struct CalloutTool: EditorTool {
   let id: AnnotationTool = .callout
-  let requiredFeature: ProFeature? = nil
   let capabilities: ToolCapabilities = [.usesDrag]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
@@ -162,7 +154,6 @@ private struct CalloutTool: EditorTool {
 
 private struct BlurTool: EditorTool {
   let id: AnnotationTool = .blur
-  let requiredFeature: ProFeature? = .advancedAnnotations
   let capabilities: ToolCapabilities = [.usesDrag]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
@@ -186,7 +177,6 @@ private struct BlurTool: EditorTool {
 
 private struct StepTool: EditorTool {
   let id: AnnotationTool = .step
-  let requiredFeature: ProFeature? = .advancedAnnotations
   let capabilities: ToolCapabilities = [.clickOnly]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
@@ -215,7 +205,6 @@ private struct StepTool: EditorTool {
 
 private struct FreehandTool: EditorTool {
   let id: AnnotationTool = .freehand
-  let requiredFeature: ProFeature? = nil
   let capabilities: ToolCapabilities = [.usesDrag, .continuousDraw]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
@@ -235,7 +224,6 @@ private struct FreehandTool: EditorTool {
 
 private struct SpotlightTool: EditorTool {
   let id: AnnotationTool = .spotlight
-  let requiredFeature: ProFeature? = .advancedAnnotations
   let capabilities: ToolCapabilities = [.usesDrag]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
@@ -269,7 +257,6 @@ private struct SpotlightTool: EditorTool {
 
 private struct CounterTool: EditorTool {
   let id: AnnotationTool = .counter
-  let requiredFeature: ProFeature? = .advancedAnnotations
   let capabilities: ToolCapabilities = [.clickOnly]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
@@ -298,7 +285,6 @@ private struct CounterTool: EditorTool {
 
 private struct EmojiTool: EditorTool {
   let id: AnnotationTool = .emoji
-  let requiredFeature: ProFeature? = nil
   let capabilities: ToolCapabilities = [.clickOnly]
 
   func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {

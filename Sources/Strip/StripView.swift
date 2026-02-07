@@ -6,7 +6,6 @@ typealias ThumbAction = (CaptureItem) -> Void
 struct StripView: View {
   @ObservedObject var library: CaptureLibrary
   @ObservedObject var state: StripState
-  @ObservedObject var license: LicenseManager
   let onOpen: ThumbAction
   let onPresent: (CaptureItem) -> Void
   let onHoverChanged: (Bool) -> Void
@@ -173,58 +172,30 @@ struct StripView: View {
         
         Divider()
         
-        if license.has(.presentationMode) {
-          Button("Present from Here…") {
-            onPresent(item)
-          }
-        } else {
-          Button("Present from Here… (Pro)") {
-            LicenseWindowController.shared.show(license: license)
-          }
+        Button("Present from Here…") {
+          onPresent(item)
         }
 
-        if license.has(.ocrIndexing) {
-          let text = library.metadata(for: item)?.ocrText ?? ""
-          Button("Copy Text (OCR)") {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(text, forType: .string)
-          }
-          .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        } else {
-          Button("Copy Text (OCR) (Pro)") {
-            LicenseWindowController.shared.show(license: license)
-          }
+        let text = library.metadata(for: item)?.ocrText ?? ""
+        Button("Copy Text (OCR)") {
+          NSPasteboard.general.clearContents()
+          NSPasteboard.general.setString(text, forType: .string)
         }
+        .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
         let isVideo = item.kind == .video
 
-        if license.has(.recordingUpgrades) {
-          Button("Trim Video…") {
-            guard isVideo else { return }
-            VideoTrimPresenter.trimVideo(at: item.url)
-          }
-          .disabled(!isVideo)
-        } else {
-          Button(isVideo ? "Trim Video… (Pro)" : "Trim Video…") {
-            guard isVideo else { return }
-            LicenseWindowController.shared.show(license: license)
-          }
-          .disabled(!isVideo)
+        Button("Trim Video…") {
+          guard isVideo else { return }
+          VideoTrimPresenter.trimVideo(at: item.url)
         }
+        .disabled(!isVideo)
 
-        if license.has(.recordingUpgrades) {
-          Button("Export GIF…") {
-            guard isVideo else { return }
-            GIFExportPresenter.exportGIF(fromVideoURL: item.url)
-          }
-          .disabled(!isVideo)
-        } else {
-          Button(isVideo ? "Export GIF… (Pro)" : "Export GIF…") {
-            guard isVideo else { return }
-            LicenseWindowController.shared.show(license: license)
-          }
-          .disabled(!isVideo)
+        Button("Export GIF…") {
+          guard isVideo else { return }
+          GIFExportPresenter.exportGIF(fromVideoURL: item.url)
         }
+        .disabled(!isVideo)
       }
     }
   }

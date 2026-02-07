@@ -15,7 +15,6 @@ enum ToolBeginResult {
 
 protocol EditorTool {
   var id: AnnotationTool { get }
-  var requiredFeature: ProFeature? { get }
   var capabilities: ToolCapabilities { get }
 
   /// Called on pointer down.

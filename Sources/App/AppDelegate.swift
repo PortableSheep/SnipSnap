@@ -32,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private lazy var captureLibrary = CaptureLibrary(capturesDirURL: Self.capturesDirURL())
   private var stripController: StripWindowController?
 
-  private lazy var editor = EditorWindowController(license: license)
+  private lazy var editor = EditorWindowController()
 
   private let hotkeys = HotKeyManager()
   private var recordingStartedAt: Date?
@@ -42,7 +42,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private let proPrefs = ProPreferencesStore()
   private let prefsWindow = PreferencesWindowController()
 
-  private let license = LicenseManager.shared
   private let presentation = PresentationWindowController()
   
   /// Floating stop button shown during recording (excluded from capture)
@@ -54,7 +53,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var eventForwardingTimer: Timer?
 
   private lazy var proServices = CaptureBackgroundServices(
-    license: license,
     proPrefs: proPrefs,
     metadataStore: captureLibrary.metadataStore
   )
@@ -82,14 +80,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     refreshMenu()
-
-    license.$isProUnlocked
-      .removeDuplicates()
-      .receive(on: RunLoop.main)
-      .sink { [weak self] _ in
-        self?.refreshMenu()
-      }
-      .store(in: &cancellables)
 
     // Track item count to detect new captures
     var previousItemCount = captureLibrary.items.count
@@ -330,33 +320,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     prefs.target = self
     menu.addItem(prefs)
 
-    let activateTitle = license.isProUnlocked ? "Pro: Active ✓" : "Activate Pro…"
-    let activate = NSMenuItem(title: activateTitle, action: #selector(onActivatePro), keyEquivalent: "")
-    activate.target = self
-    menu.addItem(activate)
+    let donate = NSMenuItem(title: "Support Development ❤️", action: #selector(onDonate), keyEquivalent: "")
+    donate.target = self
+    menu.addItem(donate)
 
     // Presentation Mode submenu
-    if license.has(.presentationMode) {
-      let presMenu = NSMenu()
-      
-      let presSession = NSMenuItem(title: "Present Session", action: #selector(onPresentSession), keyEquivalent: "p")
-      presSession.keyEquivalentModifierMask = [.command, .shift]
-      presSession.target = self
-      presMenu.addItem(presSession)
-      
-      let presAll = NSMenuItem(title: "Present All Captures", action: #selector(onPresentAll), keyEquivalent: "")
-      presAll.target = self
-      presMenu.addItem(presAll)
-      
-      let presItem = NSMenuItem(title: "Presentation Mode", action: nil, keyEquivalent: "")
-      presItem.submenu = presMenu
-      menu.addItem(presItem)
-    } else {
-      let pres = NSMenuItem(title: "Presentation Mode… (Pro)", action: #selector(onPresentationMode), keyEquivalent: "p")
-      pres.keyEquivalentModifierMask = [.command, .shift]
-      pres.target = self
-      menu.addItem(pres)
-    }
+    let presMenu = NSMenu()
+    
+    let presSession = NSMenuItem(title: "Present Session", action: #selector(onPresentSession), keyEquivalent: "p")
+    presSession.keyEquivalentModifierMask = [.command, .shift]
+    presSession.target = self
+    presMenu.addItem(presSession)
+    
+    let presAll = NSMenuItem(title: "Present All Captures", action: #selector(onPresentAll), keyEquivalent: "")
+    presAll.target = self
+    presMenu.addItem(presAll)
+    
+    let presItem = NSMenuItem(title: "Presentation Mode", action: nil, keyEquivalent: "")
+    presItem.submenu = presMenu
+    menu.addItem(presItem)
 
     menu.addItem(.separator())
 
@@ -441,38 +423,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
-  @objc private func onPresentationMode() {
-    guard license.has(.presentationMode) else {
-      LicenseWindowController.shared.show(license: license)
-      return
-    }
-    onPresentSession()
+  @objc private func onDonate() {
+    DonationWindowController.shared.show()
   }
-  
+
   @objc private func onPresentSession() {
-    guard license.has(.presentationMode) else {
-      LicenseWindowController.shared.show(license: license)
-      return
-    }
     let sessionItems = captureLibrary.items.filter { $0.createdAt >= stripState.sessionStartDate }
     presentation.show(items: sessionItems, library: captureLibrary, title: "Session")
   }
   
   @objc private func onPresentAll() {
-    guard license.has(.presentationMode) else {
-      LicenseWindowController.shared.show(license: license)
-      return
-    }
     presentation.show(items: captureLibrary.items, library: captureLibrary, title: "All Captures")
   }
 
   @objc private func onPreferences() {
-    prefsWindow.show(prefs: overlayPrefs, proPrefs: proPrefs, license: license)
+    prefsWindow.show(prefs: overlayPrefs, proPrefs: proPrefs)
   }
 
-  @objc private func onActivatePro() {
-    LicenseWindowController.shared.show(license: license)
-  }
 
   @objc private func onToggleStrip() {
     stripController?.toggle()
@@ -635,23 +602,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   @objc private func onExportLastCaptureAsGIF() {
     guard let url = lastCaptureURL else { return }
-
-    guard license.has(.recordingUpgrades) else {
-      LicenseWindowController.shared.show(license: license)
-      return
-    }
-
     GIFExportPresenter.exportGIF(fromVideoURL: url)
   }
 
   @objc private func onTrimLastCapture() {
     guard let url = lastCaptureURL else { return }
-
-    guard license.has(.recordingUpgrades) else {
-      LicenseWindowController.shared.show(license: license)
-      return
-    }
-
     VideoTrimPresenter.trimVideo(at: url)
   }
 
