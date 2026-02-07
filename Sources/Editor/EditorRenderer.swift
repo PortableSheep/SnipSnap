@@ -29,9 +29,10 @@ enum EditorRenderer {
     ctx.draw(doc.cgImage, in: CGRect(x: 0, y: 0, width: CGFloat(w), height: CGFloat(h)))
 
     // Blur/pixelate should be applied under other overlays.
+    // Pass the original image so filters work correctly on overlapping regions
     for a in doc.annotations {
       if case .blur = a {
-        draw(annotation: a, in: ctx)
+        draw(annotation: a, in: ctx, sourceImage: doc.cgImage)
       }
     }
 
@@ -632,7 +633,7 @@ enum EditorRenderer {
     service.perform(withItems: [image])
   }
 
-  private static func draw(annotation: Annotation, in ctx: CGContext) {
+  private static func draw(annotation: Annotation, in ctx: CGContext, sourceImage: CGImage? = nil) {
     switch annotation {
     case .rect(let r):
       drawRect(r, in: ctx)
@@ -647,7 +648,7 @@ enum EditorRenderer {
     case .callout(let c):
       drawCallout(c, in: ctx)
     case .blur(let b):
-      drawBlur(b, in: ctx)
+      drawBlur(b, in: ctx, sourceImage: sourceImage)
     case .spotlight(let sp):
       drawSpotlight(sp, imageSize: ctx.boundingBoxOfClipPath.size, in: ctx)
     case .step(let s):
@@ -794,7 +795,7 @@ enum EditorRenderer {
     ctx.restoreGState()
   }
 
-  private static func drawBlur(_ b: BlurAnnotation, in ctx: CGContext) {
+  private static func drawBlur(_ b: BlurAnnotation, in ctx: CGContext, sourceImage: CGImage? = nil) {
     // For "redact" mode, just draw a black rectangle
     if b.mode == .redact {
       ctx.setFillColor(CGColor(red: 0, green: 0, blue: 0, alpha: 1))
@@ -802,14 +803,11 @@ enum EditorRenderer {
       return
     }
     
-    // Export: apply filter to the corresponding region.
-    // We cannot access the original source here directly from ctx; callers draw base image first.
-    // So we rely on ctx's current contents by snapshotting after base draw.
-    // Practically: just re-draw from a filtered source when possible.
-    // Note: This implementation is best-effort; if ctx doesn't have image snapshot, skip.
-
-    guard let snapshot = ctx.makeImage() else { return }
-    guard let filtered = ImageFilters.filteredRegion(source: snapshot, rect: b.rect, mode: b.mode, amount: b.amount) else { return }
+    // Use source image if provided (avoids compounding effect on overlapping blurs)
+    // Otherwise fall back to snapshot (for single blur or when source not available)
+    let imageToFilter = sourceImage ?? ctx.makeImage()
+    guard let image = imageToFilter else { return }
+    guard let filtered = ImageFilters.filteredRegion(source: image, rect: b.rect, mode: b.mode, amount: b.amount) else { return }
     ctx.draw(filtered, in: b.rect)
   }
 

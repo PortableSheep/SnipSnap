@@ -48,6 +48,9 @@ final class AnnotationDocument: ObservableObject {
 
   /// Suggested redactions from OCR detection (Pro feature).
   @Published var suggestedRedactions: [RedactionSuggestion] = []
+  
+  /// Track if redaction metadata exists (even if suggestions are dismissed)
+  @Published var hasRedactionMetadata: Bool = false
 
   @Published var tool: AnnotationTool = .select
   @Published var annotations: [Annotation] = [] {
@@ -195,9 +198,12 @@ final class AnnotationDocument: ObservableObject {
     let metadataStore = CaptureMetadataStore()
     guard let metadata = metadataStore.load(for: sourceURL),
           let candidates = metadata.redactionCandidates, !candidates.isEmpty else {
+      hasRedactionMetadata = false
       return
     }
 
+    hasRedactionMetadata = true
+    
     // Convert Vision coordinates (bottom-left origin, normalized 0-1)
     // to image coordinates (top-left origin, pixels).
     suggestedRedactions = candidates.map { candidate in

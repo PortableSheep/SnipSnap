@@ -25,7 +25,7 @@ struct EditorView: View {
       Divider()
 
       // Redaction suggestions banner (Pro feature)
-      if !doc.suggestedRedactions.isEmpty {
+      if !doc.suggestedRedactions.isEmpty || doc.hasRedactionMetadata {
         redactionSuggestionsBanner
       }
 
@@ -182,45 +182,53 @@ struct EditorView: View {
         .foregroundColor(.orange)
         .font(.system(size: 14))
 
-      Text("**\(doc.suggestedRedactions.count)** sensitive item\(doc.suggestedRedactions.count == 1 ? "" : "s") detected")
-        .font(.system(size: 12))
+      if doc.suggestedRedactions.isEmpty {
+        Text("PII suggestions dismissed")
+          .font(.system(size: 12))
+          .foregroundColor(.secondary)
+      } else {
+        Text("**\(doc.suggestedRedactions.count)** sensitive item\(doc.suggestedRedactions.count == 1 ? "" : "s") detected")
+          .font(.system(size: 12))
 
-      // Show what was found
-      HStack(spacing: 6) {
-        ForEach(doc.suggestedRedactions.prefix(3)) { suggestion in
-          HStack(spacing: 3) {
-            Image(systemName: suggestion.icon)
-              .font(.system(size: 10))
-            Text(truncatedMatch(suggestion.matchedText))
-              .font(.system(size: 11, design: .monospaced))
+        // Show what was found
+        HStack(spacing: 6) {
+          ForEach(doc.suggestedRedactions.prefix(3)) { suggestion in
+            HStack(spacing: 3) {
+              Image(systemName: suggestion.icon)
+                .font(.system(size: 10))
+              Text(truncatedMatch(suggestion.matchedText))
+                .font(.system(size: 11, design: .monospaced))
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.orange.opacity(0.15))
+            .cornerRadius(4)
           }
-          .padding(.horizontal, 6)
-          .padding(.vertical, 2)
-          .background(Color.orange.opacity(0.15))
-          .cornerRadius(4)
-        }
-        if doc.suggestedRedactions.count > 3 {
-          Text("+\(doc.suggestedRedactions.count - 3) more")
-            .font(.system(size: 11))
-            .foregroundColor(.secondary)
+          if doc.suggestedRedactions.count > 3 {
+            Text("+\(doc.suggestedRedactions.count - 3) more")
+              .font(.system(size: 11))
+              .foregroundColor(.secondary)
+          }
         }
       }
 
       Spacer()
       
-      // Redaction style picker
-      HStack(spacing: 4) {
-        Text("as")
-          .font(.system(size: 11))
-          .foregroundColor(.secondary)
-        Picker("", selection: $doc.redactionStyle) {
-          ForEach(BlurMode.allCases) { mode in
-            Text(mode.label).tag(mode)
+      // Redaction style picker (only when suggestions exist)
+      if !doc.suggestedRedactions.isEmpty {
+        HStack(spacing: 4) {
+          Text("as")
+            .font(.system(size: 11))
+            .foregroundColor(.secondary)
+          Picker("", selection: $doc.redactionStyle) {
+            ForEach(BlurMode.allCases) { mode in
+              Text(mode.label).tag(mode)
+            }
           }
+          .labelsHidden()
+          .frame(width: 100)
+          .font(.system(size: 12))
         }
-        .labelsHidden()
-        .frame(width: 100)
-        .font(.system(size: 12))
       }
 
       // Actions
@@ -234,28 +242,30 @@ struct EditorView: View {
       .foregroundColor(.secondary)
       .help("Reload PII suggestions")
       
-      Button("Dismiss All") {
-        doc.dismissAllRedactions()
-      }
-      .buttonStyle(.borderless)
-      .font(.system(size: 12))
-      .foregroundColor(.secondary)
-
-      Button {
-        doc.acceptAllRedactions()
-      } label: {
-        HStack(spacing: 4) {
-          Image(systemName: "eye.slash.fill")
-          Text("Redact All")
+      if !doc.suggestedRedactions.isEmpty {
+        Button("Dismiss All") {
+          doc.dismissAllRedactions()
         }
-        .font(.system(size: 12, weight: .medium))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4)
-        .background(Color.orange)
-        .foregroundColor(.white)
-        .cornerRadius(4)
+        .buttonStyle(.borderless)
+        .font(.system(size: 12))
+        .foregroundColor(.secondary)
+
+        Button {
+          doc.acceptAllRedactions()
+        } label: {
+          HStack(spacing: 4) {
+            Image(systemName: "eye.slash.fill")
+            Text("Redact All")
+          }
+          .font(.system(size: 12, weight: .medium))
+          .padding(.horizontal, 10)
+          .padding(.vertical, 4)
+          .background(Color.orange)
+          .foregroundColor(.white)
+          .cornerRadius(4)
+        }
+        .buttonStyle(.plain)
       }
-      .buttonStyle(.plain)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 6)
