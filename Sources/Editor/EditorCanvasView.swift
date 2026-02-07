@@ -49,42 +49,40 @@ struct EditorCanvasView: View {
 
   private func drawBaseImage(context: inout GraphicsContext, size: CGSize) {
     let baseImageRect = fitRect(imageSize: doc.imageSize, in: size)
+    let scale = baseImageRect.width / doc.imageSize.width
     
     // Calculate dimensions
-    let scale = baseImageRect.width / doc.imageSize.width
-    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
     let titleBarHeight: CGFloat = doc.showMacWindow ? 28 * scale : 0
     let windowMargin: CGFloat = doc.showMacWindow ? 8 * scale : 0
+    let backgroundPadding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
     
-    // Calculate the total frame that includes window chrome, padding, and margin
+    // Total frame includes background padding around everything
     let totalFrameRect = CGRect(
-      x: baseImageRect.minX - padding - windowMargin,
-      y: baseImageRect.minY - padding - windowMargin - titleBarHeight,
-      width: baseImageRect.width + padding * 2 + windowMargin * 2,
-      height: baseImageRect.height + padding * 2 + windowMargin * 2 + titleBarHeight
+      x: baseImageRect.minX - backgroundPadding,
+      y: baseImageRect.minY - backgroundPadding - titleBarHeight,
+      width: baseImageRect.width + backgroundPadding * 2,
+      height: baseImageRect.height + backgroundPadding * 2 + titleBarHeight
     )
     
-    // The actual image rect (where screenshot goes) - below title bar, inside window/padding
+    // Window chrome sits inside the background padding
+    let windowRect = totalFrameRect.insetBy(dx: backgroundPadding, dy: backgroundPadding)
+    
+    // Screenshot area is inside the window (below title bar, with margin)
     let imageRect = CGRect(
-      x: totalFrameRect.minX + windowMargin,
-      y: totalFrameRect.minY + titleBarHeight + windowMargin,
-      width: totalFrameRect.width - windowMargin * 2,
-      height: totalFrameRect.height - titleBarHeight - windowMargin * 2
+      x: windowRect.minX + windowMargin,
+      y: windowRect.minY + titleBarHeight + windowMargin,
+      width: windowRect.width - windowMargin * 2,
+      height: windowRect.height - titleBarHeight - windowMargin * 2
     )
     
-    // Background rect (for wallpaper/gradient) - inside window but fills all content area
-    let backgroundRect = imageRect.insetBy(dx: -padding, dy: -padding)
-    
-    // Draw background (wallpaper, gradient, etc.) if enabled
+    // Draw background FIRST (behind everything) if enabled
     if doc.backgroundStyle != .none {
-      
-      // Draw background
       switch doc.backgroundStyle {
       case .none:
         break
         
       case .solid:
-        context.fill(Path(backgroundRect), with: .color(doc.backgroundColor))
+        context.fill(Path(totalFrameRect), with: .color(doc.backgroundColor))
         
       case .gradient:
         let gradient = Gradient(colors: [doc.backgroundGradientStart, doc.backgroundGradientEnd])
@@ -93,39 +91,39 @@ struct EditorCanvasView: View {
         
         switch doc.backgroundGradientDirection {
         case .topToBottom:
-          startPoint = CGPoint(x: backgroundRect.midX, y: backgroundRect.minY)
-          endPoint = CGPoint(x: backgroundRect.midX, y: backgroundRect.maxY)
+          startPoint = CGPoint(x: totalFrameRect.midX, y: totalFrameRect.minY)
+          endPoint = CGPoint(x: totalFrameRect.midX, y: totalFrameRect.maxY)
         case .leftToRight:
-          startPoint = CGPoint(x: backgroundRect.minX, y: backgroundRect.midY)
-          endPoint = CGPoint(x: backgroundRect.maxX, y: backgroundRect.midY)
+          startPoint = CGPoint(x: totalFrameRect.minX, y: totalFrameRect.midY)
+          endPoint = CGPoint(x: totalFrameRect.maxX, y: totalFrameRect.midY)
         case .topLeftToBottomRight:
-          startPoint = CGPoint(x: backgroundRect.minX, y: backgroundRect.minY)
-          endPoint = CGPoint(x: backgroundRect.maxX, y: backgroundRect.maxY)
+          startPoint = CGPoint(x: totalFrameRect.minX, y: totalFrameRect.minY)
+          endPoint = CGPoint(x: totalFrameRect.maxX, y: totalFrameRect.maxY)
         case .radial:
-          startPoint = CGPoint(x: backgroundRect.midX, y: backgroundRect.midY)
-          endPoint = CGPoint(x: backgroundRect.maxX, y: backgroundRect.midY)
+          startPoint = CGPoint(x: totalFrameRect.midX, y: totalFrameRect.midY)
+          endPoint = CGPoint(x: totalFrameRect.maxX, y: totalFrameRect.midY)
         }
         
-        context.fill(Path(backgroundRect), with: .linearGradient(gradient, startPoint: startPoint, endPoint: endPoint))
+        context.fill(Path(totalFrameRect), with: .linearGradient(gradient, startPoint: startPoint, endPoint: endPoint))
         
       case .mesh:
         let gradient = Gradient(colors: [doc.backgroundGradientStart, doc.backgroundGradientEnd])
-        let startPoint = CGPoint(x: backgroundRect.minX, y: backgroundRect.minY)
-        let endPoint = CGPoint(x: backgroundRect.maxX, y: backgroundRect.maxY)
-        context.fill(Path(backgroundRect), with: .linearGradient(gradient, startPoint: startPoint, endPoint: endPoint))
+        let startPoint = CGPoint(x: totalFrameRect.minX, y: totalFrameRect.minY)
+        let endPoint = CGPoint(x: totalFrameRect.maxX, y: totalFrameRect.maxY)
+        context.fill(Path(totalFrameRect), with: .linearGradient(gradient, startPoint: startPoint, endPoint: endPoint))
         
       case .wallpaper:
         if let wallpaper = doc.getWallpaper(),
            let cgImage = wallpaper.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-          context.draw(Image(decorative: cgImage, scale: 1.0), in: backgroundRect)
+          context.draw(Image(decorative: cgImage, scale: 1.0), in: totalFrameRect)
         } else {
-          context.fill(Path(backgroundRect), with: .color(.gray.opacity(0.2)))
+          context.fill(Path(totalFrameRect), with: .color(.gray.opacity(0.2)))
         }
       }
       
-      // Draw shadow if enabled
+      // Draw shadow if enabled (shadow of window or image)
       if doc.backgroundShadowEnabled {
-        let shadowTargetRect = backgroundRect
+        let shadowTargetRect = doc.showMacWindow ? windowRect : baseImageRect
         context.drawLayer { ctx in
           ctx.addFilter(.shadow(color: .black.opacity(doc.backgroundShadowOpacity), radius: doc.backgroundShadowRadius * scale))
           ctx.fill(Path(shadowTargetRect), with: .color(.white))
@@ -133,10 +131,9 @@ struct EditorCanvasView: View {
       }
     }
     
-    // Draw macOS window frame if enabled
+    // Draw macOS window frame OVER the background
     if doc.showMacWindow {
       let cornerRadius: CGFloat = 10 * scale
-      let windowRect = totalFrameRect.insetBy(dx: windowMargin, dy: windowMargin)
       
       // Window background with rounded corners
       let windowColor = doc.macWindowColor
@@ -153,11 +150,26 @@ struct EditorCanvasView: View {
         height: titleBarHeight
       )
       
-      // Title bar background (slightly darker)
-      context.fill(
-        Path(titleBarRect),
-        with: .color(windowColor.opacity(0.96))
-      )
+      // Round only the top corners of title bar
+      let titleBarPath = Path { path in
+        path.move(to: CGPoint(x: titleBarRect.minX, y: titleBarRect.maxY))
+        path.addLine(to: CGPoint(x: titleBarRect.minX, y: titleBarRect.minY + cornerRadius))
+        path.addArc(center: CGPoint(x: titleBarRect.minX + cornerRadius, y: titleBarRect.minY + cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: .degrees(180),
+                    endAngle: .degrees(270),
+                    clockwise: false)
+        path.addLine(to: CGPoint(x: titleBarRect.maxX - cornerRadius, y: titleBarRect.minY))
+        path.addArc(center: CGPoint(x: titleBarRect.maxX - cornerRadius, y: titleBarRect.minY + cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: .degrees(270),
+                    endAngle: .degrees(0),
+                    clockwise: false)
+        path.addLine(to: CGPoint(x: titleBarRect.maxX, y: titleBarRect.maxY))
+        path.closeSubpath()
+      }
+      
+      context.fill(titleBarPath, with: .color(windowColor.opacity(0.96)))
       
       // Traffic lights at top left
       let lightRadius: CGFloat = 6 * scale
@@ -180,7 +192,7 @@ struct EditorCanvasView: View {
     }
     
     // Draw the actual screenshot image (properly positioned)
-    let finalImageRect = backgroundRect.insetBy(dx: padding, dy: padding)
+    let finalImageRect = doc.showMacWindow ? imageRect : baseImageRect
     context.draw(Image(decorative: doc.cgImage, scale: 1), in: finalImageRect)
   }
 
@@ -188,18 +200,25 @@ struct EditorCanvasView: View {
     let baseImageRect = fitRect(imageSize: doc.imageSize, in: size)
     let scale = baseImageRect.width / doc.imageSize.width
     
-    // Calculate the actual image rect accounting for window chrome and padding
-    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
+    // Calculate where the actual image is positioned
     let titleBarHeight: CGFloat = doc.showMacWindow ? 28 * scale : 0
     let windowMargin: CGFloat = doc.showMacWindow ? 8 * scale : 0
+    let backgroundPadding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
     
-    // The actual image position (where annotations should be drawn)
-    let actualImageRect = CGRect(
-      x: baseImageRect.minX + windowMargin + padding,
-      y: baseImageRect.minY + titleBarHeight + windowMargin + padding,
-      width: baseImageRect.width,
-      height: baseImageRect.height
-    )
+    // Annotations are drawn relative to where the screenshot actually is
+    let actualImageRect: CGRect
+    if doc.showMacWindow {
+      // Image is inside window (below title bar, with margin), window is inside background padding
+      actualImageRect = CGRect(
+        x: baseImageRect.minX + windowMargin,
+        y: baseImageRect.minY + titleBarHeight + windowMargin,
+        width: baseImageRect.width - windowMargin * 2,
+        height: baseImageRect.height - windowMargin * 2
+      )
+    } else {
+      // Image is just at base position
+      actualImageRect = baseImageRect
+    }
 
     // Blur/pixelate first (underlays)
     for a in doc.annotations {
@@ -336,17 +355,21 @@ struct EditorCanvasView: View {
     let baseImageRect = fitRect(imageSize: doc.imageSize, in: size)
     let scale = baseImageRect.width / doc.imageSize.width
     
-    // Calculate the actual image rect accounting for window chrome and padding
-    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
+    // Calculate where the actual image is positioned
     let titleBarHeight: CGFloat = doc.showMacWindow ? 28 * scale : 0
     let windowMargin: CGFloat = doc.showMacWindow ? 8 * scale : 0
     
-    let actualImageRect = CGRect(
-      x: baseImageRect.minX + windowMargin + padding,
-      y: baseImageRect.minY + titleBarHeight + windowMargin + padding,
-      width: baseImageRect.width,
-      height: baseImageRect.height
-    )
+    let actualImageRect: CGRect
+    if doc.showMacWindow {
+      actualImageRect = CGRect(
+        x: baseImageRect.minX + windowMargin,
+        y: baseImageRect.minY + titleBarHeight + windowMargin,
+        width: baseImageRect.width - windowMargin * 2,
+        height: baseImageRect.height - windowMargin * 2
+      )
+    } else {
+      actualImageRect = baseImageRect
+    }
     
     let offset = actualImageRect.origin
 
@@ -587,17 +610,21 @@ struct EditorCanvasView: View {
     let baseImageRect = fitRect(imageSize: doc.imageSize, in: viewSize)
     let scale = baseImageRect.width / doc.imageSize.width
     
-    // Calculate the actual image rect accounting for window chrome and padding
-    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
+    // Calculate where the actual image is positioned
     let titleBarHeight: CGFloat = doc.showMacWindow ? 28 * scale : 0
     let windowMargin: CGFloat = doc.showMacWindow ? 8 * scale : 0
     
-    let actualImageRect = CGRect(
-      x: baseImageRect.minX + windowMargin + padding,
-      y: baseImageRect.minY + titleBarHeight + windowMargin + padding,
-      width: baseImageRect.width,
-      height: baseImageRect.height
-    )
+    let actualImageRect: CGRect
+    if doc.showMacWindow {
+      actualImageRect = CGRect(
+        x: baseImageRect.minX + windowMargin,
+        y: baseImageRect.minY + titleBarHeight + windowMargin,
+        width: baseImageRect.width - windowMargin * 2,
+        height: baseImageRect.height - windowMargin * 2
+      )
+    } else {
+      actualImageRect = baseImageRect
+    }
     
     let p = CGPoint(x: (point.x - actualImageRect.minX) / scale, y: (point.y - actualImageRect.minY) / scale)
     return CGPoint(x: max(0, min(doc.imageSize.width, p.x)), y: max(0, min(doc.imageSize.height, p.y)))
@@ -607,17 +634,21 @@ struct EditorCanvasView: View {
     let baseImageRect = fitRect(imageSize: doc.imageSize, in: viewSize)
     let scale = baseImageRect.width / doc.imageSize.width
     
-    // Calculate the actual image rect accounting for window chrome and padding
-    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding * scale : 0
+    // Calculate where the actual image is positioned
     let titleBarHeight: CGFloat = doc.showMacWindow ? 28 * scale : 0
     let windowMargin: CGFloat = doc.showMacWindow ? 8 * scale : 0
     
-    let actualImageRect = CGRect(
-      x: baseImageRect.minX + windowMargin + padding,
-      y: baseImageRect.minY + titleBarHeight + windowMargin + padding,
-      width: baseImageRect.width,
-      height: baseImageRect.height
-    )
+    let actualImageRect: CGRect
+    if doc.showMacWindow {
+      actualImageRect = CGRect(
+        x: baseImageRect.minX + windowMargin,
+        y: baseImageRect.minY + titleBarHeight + windowMargin,
+        width: baseImageRect.width - windowMargin * 2,
+        height: baseImageRect.height - windowMargin * 2
+      )
+    } else {
+      actualImageRect = baseImageRect
+    }
     
     return CGPoint(x: actualImageRect.minX + point.x * scale, y: actualImageRect.minY + point.y * scale)
   }
