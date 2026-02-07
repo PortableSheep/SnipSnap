@@ -320,8 +320,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     prefs.target = self
     menu.addItem(prefs)
 
-    let donate = NSMenuItem(title: "Support Development ❤️", action: #selector(onDonate), keyEquivalent: "")
+    let donate = NSMenuItem(title: "Support Development", action: #selector(onDonate), keyEquivalent: "")
     donate.target = self
+    donate.image = NSImage(systemSymbolName: "gift.fill", accessibilityDescription: "Donate")
     menu.addItem(donate)
 
     // Presentation Mode submenu
