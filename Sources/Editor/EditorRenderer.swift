@@ -795,9 +795,9 @@ enum EditorRenderer {
   }
 
   private static func drawBlur(_ b: BlurAnnotation, in ctx: CGContext) {
-    // For "remove" mode, just draw a white rectangle
-    if b.mode == .remove {
-      ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+    // For "redact" mode, just draw a black rectangle
+    if b.mode == .redact {
+      ctx.setFillColor(CGColor(red: 0, green: 0, blue: 0, alpha: 1))
       ctx.fill(b.rect)
       return
     }

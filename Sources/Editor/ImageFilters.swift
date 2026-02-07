@@ -44,9 +44,8 @@ enum ImageFilters {
       // Pixellate also expands; re-crop.
       out = (f.outputImage ?? cropped).cropped(to: r)
       
-    case .remove:
-      // For "remove" mode, return a solid white rectangle
-      // This will be drawn as a filled rect, not a filter
+    case .redact:
+      // For "redact" mode, return nil - will be drawn as a filled rect
       return nil
     }
 

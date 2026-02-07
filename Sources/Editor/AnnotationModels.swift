@@ -96,7 +96,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
 enum BlurMode: String, CaseIterable, Identifiable {
   case blur
   case pixelate
-  case remove
+  case redact
 
   var id: String { rawValue }
 
@@ -104,7 +104,7 @@ enum BlurMode: String, CaseIterable, Identifiable {
     switch self {
     case .blur: return "Blur"
     case .pixelate: return "Pixelate"
-    case .remove: return "Remove"
+    case .redact: return "Redact"
     }
   }
 }

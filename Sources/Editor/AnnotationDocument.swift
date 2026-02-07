@@ -222,12 +222,12 @@ final class AnnotationDocument: ObservableObject {
   func acceptRedaction(_ suggestion: RedactionSuggestion) {
     pushUndoCheckpoint()
     
-    if redactionStyle == .remove {
-      // For "remove" mode, add a rectangle annotation with white fill to cover the text
+    if redactionStyle == .redact {
+      // For "redact" mode, add a rectangle annotation with black fill to cover the text
       let rect = RectAnnotation(
         rect: suggestion.rect,
-        stroke: StrokeStyleModel(color: .white, lineWidth: 0),
-        fill: FillStyleModel(color: .white, enabled: true)
+        stroke: StrokeStyleModel(color: .black, lineWidth: 0),
+        fill: FillStyleModel(color: .black, enabled: true)
       )
       annotations.append(.rect(rect))
     } else {
@@ -260,11 +260,11 @@ final class AnnotationDocument: ObservableObject {
     pushUndoCheckpoint()
     
     for suggestion in suggestedRedactions {
-      if redactionStyle == .remove {
+      if redactionStyle == .redact {
         let rect = RectAnnotation(
           rect: suggestion.rect,
-          stroke: StrokeStyleModel(color: .white, lineWidth: 0),
-          fill: FillStyleModel(color: .white, enabled: true)
+          stroke: StrokeStyleModel(color: .black, lineWidth: 0),
+          fill: FillStyleModel(color: .black, enabled: true)
         )
         annotations.append(.rect(rect))
       } else {

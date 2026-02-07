@@ -513,15 +513,15 @@ struct EditorCanvasView: View {
 
     case .blur(let b):
       // Live view: filter the underlying source region and paint back.
-      // For "remove" mode, just draw a white rectangle
-      if b.mode == .remove {
+      // For "redact" mode, just draw a black rectangle
+      if b.mode == .redact {
         let vr = CGRect(
           x: offset.x + b.rect.minX * scale,
           y: offset.y + b.rect.minY * scale,
           width: b.rect.width * scale,
           height: b.rect.height * scale
         )
-        context.fill(Path(vr), with: .color(.white))
+        context.fill(Path(vr), with: .color(.black))
       } else {
         guard let filtered = ImageFilters.filteredRegion(source: doc.cgImage, rect: b.rect, mode: b.mode, amount: b.amount) else {
           break
