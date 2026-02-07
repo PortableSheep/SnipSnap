@@ -125,6 +125,20 @@ final class AnnotationDocument: ObservableObject {
   @Published var backgroundShadowEnabled: Bool = true
   @Published var backgroundShadowRadius: CGFloat = 24
   @Published var backgroundShadowOpacity: CGFloat = 0.3
+  
+  // Wallpaper background (cached)
+  private var cachedWallpaper: NSImage?
+  
+  @MainActor
+  func loadWallpaper() {
+    if cachedWallpaper == nil {
+      cachedWallpaper = WallpaperHelper.getDesktopWallpaper()
+    }
+  }
+  
+  func getWallpaper() -> NSImage? {
+    return cachedWallpaper
+  }
 
   // Edge detection for measurement snapping
   let snapGuideManager = SnapGuideManager()

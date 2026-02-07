@@ -723,6 +723,10 @@ struct EditorView: View {
             doc.backgroundStyle
           }, set: { newStyle in
             doc.backgroundStyle = newStyle
+            // Load wallpaper when wallpaper style is selected
+            if newStyle == .wallpaper {
+              doc.loadWallpaper()
+            }
           })) {
             ForEach(BackgroundStyle.allCases) { style in
               Text(style.label).tag(style)
@@ -760,6 +764,14 @@ struct EditorView: View {
                 }
                 .labelsHidden()
               }
+            }
+          } else if doc.backgroundStyle == .wallpaper {
+            HStack {
+              Text("Source")
+                .frame(width: 70, alignment: .leading)
+              Text("Main Display")
+                .foregroundColor(.secondary)
+                .font(.system(size: 11))
             }
           }
 

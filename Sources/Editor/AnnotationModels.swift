@@ -635,6 +635,7 @@ enum BackgroundStyle: String, CaseIterable, Identifiable {
   case solid
   case gradient
   case mesh
+  case wallpaper
 
   var id: String { rawValue }
 
@@ -644,6 +645,7 @@ enum BackgroundStyle: String, CaseIterable, Identifiable {
     case .solid: return "Solid"
     case .gradient: return "Gradient"
     case .mesh: return "Mesh"
+    case .wallpaper: return "Desktop Wallpaper"
     }
   }
 }

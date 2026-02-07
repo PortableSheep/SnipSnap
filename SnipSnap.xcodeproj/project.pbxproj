@@ -43,6 +43,7 @@
 		6160493B2A4A38099A7680F3 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C28B8CB2233AD6FE17EBF581 /* HotKeyManager.swift */; };
 		6162C13AF8DE79B15DBA424E /* MeasurementTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95E7F18550CA527EF9C30133 /* MeasurementTool.swift */; };
 		6A3183969AEA1E534C421448 /* HUDPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B820A71F809B940D3FB93C /* HUDPlacement.swift */; };
+		6B2379F24D1251137CC3F2EF /* WallpaperHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC055A54601E5BD1A8B5EC9 /* WallpaperHelper.swift */; };
 		6C8421E6C404DF9F4F93399D /* AccessibilityPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38289F65511C202EC0D15F6F /* AccessibilityPermission.swift */; };
 		710B4EFC9749FE9646F983EF /* OverlayPreviewWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F93DF3C124290EB86C78DE6 /* OverlayPreviewWindowController.swift */; };
 		71A455CB719605448FFF1729 /* CaptureLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = C81F679C84E03D2AFE3624BE /* CaptureLibrary.swift */; };
@@ -198,6 +199,7 @@
 		F52FB2F003F3AD74B60BAD95 /* CaptureService.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CaptureService.entitlements; sourceTree = "<group>"; };
 		FB88813A7932E7EC2C4BD818 /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
 		FD45AEC0D8BDE316F4F7F1E7 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		FDC055A54601E5BD1A8B5EC9 /* WallpaperHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperHelper.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -310,6 +312,7 @@
 				68F5EE040D0532E768451CA1 /* EditorView.swift */,
 				682F4BB49A4B7DBB221E04D4 /* EditorWindowController.swift */,
 				2F7C712A9071C1E427A5EF38 /* ImageFilters.swift */,
+				FDC055A54601E5BD1A8B5EC9 /* WallpaperHelper.swift */,
 				0B726DB414B6E2ADAC2E45CF /* Snapping */,
 				C6157F55EE28223221EB994F /* Tools */,
 			);
@@ -598,6 +601,7 @@
 				41F8DE5162424072BD6AAE5B /* ToolRegistry.swift in Sources */,
 				D45E13399D98004D89C87D75 /* VideoTrimExporter.swift in Sources */,
 				AE1E3E1D77E1AA944C6FAD09 /* VideoTrimPresenter.swift in Sources */,
+				6B2379F24D1251137CC3F2EF /* WallpaperHelper.swift in Sources */,
 				E71EA343D10EBEA96BED9CFD /* WindowPicker.swift in Sources */,
 				081DD27D01A7269956290ED5 /* main.swift in Sources */,
 			);

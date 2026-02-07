@@ -237,6 +237,30 @@ enum EditorRenderer {
       ] as CFArray
       guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 0.33, 0.66, 1]) else { return }
       ctx.drawLinearGradient(gradient, start: CGPoint(x: 0, y: size.height), end: CGPoint(x: size.width, y: 0), options: [])
+      
+    case .wallpaper:
+      // Draw desktop wallpaper as background
+      if let wallpaper = doc.getWallpaper(),
+         let cgImage = wallpaper.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+        // Scale wallpaper to fill the canvas while maintaining aspect ratio
+        let wallpaperSize = CGSize(width: cgImage.width, height: cgImage.height)
+        let scaleX = size.width / wallpaperSize.width
+        let scaleY = size.height / wallpaperSize.height
+        let scale = max(scaleX, scaleY)
+        
+        let scaledWidth = wallpaperSize.width * scale
+        let scaledHeight = wallpaperSize.height * scale
+        
+        let x = (size.width - scaledWidth) / 2
+        let y = (size.height - scaledHeight) / 2
+        
+        let drawRect = CGRect(x: x, y: y, width: scaledWidth, height: scaledHeight)
+        ctx.draw(cgImage, in: drawRect)
+      } else {
+        // Fallback to gray if wallpaper can't be loaded
+        ctx.setFillColor(CGColor(gray: 0.9, alpha: 1))
+        ctx.fill(rect)
+      }
     }
   }
 
