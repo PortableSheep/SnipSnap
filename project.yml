@@ -30,8 +30,16 @@ targets:
     type: application
     platform: macOS
     sources:
-      - path: Sources
+      - path: Sources/App
+      - path: Sources/Editor
+      - path: Sources/Hotkeys
+      - path: Sources/IPC
+      - path: Sources/Permissions
+      - path: Sources/Preferences
+      - path: Sources/Pro
+      - path: Sources/Recording
       - path: Sources/Resources
+      - path: Sources/Strip
     dependencies:
       - target: CaptureService
         embed: true
@@ -63,9 +71,13 @@ targets:
     sources:
       - path: CaptureServiceXPC
       - path: Sources/IPC/CaptureServiceProtocol.swift
+        name: CaptureServiceProtocol
       - path: Sources/Recording
+        name: Recording
       - path: Sources/Permissions
+        name: Permissions
       - path: Sources/Preferences/HUDPlacement.swift
+        name: HUDPlacement
     settings:
       base:
         PRODUCT_NAME: com.snipsnap.CaptureService
