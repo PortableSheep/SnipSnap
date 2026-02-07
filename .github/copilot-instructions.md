@@ -24,8 +24,8 @@ The Xcode project is generated from `project.yml` and should not be edited direc
 
 **Via Xcode:**
 ```bash
-open SnipSnapMac.xcodeproj
-# Run the "SnipSnapMac" scheme
+open SnipSnap.xcodeproj
+# Run the "SnipSnap" scheme
 ```
 
 **Via Command Line:**

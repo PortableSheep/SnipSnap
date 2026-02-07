@@ -123,7 +123,7 @@ brew install xcodegen
 git clone https://github.com/portablesheep/snipsnap.git
 cd snipsnap
 xcodegen generate
-open SnipSnapMac.xcodeproj
+open SnipSnap.xcodeproj
 ```
 
 Hit **⌘R** to build and run.

@@ -18,8 +18,8 @@ permissions:
   contents: write
 
 env:
-  SCHEME: SnipSnapMac
-  PROJECT: SnipSnapMac.xcodeproj
+  SCHEME: SnipSnap
+  PROJECT: SnipSnap.xcodeproj
 
 jobs:
   build:
@@ -83,7 +83,7 @@ jobs:
 
       - name: Create DMG
         run: |
-          APP_PATH="build/Build/Products/Release/SnipSnapMac.app"
+          APP_PATH="build/Build/Products/Release/SnipSnap.app"
           VERSION="${{ steps.version.outputs.version }}"
           DMG_NAME="SnipSnap-${VERSION}.dmg"
           
@@ -101,9 +101,9 @@ jobs:
           
           Option 1: Drag & Drop
           ---------------------
-          Drag SnipSnapMac.app to the Applications folder.
+          Drag SnipSnap.app to the Applications folder.
           Then run in Terminal:
-            xattr -rd com.apple.quarantine /Applications/SnipSnapMac.app
+            xattr -rd com.apple.quarantine /Applications/SnipSnap.app
           
           Option 2: Run Install Script
           ----------------------------
@@ -124,7 +124,7 @@ jobs:
 
       - name: Create ZIP
         run: |
-          APP_PATH="build/Build/Products/Release/SnipSnapMac.app"
+          APP_PATH="build/Build/Products/Release/SnipSnap.app"
           VERSION="${{ steps.version.outputs.version }}"
           ZIP_NAME="SnipSnap-${VERSION}.zip"
           

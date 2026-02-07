@@ -5,7 +5,7 @@ set -euo pipefail
 # Installs SnipSnap to /Applications and removes quarantine flag
 # Can be run locally or via curl from remote
 
-APP_NAME="SnipSnapMac.app"
+APP_NAME="SnipSnap.app"
 INSTALL_DIR="/Applications"
 GITHUB_REPO="portablesheep/snipsnap"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" 2>/dev/null)" && pwd 2>/dev/null || echo "")"
@@ -85,7 +85,7 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ SnipSnap installed successfully!"
 echo ""
-echo "To launch: open -a SnipSnapMac"
+echo "To launch: open -a SnipSnap"
 echo "Or find it in your Applications folder."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 

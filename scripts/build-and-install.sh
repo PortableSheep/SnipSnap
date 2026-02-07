@@ -68,15 +68,15 @@ xcodegen generate --quiet
 # Build
 echo "🔨 Building SnipSnapMac ($CONFIGURATION)..."
 xcodebuild \
-    -project SnipSnapMac.xcodeproj \
-    -scheme SnipSnapMac \
+    -project SnipSnap.xcodeproj \
+    -scheme SnipSnap \
     -configuration "$CONFIGURATION" \
     -quiet \
     build
 
 # Get the built app path (must pass same configuration!)
-DERIVED_DATA=$(xcodebuild -project SnipSnapMac.xcodeproj -scheme SnipSnapMac -configuration "$CONFIGURATION" -showBuildSettings 2>/dev/null | grep -m1 "BUILT_PRODUCTS_DIR" | awk '{print $3}')
-APP_SRC="$DERIVED_DATA/SnipSnapMac.app"
+DERIVED_DATA=$(xcodebuild -project SnipSnap.xcodeproj -scheme SnipSnap -configuration "$CONFIGURATION" -showBuildSettings 2>/dev/null | grep -m1 "BUILT_PRODUCTS_DIR" | awk '{print $3}')
+APP_SRC="$DERIVED_DATA/SnipSnap.app"
 
 if [[ ! -d "$APP_SRC" ]]; then
     echo "❌ Build output not found at: $APP_SRC"
@@ -86,12 +86,12 @@ fi
 # Install
 echo "📥 Installing to $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR"
-APP_DST="$INSTALL_DIR/SnipSnapMac.app"
+APP_DST="$INSTALL_DIR/SnipSnap.app"
 
 # Kill running instance if any
-if pgrep -f "SnipSnapMac.app" > /dev/null 2>&1; then
+if pgrep -f "SnipSnap.app" > /dev/null 2>&1; then
     echo "⏹️  Stopping running SnipSnap..."
-    pkill -f "SnipSnapMac.app" || true
+    pkill -f "SnipSnap.app" || true
     sleep 1
 fi
 
