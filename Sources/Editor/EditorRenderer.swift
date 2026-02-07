@@ -59,21 +59,20 @@ enum EditorRenderer {
   static func renderFinalExport(doc: AnnotationDocument) -> CGImage? {
     guard let annotatedImage = renderAnnotatedCGImage(doc: doc) else { return nil }
 
-    // If no background or device frame, return simple annotated image
-    if doc.backgroundStyle == .none && !doc.showMacWindow {
+    // If no background, return simple annotated image
+    if doc.backgroundStyle == .none {
       return annotatedImage
     }
 
     let imageW = CGFloat(annotatedImage.width)
     let imageH = CGFloat(annotatedImage.height)
-    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding : 0
+    let padding = doc.backgroundPadding
     let cornerRadius = doc.backgroundCornerRadius
-    let hasDeviceFrame = doc.showMacWindow
 
-    // Calculate device frame dimensions if applicable
+    // Calculate dimensions (no device frame)
     let (frameImageRect, frameRect, totalSize) = calculateFrameDimensions(
       imageSize: CGSize(width: imageW, height: imageH),
-      deviceFrame: doc.showMacWindow ? .window : .none,
+      deviceFrame: .none,
       padding: padding
     )
 
@@ -100,7 +99,7 @@ enum EditorRenderer {
     // Draw shadow under the content (if enabled)
     if doc.backgroundShadowEnabled && doc.backgroundStyle != .none {
       ctx.saveGState()
-      let shadowRect = hasDeviceFrame ? frameRect : frameImageRect
+      let shadowRect = frameImageRect
       ctx.setShadow(
         offset: CGSize(width: 0, height: -4),
         blur: doc.backgroundShadowRadius,
@@ -113,26 +112,13 @@ enum EditorRenderer {
       ctx.restoreGState()
     }
 
-    // Draw device frame or rounded image
-    if hasDeviceFrame {
-      drawDeviceFrame(
-        frame: .window,
-        frameColor: .custom,
-        customColor: doc.macWindowColor,
-        frameRect: frameRect,
-        imageRect: frameImageRect,
-        image: annotatedImage,
-        in: ctx
-      )
-    } else {
-      // Just draw the image with rounded corners
-      ctx.saveGState()
-      let clipPath = CGPath(roundedRect: frameImageRect, cornerWidth: cornerRadius, cornerHeight: cornerRadius, transform: nil)
-      ctx.addPath(clipPath)
-      ctx.clip()
-      ctx.draw(annotatedImage, in: frameImageRect)
-      ctx.restoreGState()
-    }
+    // Draw the image with rounded corners
+    ctx.saveGState()
+    let clipPath = CGPath(roundedRect: frameImageRect, cornerWidth: cornerRadius, cornerHeight: cornerRadius, transform: nil)
+    ctx.addPath(clipPath)
+    ctx.clip()
+    ctx.draw(annotatedImage, in: frameImageRect)
+    ctx.restoreGState()
 
     return ctx.makeImage()
   }

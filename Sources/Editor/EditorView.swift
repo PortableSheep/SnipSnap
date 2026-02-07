@@ -747,29 +747,6 @@ struct EditorView: View {
 
   private var presentationInspector: some View {
     VStack(alignment: .leading, spacing: 12) {
-      // Mac Window Frame
-      VStack(alignment: .leading, spacing: 6) {
-        Toggle(isOn: $doc.showMacWindow) {
-          HStack {
-            Image(systemName: "macwindow")
-              .font(.system(size: 14))
-            Text("macOS Window")
-          }
-        }
-        .toggleStyle(.switch)
-
-        if doc.showMacWindow {
-          HStack {
-            Text("Color")
-              .frame(width: 60, alignment: .leading)
-            ColorPicker("", selection: $doc.macWindowColor)
-              .labelsHidden()
-          }
-        }
-      }
-
-      Divider()
-
       // Background
       VStack(alignment: .leading, spacing: 6) {
         HStack {

@@ -119,10 +119,6 @@ final class AnnotationDocument: ObservableObject {
   // Active freehand stroke (while drawing)
   @Published var activeFreehandStroke: FreehandAnnotation? = nil
 
-  // Device frame settings
-  @Published var showMacWindow: Bool = false
-  @Published var macWindowColor: Color = Color(white: 0.95)
-
   // Background settings (Pro feature)
   @Published var backgroundStyle: BackgroundStyle = .none
   @Published var backgroundColor: Color = .gray
