@@ -106,6 +106,9 @@ final class AnnotationDocument: ObservableObject {
   // Freehand tool settings
   @Published var freehandIsHighlighter: Bool = false
 
+  // Redaction settings
+  @Published var redactionStyle: BlurMode = .pixelate
+  
   // Active freehand stroke (while drawing)
   @Published var activeFreehandStroke: FreehandAnnotation? = nil
 
@@ -215,19 +218,30 @@ final class AnnotationDocument: ObservableObject {
     }
   }
 
-  /// Accept a redaction suggestion - adds a blur annotation.
+  /// Accept a redaction suggestion - adds blur/pixelate annotation or removes the area.
   func acceptRedaction(_ suggestion: RedactionSuggestion) {
-    // Add a pixelate blur annotation at the suggestion rect
-    let blur = BlurAnnotation(
-      rect: suggestion.rect,
-      mode: .pixelate,
-      amount: 12
-    )
     pushUndoCheckpoint()
-    annotations.append(.blur(blur))
+    
+    if redactionStyle == .remove {
+      // For "remove" mode, add a rectangle annotation with white fill to cover the text
+      let rect = RectAnnotation(
+        rect: suggestion.rect,
+        stroke: StrokeStyleModel(color: .white, lineWidth: 0),
+        fill: FillStyleModel(color: .white, enabled: true)
+      )
+      annotations.append(.rect(rect))
+    } else {
+      // For blur or pixelate modes
+      let blur = BlurAnnotation(
+        rect: suggestion.rect,
+        mode: redactionStyle,
+        amount: redactionStyle == .blur ? 8 : 12
+      )
+      annotations.append(.blur(blur))
+    }
 
-    // Remove from suggestions
-    suggestedRedactions.removeAll { $0.id == suggestion.id }
+    // Don't remove from suggestions - keep them visible for redo
+    // User can dismiss them explicitly if they don't want to see them anymore
   }
 
   /// Dismiss a redaction suggestion without adding a blur.
@@ -244,15 +258,26 @@ final class AnnotationDocument: ObservableObject {
   func acceptAllRedactions() {
     guard !suggestedRedactions.isEmpty else { return }
     pushUndoCheckpoint()
+    
     for suggestion in suggestedRedactions {
-      let blur = BlurAnnotation(
-        rect: suggestion.rect,
-        mode: .pixelate,
-        amount: 12
-      )
-      annotations.append(.blur(blur))
+      if redactionStyle == .remove {
+        let rect = RectAnnotation(
+          rect: suggestion.rect,
+          stroke: StrokeStyleModel(color: .white, lineWidth: 0),
+          fill: FillStyleModel(color: .white, enabled: true)
+        )
+        annotations.append(.rect(rect))
+      } else {
+        let blur = BlurAnnotation(
+          rect: suggestion.rect,
+          mode: redactionStyle,
+          amount: redactionStyle == .blur ? 8 : 12
+        )
+        annotations.append(.blur(blur))
+      }
     }
-    suggestedRedactions.removeAll()
+    
+    // Don't remove suggestions - let user dismiss them explicitly if desired
   }
 
   func markSaved() {

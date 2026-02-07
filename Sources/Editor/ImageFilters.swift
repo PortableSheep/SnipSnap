@@ -43,6 +43,11 @@ enum ImageFilters {
       f.scale = Float(max(1, amount))
       // Pixellate also expands; re-crop.
       out = (f.outputImage ?? cropped).cropped(to: r)
+      
+    case .remove:
+      // For "remove" mode, return a solid white rectangle
+      // This will be drawn as a filled rect, not a filter
+      return nil
     }
 
     return ciContext.createCGImage(out, from: r)

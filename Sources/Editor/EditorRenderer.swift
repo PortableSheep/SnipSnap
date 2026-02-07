@@ -795,6 +795,13 @@ enum EditorRenderer {
   }
 
   private static func drawBlur(_ b: BlurAnnotation, in ctx: CGContext) {
+    // For "remove" mode, just draw a white rectangle
+    if b.mode == .remove {
+      ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+      ctx.fill(b.rect)
+      return
+    }
+    
     // Export: apply filter to the corresponding region.
     // We cannot access the original source here directly from ctx; callers draw base image first.
     // So we rely on ctx's current contents by snapshotting after base draw.

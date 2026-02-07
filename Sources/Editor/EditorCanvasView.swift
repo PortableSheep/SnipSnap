@@ -513,16 +513,27 @@ struct EditorCanvasView: View {
 
     case .blur(let b):
       // Live view: filter the underlying source region and paint back.
-      guard let filtered = ImageFilters.filteredRegion(source: doc.cgImage, rect: b.rect, mode: b.mode, amount: b.amount) else {
-        break
+      // For "remove" mode, just draw a white rectangle
+      if b.mode == .remove {
+        let vr = CGRect(
+          x: offset.x + b.rect.minX * scale,
+          y: offset.y + b.rect.minY * scale,
+          width: b.rect.width * scale,
+          height: b.rect.height * scale
+        )
+        context.fill(Path(vr), with: .color(.white))
+      } else {
+        guard let filtered = ImageFilters.filteredRegion(source: doc.cgImage, rect: b.rect, mode: b.mode, amount: b.amount) else {
+          break
+        }
+        let vr = CGRect(
+          x: offset.x + b.rect.minX * scale,
+          y: offset.y + b.rect.minY * scale,
+          width: b.rect.width * scale,
+          height: b.rect.height * scale
+        )
+        context.draw(Image(decorative: filtered, scale: 1), in: vr)
       }
-      let vr = CGRect(
-        x: offset.x + b.rect.minX * scale,
-        y: offset.y + b.rect.minY * scale,
-        width: b.rect.width * scale,
-        height: b.rect.height * scale
-      )
-      context.draw(Image(decorative: filtered, scale: 1), in: vr)
 
     case .step(let s):
       let c = CGPoint(x: offset.x + s.center.x * scale, y: offset.y + s.center.y * scale)

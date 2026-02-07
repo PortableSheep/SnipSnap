@@ -207,6 +207,21 @@ struct EditorView: View {
       }
 
       Spacer()
+      
+      // Redaction style picker
+      HStack(spacing: 4) {
+        Text("as")
+          .font(.system(size: 11))
+          .foregroundColor(.secondary)
+        Picker("", selection: $doc.redactionStyle) {
+          ForEach(BlurMode.allCases) { mode in
+            Text(mode.label).tag(mode)
+          }
+        }
+        .labelsHidden()
+        .frame(width: 100)
+        .font(.system(size: 12))
+      }
 
       // Actions
       Button("Dismiss All") {
