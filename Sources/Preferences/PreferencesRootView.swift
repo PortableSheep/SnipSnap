@@ -201,30 +201,32 @@ private struct ShortcutsPreferencesView: View {
       PreferenceHeader(title: "Shortcuts", subtitle: "Customize global keyboard shortcuts")
 
       PreferenceSection("Global Hotkeys") {
-        ForEach(HotkeyAction.allCases) { action in
-          ShortcutRow(
-            action: action,
-            binding: hotkeyPrefs.binding(for: action),
-            isRecording: recordingAction == action,
-            onStartRecording: {
-              recordingAction = action
-            },
-            onStopRecording: { newBinding in
-              if let newBinding {
-                // Check for conflicts
-                for otherAction in HotkeyAction.allCases where otherAction != action {
-                  if hotkeyPrefs.binding(for: otherAction) == newBinding {
-                    conflictMessage = "This shortcut is already used by \"\(otherAction.label)\""
-                    showConflictAlert = true
-                    recordingAction = nil
-                    return
+        VStack(spacing: 8) {
+          ForEach(HotkeyAction.allCases) { action in
+            ShortcutRow(
+              action: action,
+              binding: hotkeyPrefs.binding(for: action),
+              isRecording: recordingAction == action,
+              onStartRecording: {
+                recordingAction = action
+              },
+              onStopRecording: { newBinding in
+                if let newBinding {
+                  // Check for conflicts
+                  for otherAction in HotkeyAction.allCases where otherAction != action {
+                    if hotkeyPrefs.binding(for: otherAction) == newBinding {
+                      conflictMessage = "This shortcut is already used by \"\(otherAction.label)\""
+                      showConflictAlert = true
+                      recordingAction = nil
+                      return
+                    }
                   }
+                  hotkeyPrefs.setBinding(newBinding, for: action)
                 }
-                hotkeyPrefs.setBinding(newBinding, for: action)
+                recordingAction = nil
               }
-              recordingAction = nil
-            }
-          )
+            )
+          }
         }
       }
 
@@ -234,13 +236,15 @@ private struct ShortcutsPreferencesView: View {
         }
         .buttonStyle(.plain)
         .foregroundColor(.accentColor)
+        .font(.system(size: 13))
 
         Spacer()
 
         Text("Click a shortcut, then press new keys")
-          .font(.system(size: 11))
+          .font(.system(size: 12))
           .foregroundColor(.secondary)
       }
+      .padding(.top, 8)
 
       Spacer()
     }
@@ -261,17 +265,17 @@ private struct ShortcutRow: View {
   let onStopRecording: (HotkeyBinding?) -> Void
 
   var body: some View {
-    HStack(spacing: 12) {
+    HStack(spacing: 16) {
       Image(systemName: action.icon)
-        .font(.system(size: 14))
-        .foregroundColor(.secondary)
-        .frame(width: 24)
+        .font(.system(size: 18))
+        .foregroundColor(.accentColor)
+        .frame(width: 32)
 
-      VStack(alignment: .leading, spacing: 2) {
+      VStack(alignment: .leading, spacing: 4) {
         Text(action.label)
-          .font(.system(size: 13))
+          .font(.system(size: 15, weight: .medium))
         Text("Global hotkey")
-          .font(.system(size: 11))
+          .font(.system(size: 12))
           .foregroundColor(.secondary)
       }
 
@@ -284,7 +288,12 @@ private struct ShortcutRow: View {
         onStopRecording: onStopRecording
       )
     }
-    .padding(.vertical, 6)
+    .padding(.vertical, 10)
+    .padding(.horizontal, 12)
+    .background(
+      RoundedRectangle(cornerRadius: 8)
+        .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+    )
   }
 }
 
@@ -302,25 +311,31 @@ private struct ShortcutRecorderButton: View {
         onStartRecording()
       }
     } label: {
-      HStack(spacing: 4) {
+      HStack(spacing: 6) {
         if isRecording {
-          Text("Press keys…")
-            .font(.system(size: 12))
-            .foregroundColor(.accentColor)
+          HStack(spacing: 6) {
+            Image(systemName: "keyboard")
+              .font(.system(size: 14))
+            Text("Press keys…")
+              .font(.system(size: 14))
+          }
+          .foregroundColor(.accentColor)
         } else {
           Text(binding.displayString)
-            .font(.system(size: 12, weight: .medium, design: .monospaced))
+            .font(.system(size: 15, weight: .semibold, design: .rounded))
+            .foregroundColor(.primary)
         }
       }
-      .padding(.horizontal, 12)
-      .padding(.vertical, 6)
+      .padding(.horizontal, 16)
+      .padding(.vertical, 10)
+      .frame(minWidth: 140)
       .background(
-        RoundedRectangle(cornerRadius: 6)
-          .fill(isRecording ? Color.accentColor.opacity(0.2) : Color(NSColor.controlBackgroundColor))
+        RoundedRectangle(cornerRadius: 8)
+          .fill(isRecording ? Color.accentColor.opacity(0.15) : Color(NSColor.textBackgroundColor))
       )
       .overlay(
-        RoundedRectangle(cornerRadius: 6)
-          .stroke(isRecording ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: 1)
+        RoundedRectangle(cornerRadius: 8)
+          .stroke(isRecording ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: 1.5)
       )
     }
     .buttonStyle(.plain)
