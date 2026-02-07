@@ -323,37 +323,27 @@ struct EditorView: View {
 
   private func sidebarToolButton(_ tool: AnnotationTool) -> some View {
     let isSelected = doc.tool == tool
-    let isPro = false  // All features are now free
     let shortcut = tool.shortcutKey ?? ""
 
     return Button {
       selectTool(tool)
     } label: {
-      ZStack(alignment: .topTrailing) {
-        VStack(spacing: 2) {
-          Image(systemName: tool.icon)
-            .font(.system(size: 14))
-          Text(shortcut)
-            .font(.system(size: 8, weight: .medium, design: .rounded))
-            .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
-        }
-        .frame(width: 36, height: 36)
-        .background(
-          RoundedRectangle(cornerRadius: 6)
-            .fill(isSelected ? Color.accentColor : Color.clear)
-        )
-        .foregroundColor(isSelected ? .white : .primary)
-
-        if isPro {
-          Image(systemName: "star.fill")
-            .font(.system(size: 7))
-            .foregroundColor(.yellow)
-            .offset(x: 2, y: -2)
-        }
+      VStack(spacing: 2) {
+        Image(systemName: tool.icon)
+          .font(.system(size: 14))
+        Text(shortcut)
+          .font(.system(size: 8, weight: .medium, design: .rounded))
+          .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
       }
+      .frame(width: 36, height: 36)
+      .background(
+        RoundedRectangle(cornerRadius: 6)
+          .fill(isSelected ? Color.accentColor : Color.clear)
+      )
+      .foregroundColor(isSelected ? .white : .primary)
     }
     .buttonStyle(.plain)
-    .help("\(tool.label)\(isPro ? " (Pro)" : "")\(shortcut.isEmpty ? "" : " – Press \(shortcut)")")
+    .help(shortcut.isEmpty ? tool.label : "\(tool.label) – Press \(shortcut)")
   }
 
   private func selectTool(_ tool: AnnotationTool) {
