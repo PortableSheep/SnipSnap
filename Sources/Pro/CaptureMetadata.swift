@@ -39,8 +39,16 @@ struct NormalizedRect: Codable, Hashable {
 enum RedactionKind: String, Codable, Hashable {
   case email
   case creditCard
+  case phoneNumber
+  case ssn
+  case ipAddress
   case token
+  case address
+  case dateOfBirth
+  case accountNumber
+  case privateKey
 }
+
 
 struct RedactionCandidate: Codable, Hashable {
   var kind: RedactionKind

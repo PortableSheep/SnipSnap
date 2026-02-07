@@ -14,7 +14,14 @@ struct RedactionSuggestion: Identifiable, Hashable {
     switch kind {
     case .email: return "Email"
     case .creditCard: return "Credit Card"
+    case .phoneNumber: return "Phone Number"
+    case .ssn: return "SSN"
+    case .ipAddress: return "IP Address"
     case .token: return "API Key / Token"
+    case .address: return "Street Address"
+    case .dateOfBirth: return "Date of Birth"
+    case .accountNumber: return "Account Number"
+    case .privateKey: return "Private Key"
     }
   }
 
@@ -22,7 +29,14 @@ struct RedactionSuggestion: Identifiable, Hashable {
     switch kind {
     case .email: return "envelope.fill"
     case .creditCard: return "creditcard.fill"
+    case .phoneNumber: return "phone.fill"
+    case .ssn: return "number.square.fill"
+    case .ipAddress: return "network"
     case .token: return "key.fill"
+    case .address: return "house.fill"
+    case .dateOfBirth: return "calendar"
+    case .accountNumber: return "number.circle.fill"
+    case .privateKey: return "lock.fill"
     }
   }
 }

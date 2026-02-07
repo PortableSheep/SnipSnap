@@ -57,7 +57,7 @@ Everything supports undo/redo, keyboard shortcuts, and you can save annotation t
 
 ### Smart Features
 
-- **Smart redaction** — Automatically detects emails, SSNs, credit cards in screenshots
+- **Smart redaction** — Automatically detects 10+ types of PII (emails, phone numbers, SSNs, credit cards with Luhn validation, API keys, AWS keys, IP addresses, street addresses, dates of birth, account numbers, private keys) and suggests blur overlays. You can accept/dismiss individual suggestions or batch process. See [PII_REDACTION.md](docs/PII_REDACTION.md) for details.
 - **Annotation templates** — Save frequently-used shapes/text as reusable templates
 - **Metadata preservation** — Keeps creation dates, OCR data, and edit history
 
