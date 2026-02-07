@@ -50,13 +50,39 @@ struct EditorCanvasView: View {
   private func drawBaseImage(context: inout GraphicsContext, size: CGSize) {
     let imageRect = fitRect(imageSize: doc.imageSize, in: size)
     
-    // If background is set, draw it first with padding
-    if doc.backgroundStyle != .none {
-      let padding = doc.backgroundPadding
-      let scale = imageRect.width / doc.imageSize.width
-      let scaledPadding = padding * scale
+    // Calculate frame dimensions if mac window is enabled
+    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding : 0
+    let scale = imageRect.width / doc.imageSize.width
+    let scaledPadding = padding * scale
+    
+    var actualImageRect = imageRect
+    var frameRect = imageRect
+    var backgroundRect = imageRect.insetBy(dx: -scaledPadding, dy: -scaledPadding)
+    
+    if doc.showMacWindow {
+      // Add window chrome dimensions
+      let titleBarHeight: CGFloat = 28 * scale
+      let windowPadding: CGFloat = 0
       
-      let backgroundRect = imageRect.insetBy(dx: -scaledPadding, dy: -scaledPadding)
+      frameRect = CGRect(
+        x: imageRect.minX - windowPadding - scaledPadding,
+        y: imageRect.minY - windowPadding - scaledPadding,
+        width: imageRect.width + windowPadding * 2 + scaledPadding * 2,
+        height: imageRect.height + titleBarHeight + windowPadding + scaledPadding * 2
+      )
+      
+      actualImageRect = CGRect(
+        x: frameRect.minX,
+        y: frameRect.minY,
+        width: frameRect.width,
+        height: frameRect.height - titleBarHeight
+      )
+      
+      backgroundRect = frameRect
+    }
+    
+    // If background is set, draw it first
+    if doc.backgroundStyle != .none || doc.showMacWindow {
       
       // Draw background
       switch doc.backgroundStyle {
@@ -105,15 +131,60 @@ struct EditorCanvasView: View {
       
       // Draw shadow if enabled
       if doc.backgroundShadowEnabled {
+        let shadowTargetRect = doc.showMacWindow ? frameRect : imageRect
         context.drawLayer { ctx in
           ctx.addFilter(.shadow(color: .black.opacity(doc.backgroundShadowOpacity), radius: doc.backgroundShadowRadius * scale))
-          ctx.fill(Path(imageRect), with: .color(.white))
+          ctx.fill(Path(shadowTargetRect), with: .color(.white))
         }
       }
     }
     
+    // Draw macOS window frame if enabled
+    if doc.showMacWindow {
+      let cornerRadius: CGFloat = 10 * scale
+      let titleBarHeight: CGFloat = 28 * scale
+      
+      // Window background
+      let windowColor = doc.macWindowColor
+      context.fill(
+        Path(roundedRect: frameRect, cornerRadius: cornerRadius),
+        with: .color(windowColor)
+      )
+      
+      // Title bar
+      let titleBarRect = CGRect(
+        x: frameRect.minX,
+        y: frameRect.maxY - titleBarHeight,
+        width: frameRect.width,
+        height: titleBarHeight
+      )
+      context.fill(
+        Path(titleBarRect),
+        with: .color(windowColor.opacity(0.98))
+      )
+      
+      // Traffic lights
+      let lightRadius: CGFloat = 6 * scale
+      let lightY = titleBarRect.midY
+      let lightColors: [Color] = [
+        Color(red: 1, green: 0.38, blue: 0.35),  // Red
+        Color(red: 1, green: 0.78, blue: 0.25),  // Yellow
+        Color(red: 0.15, green: 0.8, blue: 0.25)  // Green
+      ]
+      for (i, color) in lightColors.enumerated() {
+        let x = frameRect.minX + 14 * scale + CGFloat(i) * 20 * scale
+        let circleRect = CGRect(
+          x: x - lightRadius,
+          y: lightY - lightRadius,
+          width: lightRadius * 2,
+          height: lightRadius * 2
+        )
+        context.fill(Path(ellipseIn: circleRect), with: .color(color))
+      }
+    }
+    
     // Draw the actual image
-    context.draw(Image(decorative: doc.cgImage, scale: 1), in: imageRect)
+    context.draw(Image(decorative: doc.cgImage, scale: 1), in: actualImageRect)
   }
 
   private func drawAnnotations(context: inout GraphicsContext, size: CGSize) {
@@ -473,10 +544,12 @@ struct EditorCanvasView: View {
   }
 
   private func fitRect(imageSize: CGSize, in viewSize: CGSize) -> CGRect {
-    // If background is set with padding, we want to show the padded area
+    // Calculate total size including background padding and window frame
     let padding = doc.backgroundStyle != .none ? doc.backgroundPadding : 0
+    let windowTitleBar: CGFloat = doc.showMacWindow ? 28 : 0
+    
     let totalWidth = imageSize.width + (padding * 2)
-    let totalHeight = imageSize.height + (padding * 2)
+    let totalHeight = imageSize.height + (padding * 2) + windowTitleBar
     
     let scale = min(viewSize.width / totalWidth, viewSize.height / totalHeight)
     let w = imageSize.width * scale

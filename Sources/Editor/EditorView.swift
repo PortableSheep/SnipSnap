@@ -9,6 +9,7 @@ struct EditorView: View {
 
   @State private var hostWindow: NSWindow? = nil
   @State private var showInspector: Bool = true
+  @State private var piiListExpanded: Bool = false
 
   var body: some View {
     applyChangeHandlers(to: editorLayout)
@@ -188,8 +189,18 @@ struct EditorView: View {
             .font(.system(size: 12))
             .foregroundColor(.secondary)
         } else {
-          Text("**\(doc.suggestedRedactions.count)** sensitive item\(doc.suggestedRedactions.count == 1 ? "" : "s") detected")
-            .font(.system(size: 12))
+          Button {
+            piiListExpanded.toggle()
+          } label: {
+            HStack(spacing: 4) {
+              Image(systemName: piiListExpanded ? "chevron.down" : "chevron.right")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.secondary)
+              Text("**\(doc.suggestedRedactions.count)** sensitive item\(doc.suggestedRedactions.count == 1 ? "" : "s") detected")
+                .font(.system(size: 12))
+            }
+          }
+          .buttonStyle(.plain)
         }
 
         Spacer()
@@ -225,6 +236,7 @@ struct EditorView: View {
         if !doc.suggestedRedactions.isEmpty {
           Button("Dismiss") {
             doc.dismissAllRedactions()
+            piiListExpanded = false
           }
           .buttonStyle(.borderless)
           .font(.system(size: 12))
@@ -248,8 +260,8 @@ struct EditorView: View {
         }
       }
       
-      // List of suggestions with checkboxes
-      if !doc.suggestedRedactions.isEmpty {
+      // Expandable list of suggestions with checkboxes
+      if piiListExpanded && !doc.suggestedRedactions.isEmpty {
         VStack(alignment: .leading, spacing: 4) {
           ForEach(doc.suggestedRedactions) { suggestion in
             HStack(spacing: 8) {
