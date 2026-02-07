@@ -16,11 +16,13 @@ final class DonationWindowController {
       return
     }
     
-    let view = DonationView()
+    let view = DonationView(onClose: { [weak self] in
+      self?.window?.close()
+    })
     let hosting = NSHostingView(rootView: view)
     
     let win = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 480, height: 380),
+      contentRect: NSRect(x: 0, y: 0, width: 480, height: 420),
       styleMask: [.titled, .closable],
       backing: .buffered,
       defer: false
@@ -29,7 +31,6 @@ final class DonationWindowController {
     win.center()
     win.contentView = hosting
     win.isReleasedWhenClosed = false
-    win.level = .floating
     
     window = win
     win.makeKeyAndOrderFront(nil)
@@ -38,15 +39,15 @@ final class DonationWindowController {
 }
 
 struct DonationView: View {
-  @Environment(\.dismiss) private var dismiss
+  let onClose: () -> Void
   
   var body: some View {
     VStack(spacing: 24) {
       // Header
       VStack(spacing: 8) {
-        Image(systemName: "heart.fill")
+        Image(systemName: "gift.fill")
           .font(.system(size: 48))
-          .foregroundColor(.red)
+          .foregroundColor(.pink)
         
         Text("Support SnipSnap")
           .font(.title)
@@ -72,6 +73,7 @@ struct DonationView: View {
           if let url = URL(string: "https://buy.stripe.com/aFa6oHbuj9a9f2M4Hk5Ne02") {
             NSWorkspace.shared.open(url)
           }
+          onClose()
         }) {
           HStack {
             Image(systemName: "creditcard.fill")
@@ -88,6 +90,7 @@ struct DonationView: View {
           if let url = URL(string: "https://github.com/sponsors/PortableSheep") {
             NSWorkspace.shared.open(url)
           }
+          onClose()
         }) {
           HStack {
             Image(systemName: "heart.fill")
@@ -110,6 +113,6 @@ struct DonationView: View {
         .foregroundColor(.secondary)
         .padding(.bottom, 16)
     }
-    .frame(width: 480, height: 380)
+    .frame(width: 480, height: 420)
   }
 }
