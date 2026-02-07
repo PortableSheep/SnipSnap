@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnipSnap — Screen capture that doesn't get in your way</title>
+    <meta name="description" content="A powerful screen capture and annotation tool for macOS. Native, fast, and completely free.">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-content">
+            <div class="nav-logo">SnipSnap</div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#download">Download</a>
+                <a href="https://github.com/portablesheep/snipsnap">GitHub</a>
+                <a href="#support" class="nav-cta">Support</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <h1>Screen capture that doesn't get in your way</h1>
+            <p class="hero-subtitle">Professional-grade screenshots and recordings without the subscription tax. Built for macOS, by someone who got tired of paying for bloat.</p>
+            <div class="hero-actions">
+                <a href="#download" class="btn btn-primary">Download for macOS</a>
+                <a href="https://github.com/portablesheep/snipsnap" class="btn btn-secondary">View on GitHub</a>
+            </div>
+            <p class="hero-footnote">macOS 13+ • Free forever • Open source</p>
+        </div>
+    </header>
+
+    <section class="why">
+        <div class="container">
+            <div class="why-grid">
+                <div class="why-item">
+                    <div class="why-icon">⚡️</div>
+                    <h3>Actually native</h3>
+                    <p>Pure Swift and AppKit. Launches in under a second. No Electron bloat, no web views pretending to be native.</p>
+                </div>
+                <div class="why-item">
+                    <div class="why-icon">🎯</div>
+                    <h3>Smart workflow</h3>
+                    <p>Screenshots land in a strip that hugs your screen edge. Click to edit, drag to rearrange. No hunting through Finder.</p>
+                </div>
+                <div class="why-item">
+                    <div class="why-icon">🎬</div>
+                    <h3>Baked-in overlays</h3>
+                    <p>Click rings and keystroke bubbles burn directly into your recordings. No post-processing.</p>
+                </div>
+                <div class="why-item">
+                    <div class="why-icon">💰</div>
+                    <h3>Free. Actually free.</h3>
+                    <p>No trials, no limits, no nag screens. Everything works. Support if you want, not because you have to.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <div class="container">
+            <h2>Everything you need</h2>
+            
+            <div class="feature-block">
+                <div class="feature-text">
+                    <h3>Record like a pro</h3>
+                    <ul class="feature-list">
+                        <li>Region, window, or full screen capture</li>
+                        <li>Click animations and keystroke overlays</li>
+                        <li>System audio, microphone, or both</li>
+                        <li>Export to GIF or trim right from the strip</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="placeholder">Recording demo</div>
+                </div>
+            </div>
+
+            <div class="feature-block feature-block-reverse">
+                <div class="feature-text">
+                    <h3>Annotate with ease</h3>
+                    <ul class="feature-list">
+                        <li>Arrows, shapes, text, and callouts</li>
+                        <li>Numbered steps for tutorials</li>
+                        <li>Blur and pixelate for privacy</li>
+                        <li>Device frames and custom backgrounds</li>
+                        <li>Pixel-perfect measurements with edge snapping</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="placeholder">Editor screenshot</div>
+                </div>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-text">
+                    <h3>Stay organized</h3>
+                    <ul class="feature-list">
+                        <li>Dockable strip that snaps to any edge</li>
+                        <li>Full-text OCR search (runs locally)</li>
+                        <li>Session management and presentation mode</li>
+                        <li>Optional iCloud sync for backup</li>
+                        <li>Smart redaction for sensitive data</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="placeholder">Strip demo</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="technical">
+        <div class="container">
+            <h2>Built right</h2>
+            <div class="tech-grid">
+                <div class="tech-item">
+                    <h4>Pure Swift</h4>
+                    <p>No dependencies, no frameworks. Just AppKit and ScreenCaptureKit doing what they do best.</p>
+                </div>
+                <div class="tech-item">
+                    <h4>XPC isolation</h4>
+                    <p>Recording runs in a separate process. Main app crashes? Your recording continues.</p>
+                </div>
+                <div class="tech-item">
+                    <h4>Offline OCR</h4>
+                    <p>Text recognition via Vision framework. Your screenshots never leave your Mac.</p>
+                </div>
+                <div class="tech-item">
+                    <h4>Open source</h4>
+                    <p>MIT licensed. Fork it, learn from it, or contribute to it. No secrets.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="download" class="download">
+        <div class="container">
+            <h2>Get started</h2>
+            
+            <div class="download-option">
+                <h3>Quick install</h3>
+                <pre><code>curl -fsSL https://raw.githubusercontent.com/portablesheep/snipsnap/main/scripts/install.sh | bash</code></pre>
+            </div>
+
+            <div class="download-option">
+                <h3>Manual download</h3>
+                <p>Grab the latest DMG from <a href="https://github.com/portablesheep/snipsnap/releases">GitHub Releases</a></p>
+            </div>
+
+            <div class="download-option">
+                <h3>Build from source</h3>
+                <pre><code>brew install xcodegen
+git clone https://github.com/portablesheep/snipsnap.git
+cd snipsnap && xcodegen generate
+open SnipSnapMac.xcodeproj</code></pre>
+            </div>
+
+            <p class="download-note">Requires macOS 13 (Ventura) or later</p>
+        </div>
+    </section>
+
+    <section class="shortcuts">
+        <div class="container">
+            <h2>Keyboard shortcuts</h2>
+            <div class="shortcuts-grid">
+                <div class="shortcut">
+                    <span class="shortcut-keys">⌘⇧4</span>
+                    <span class="shortcut-label">Capture region</span>
+                </div>
+                <div class="shortcut">
+                    <span class="shortcut-keys">⌘⇧5</span>
+                    <span class="shortcut-label">Capture window</span>
+                </div>
+                <div class="shortcut">
+                    <span class="shortcut-keys">⌘⇧6</span>
+                    <span class="shortcut-label">Start/stop recording</span>
+                </div>
+                <div class="shortcut">
+                    <span class="shortcut-keys">⌘⇧S</span>
+                    <span class="shortcut-label">Show/hide strip</span>
+                </div>
+                <div class="shortcut">
+                    <span class="shortcut-keys">⌘⇧P</span>
+                    <span class="shortcut-label">Present session</span>
+                </div>
+            </div>
+            <p class="shortcuts-note">All customizable in Preferences</p>
+        </div>
+    </section>
+
+    <section id="support" class="support">
+        <div class="container">
+            <h2>Support development</h2>
+            <p class="support-intro">SnipSnap is free and always will be. If you find it useful and want to help keep it maintained:</p>
+            <div class="support-options">
+                <a href="https://buy.stripe.com/aFa6oHbuj9a9f2M4Hk5Ne02" class="support-btn">One-time donation</a>
+                <a href="https://github.com/sponsors/PortableSheep" class="support-btn">GitHub Sponsors</a>
+            </div>
+            <p class="support-note">Every dollar goes toward keeping this maintained and adding features people actually want.</p>
+        </div>
+    </section>
+
+    <section class="faq">
+        <div class="container">
+            <h2>Questions</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h4>Does this work on older macOS versions?</h4>
+                    <p>No. SnipSnap requires macOS 13 (Ventura) or later because it uses ScreenCaptureKit.</p>
+                </div>
+                <div class="faq-item">
+                    <h4>Why not use the built-in screenshot tool?</h4>
+                    <p>You should! It's great for basic captures. SnipSnap is for when you need annotations, OCR, session management, or recording features.</p>
+                </div>
+                <div class="faq-item">
+                    <h4>Does it send my screenshots anywhere?</h4>
+                    <p>Nope. OCR runs locally via the Vision framework. Cloud sync is optional and only mirrors to your own iCloud Drive.</p>
+                </div>
+                <div class="faq-item">
+                    <h4>Can I use this for work?</h4>
+                    <p>Yes. MIT license means commercial use is fine. No attribution required.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>SnipSnap</h4>
+                    <p>Built by <a href="https://github.com/portablesheep">PortableSheep</a></p>
+                    <p>Inspired by CleanShot, Skitch, and Droplr—but cheaper and less annoying.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Links</h4>
+                    <ul>
+                        <li><a href="https://github.com/portablesheep/snipsnap">GitHub</a></li>
+                        <li><a href="https://github.com/portablesheep/snipsnap/releases">Releases</a></li>
+                        <li><a href="https://github.com/portablesheep/snipsnap/issues">Issues</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>License</h4>
+                    <p>MIT License<br>Do whatever you want</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>Made with caffeine and frustration at overpriced screenshot apps</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
