@@ -30,13 +30,6 @@ enum ImageFilters {
 
     let out: CIImage
     switch mode {
-    case .blur:
-      let f = CIFilter.gaussianBlur()
-      f.inputImage = cropped
-      f.radius = Float(max(0, amount))
-      // Gaussian blur expands bounds, re-crop back.
-      out = (f.outputImage ?? cropped).cropped(to: r)
-
     case .pixelate:
       let f = CIFilter.pixellate()
       f.inputImage = cropped

@@ -48,8 +48,72 @@ struct EditorCanvasView: View {
   }
 
   private func drawBaseImage(context: inout GraphicsContext, size: CGSize) {
-    let rect = fitRect(imageSize: doc.imageSize, in: size)
-    context.draw(Image(decorative: doc.cgImage, scale: 1), in: rect)
+    let imageRect = fitRect(imageSize: doc.imageSize, in: size)
+    
+    // If background is set, draw it first with padding
+    if doc.backgroundStyle != .none {
+      let padding = doc.backgroundPadding
+      let scale = imageRect.width / doc.imageSize.width
+      let scaledPadding = padding * scale
+      
+      let backgroundRect = imageRect.insetBy(dx: -scaledPadding, dy: -scaledPadding)
+      
+      // Draw background
+      switch doc.backgroundStyle {
+      case .none:
+        break
+        
+      case .solid:
+        context.fill(Path(backgroundRect), with: .color(doc.backgroundColor))
+        
+      case .gradient:
+        let gradient = Gradient(colors: [doc.backgroundGradientStart, doc.backgroundGradientEnd])
+        let startPoint: CGPoint
+        let endPoint: CGPoint
+        
+        switch doc.backgroundGradientDirection {
+        case .topToBottom:
+          startPoint = CGPoint(x: backgroundRect.midX, y: backgroundRect.minY)
+          endPoint = CGPoint(x: backgroundRect.midX, y: backgroundRect.maxY)
+        case .leftToRight:
+          startPoint = CGPoint(x: backgroundRect.minX, y: backgroundRect.midY)
+          endPoint = CGPoint(x: backgroundRect.maxX, y: backgroundRect.midY)
+        case .topLeftToBottomRight:
+          startPoint = CGPoint(x: backgroundRect.minX, y: backgroundRect.minY)
+          endPoint = CGPoint(x: backgroundRect.maxX, y: backgroundRect.maxY)
+        case .radial:
+          startPoint = CGPoint(x: backgroundRect.midX, y: backgroundRect.midY)
+          endPoint = CGPoint(x: backgroundRect.maxX, y: backgroundRect.midY)
+        }
+        
+        context.fill(Path(backgroundRect), with: .linearGradient(gradient, startPoint: startPoint, endPoint: endPoint))
+        
+      case .mesh:
+        let gradient = Gradient(colors: [doc.backgroundGradientStart, doc.backgroundGradientEnd])
+        let startPoint = CGPoint(x: backgroundRect.minX, y: backgroundRect.minY)
+        let endPoint = CGPoint(x: backgroundRect.maxX, y: backgroundRect.maxY)
+        context.fill(Path(backgroundRect), with: .linearGradient(gradient, startPoint: startPoint, endPoint: endPoint))
+        
+      case .wallpaper:
+        if let wallpaper = doc.getWallpaper(),
+           let cgImage = wallpaper.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+          context.draw(Image(decorative: cgImage, scale: 1.0), in: backgroundRect)
+        } else {
+          context.fill(Path(backgroundRect), with: .color(.gray.opacity(0.2)))
+        }
+      }
+      
+      // Draw shadow if enabled
+      if doc.backgroundShadowEnabled {
+        context.drawLayer { ctx in
+          ctx.addFilter(.shadow(color: .black.opacity(doc.backgroundShadowOpacity), radius: doc.backgroundShadowRadius * scale))
+          ctx.fill(Path(imageRect), with: .color(.white))
+        }
+      }
+    }
+    
+    // Draw the actual image
+    context.draw(Image(decorative: doc.cgImage, scale: 1), in: imageRect)
   }
 
   private func drawAnnotations(context: inout GraphicsContext, size: CGSize) {
@@ -409,7 +473,12 @@ struct EditorCanvasView: View {
   }
 
   private func fitRect(imageSize: CGSize, in viewSize: CGSize) -> CGRect {
-    let scale = min(viewSize.width / imageSize.width, viewSize.height / imageSize.height)
+    // If background is set with padding, we want to show the padded area
+    let padding = doc.backgroundStyle != .none ? doc.backgroundPadding : 0
+    let totalWidth = imageSize.width + (padding * 2)
+    let totalHeight = imageSize.height + (padding * 2)
+    
+    let scale = min(viewSize.width / totalWidth, viewSize.height / totalHeight)
     let w = imageSize.width * scale
     let h = imageSize.height * scale
     let x = (viewSize.width - w) / 2

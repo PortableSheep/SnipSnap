@@ -191,7 +191,7 @@ final class AnnotationDocument: ObservableObject {
     loadRedactionSuggestions()
   }
 
-  private func loadRedactionSuggestions() {
+  func loadRedactionSuggestions() {
     let metadataStore = CaptureMetadataStore()
     guard let metadata = metadataStore.load(for: sourceURL),
           let candidates = metadata.redactionCandidates, !candidates.isEmpty else {
@@ -231,11 +231,11 @@ final class AnnotationDocument: ObservableObject {
       )
       annotations.append(.rect(rect))
     } else {
-      // For blur or pixelate modes
+      // For pixelate mode
       let blur = BlurAnnotation(
         rect: suggestion.rect,
         mode: redactionStyle,
-        amount: redactionStyle == .blur ? 8 : 12
+        amount: 12
       )
       annotations.append(.blur(blur))
     }
@@ -271,7 +271,7 @@ final class AnnotationDocument: ObservableObject {
         let blur = BlurAnnotation(
           rect: suggestion.rect,
           mode: redactionStyle,
-          amount: redactionStyle == .blur ? 8 : 12
+          amount: 12
         )
         annotations.append(.blur(blur))
       }

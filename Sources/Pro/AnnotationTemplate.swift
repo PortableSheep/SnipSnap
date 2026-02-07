@@ -89,7 +89,7 @@ extension AnnotationTemplate {
     doc.arrowHeadStyle = ArrowHeadStyle(rawValue: arrowHeadStyle) ?? .filled
     doc.textColor = textColor.toColor()
     doc.textFontSize = CGFloat(textFontSize)
-    doc.blurMode = BlurMode(rawValue: blurMode) ?? .blur
+    doc.blurMode = BlurMode(rawValue: blurMode) ?? .pixelate
     doc.blurAmount = CGFloat(blurAmount)
     doc.stepRadius = CGFloat(stepRadius)
     doc.stepFillColor = stepFillColor.toColor()

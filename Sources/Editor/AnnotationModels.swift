@@ -94,7 +94,6 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
 }
 
 enum BlurMode: String, CaseIterable, Identifiable {
-  case blur
   case pixelate
   case redact
 
@@ -102,7 +101,6 @@ enum BlurMode: String, CaseIterable, Identifiable {
 
   var label: String {
     switch self {
-    case .blur: return "Blur"
     case .pixelate: return "Pixelate"
     case .redact: return "Redact"
     }

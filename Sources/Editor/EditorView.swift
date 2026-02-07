@@ -224,6 +224,16 @@ struct EditorView: View {
       }
 
       // Actions
+      Button {
+        doc.loadRedactionSuggestions()
+      } label: {
+        Image(systemName: "arrow.clockwise")
+      }
+      .buttonStyle(.borderless)
+      .font(.system(size: 12))
+      .foregroundColor(.secondary)
+      .help("Reload PII suggestions")
+      
       Button("Dismiss All") {
         doc.dismissAllRedactions()
       }
