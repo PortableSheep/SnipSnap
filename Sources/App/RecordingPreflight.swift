@@ -1,6 +1,5 @@
 import SwiftUI
 import AppKit
-import ObjectiveC
 
 enum RecordingMode: String, CaseIterable, Identifiable, Codable {
   case fullscreen
@@ -27,8 +26,6 @@ struct RecordingPreflightResult {
 }
 
 private struct RecordingPreflightView: View {
-  @Environment(\.dismiss) var dismiss
-
   @State var mode: RecordingMode
   @State var showClicks: Bool
   @State var showKeys: Bool
@@ -39,40 +36,90 @@ private struct RecordingPreflightView: View {
   let onDone: (RecordingPreflightResult?) -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      Picker("Capture", selection: $mode) {
-        ForEach(RecordingMode.allCases) { m in
-          Text(m.label).tag(m)
-        }
-      }
-      .pickerStyle(.segmented)
-
-      Toggle("Show clicks", isOn: $showClicks)
-      Toggle("Show keystrokes", isOn: $showKeys)
-      Toggle("Show cursor", isOn: $showCursor)
-
-      HStack {
-        Text("HUD placement")
-        Spacer()
-        Picker("HUD placement", selection: $hudPlacement) {
-          ForEach(HUDPlacement.allCases, id: \.self) { p in
-            Text(p.label).tag(p)
+    VStack(spacing: 0) {
+      // Mode selection
+      VStack(alignment: .leading, spacing: 12) {
+        Text("Recording Mode")
+          .font(.system(size: 12, weight: .medium))
+        
+        Picker("Capture", selection: $mode) {
+          ForEach(RecordingMode.allCases) { m in
+            Text(m.label).tag(m)
           }
         }
-        .pickerStyle(.menu)
+        .pickerStyle(.segmented)
+        .labelsHidden()
       }
-
-      HStack {
-        Text("Click color")
-        Spacer()
-        ColorPicker("", selection: $ringColor)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, 24)
+      .padding(.top, 20)
+      .padding(.bottom, 18)
+      
+      Divider()
+      
+      // Display options
+      VStack(alignment: .leading, spacing: 14) {
+        Text("Display Options")
+          .font(.system(size: 12, weight: .medium))
+        
+        VStack(alignment: .leading, spacing: 10) {
+          Toggle("Show mouse clicks", isOn: $showClicks)
+          Toggle("Show keystrokes", isOn: $showKeys)
+          Toggle("Show cursor", isOn: $showCursor)
+        }
+        .toggleStyle(.switch)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, 24)
+      .padding(.vertical, 18)
+      
+      Divider()
+      
+      // Advanced settings
+      VStack(spacing: 14) {
+        HStack(spacing: 16) {
+          Text("HUD Position")
+            .font(.system(size: 12, weight: .medium))
+            .frame(width: 110, alignment: .leading)
+          
+          Picker("HUD placement", selection: $hudPlacement) {
+            ForEach(HUDPlacement.allCases, id: \.self) { p in
+              Text(p.label).tag(p)
+            }
+          }
+          .pickerStyle(.menu)
           .labelsHidden()
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        
+        HStack(spacing: 16) {
+          Text("Click Color")
+            .font(.system(size: 12, weight: .medium))
+            .frame(width: 110, alignment: .leading)
+          
+          ColorPicker("", selection: $ringColor, supportsOpacity: false)
+            .labelsHidden()
+            .frame(width: 60, alignment: .leading)
+          
+          Spacer()
+        }
       }
-
-      HStack {
+      .padding(.horizontal, 24)
+      .padding(.vertical, 18)
+      
+      Divider()
+      
+      // Action buttons
+      HStack(spacing: 12) {
         Spacer()
-        Button("Cancel") { onDone(nil); dismiss() }
-        Button("Start") {
+        
+        Button("Cancel") { 
+          onDone(nil) 
+        }
+        .keyboardShortcut(.cancelAction)
+        .buttonStyle(.borderless)
+        
+        Button("Start Recording") {
           let res = RecordingPreflightResult(
             mode: mode,
             showClicks: showClicks,
@@ -82,96 +129,48 @@ private struct RecordingPreflightView: View {
             ringColor: ringColor
           )
           onDone(res)
-          dismiss()
         }
         .keyboardShortcut(.defaultAction)
+        .buttonStyle(.borderedProminent)
       }
+      .padding(.horizontal, 24)
+      .padding(.top, 18)
+      .padding(.bottom, 22)
     }
-    .padding(16)
-    .frame(width: 420)
+    .frame(width: 450)
+    .background(Color(nsColor: .windowBackgroundColor))
   }
 }
 
 @MainActor
 final class RecordingPreflightController {
-  static func present(anchor: NSStatusBarButton?, prefDefaults: OverlayPreferencesStore) async -> RecordingPreflightResult? {
-    await withCheckedContinuation { cont in
-      var didResume = false
-      let finish: (RecordingPreflightResult?) -> Void = { res in
-        guard didResume == false else { return }
-        didResume = true
+  static func presentAsMenu(prefDefaults: OverlayPreferencesStore, completion: @escaping (RecordingPreflightResult?) -> Void) -> NSMenu {
+    let menu = NSMenu()
+    menu.autoenablesItems = false
+    
+    let view = RecordingPreflightView(
+      mode: lastMode(),
+      showClicks: prefDefaults.showClickOverlay,
+      showKeys: prefDefaults.showKeystrokeHUD,
+      showCursor: prefDefaults.showCursor,
+      hudPlacement: prefDefaults.hudPlacement,
+      ringColor: prefDefaults.clickColor,
+      onDone: { res in
         if let res { store(res) }
-        cont.resume(returning: res)
+        completion(res)
+        // Close the menu
+        menu.cancelTracking()
       }
-
-      var popoverRef: NSPopover?
-      var windowRef: NSWindow?
-
-      let view = RecordingPreflightView(
-        mode: lastMode(),
-        showClicks: prefDefaults.showClickOverlay,
-        showKeys: prefDefaults.showKeystrokeHUD,
-        showCursor: prefDefaults.showCursor,
-        hudPlacement: prefDefaults.hudPlacement,
-        ringColor: prefDefaults.clickColor,
-        onDone: { res in
-          popoverRef?.performClose(nil)
-          windowRef?.close()
-          finish(res)
-        }
-      )
-
-      if let anchor {
-        let popover = NSPopover()
-        popover.behavior = .semitransient
-        popover.contentSize = NSSize(width: 420, height: 360)
-        let host = NSHostingController(rootView: view)
-        popover.contentViewController = host
-        popoverRef = popover
-
-        // Resume continuation if the popover is dismissed by clicking elsewhere.
-        final class PopDelegate: NSObject, NSPopoverDelegate {
-          let onClose: () -> Void
-          init(onClose: @escaping () -> Void) { self.onClose = onClose }
-          func popoverDidClose(_ notification: Notification) { onClose() }
-        }
-        let delegate = PopDelegate { finish(nil) }
-        popover.delegate = delegate
-        objc_setAssociatedObject(popover, "delegate", delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-
-        popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .maxY)
-        anchor.window?.makeKey()
-        NSApp.activate(ignoringOtherApps: true)
-      } else {
-        let window = NSPanel(
-          contentRect: NSRect(x: 0, y: 0, width: 420, height: 360),
-          styleMask: [.titled, .closable, .utilityWindow],
-          backing: .buffered,
-          defer: false
-        )
-        windowRef = window
-        window.title = "Recording Options"
-        window.isFloatingPanel = true
-        window.level = .floating
-        window.center()
-
-        let host = NSHostingController(rootView: view)
-        window.contentViewController = host
-
-        final class WindowDelegate: NSObject, NSWindowDelegate {
-          let onClose: () -> Void
-          init(onClose: @escaping () -> Void) { self.onClose = onClose }
-          func windowWillClose(_ notification: Notification) { onClose() }
-        }
-
-        let delegate = WindowDelegate { finish(nil) }
-        window.delegate = delegate
-        objc_setAssociatedObject(window, "delegate", delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-      }
-    }
+    )
+    
+    let hostingView = NSHostingView(rootView: view)
+    hostingView.frame = NSRect(x: 0, y: 0, width: 450, height: 380)
+    
+    let menuItem = NSMenuItem()
+    menuItem.view = hostingView
+    menu.addItem(menuItem)
+    
+    return menu
   }
 
   private static func lastMode() -> RecordingMode {

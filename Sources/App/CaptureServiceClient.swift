@@ -190,6 +190,26 @@ final class CaptureServiceClient: @unchecked Sendable {
     }
   }
 
+  func captureFullScreenScreenshot() async throws -> URL {
+    try await withCheckedThrowingContinuation { continuation in
+      getProxy { proxy, error in
+        if let error {
+          continuation.resume(throwing: error)
+          return
+        }
+        proxy?.captureFullScreenScreenshot { path, errorMessage in
+          if let errorMessage {
+            continuation.resume(throwing: CaptureServiceError.remoteError(errorMessage))
+          } else if let path {
+            continuation.resume(returning: URL(fileURLWithPath: path))
+          } else {
+            continuation.resume(throwing: CaptureServiceError.invalidResponse)
+          }
+        }
+      }
+    }
+  }
+
   func status() async throws -> (isRecording: Bool, lastCaptureURL: URL?, lastRecordingError: String?) {
     try await withCheckedThrowingContinuation { continuation in
       getProxy { proxy, error in

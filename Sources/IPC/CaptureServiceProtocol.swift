@@ -45,6 +45,9 @@ public protocol CaptureServiceProtocol {
   /// Capture a window screenshot (interactive selection).
   func captureWindowScreenshot(reply: @escaping (String?, String?) -> Void)
 
+  /// Capture a fullscreen screenshot.
+  func captureFullScreenScreenshot(reply: @escaping (String?, String?) -> Void)
+
   /// Request/check screen recording permission.
   func requestScreenRecordingPermission(reply: @escaping (Bool, String?) -> Void)
 

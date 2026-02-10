@@ -19,6 +19,7 @@
 		1EC36B6EAB469A9E9128600C /* InputMonitoringPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = E32B619C918C6428827B9CC2 /* InputMonitoringPermission.swift */; };
 		211101713756EDFAE5AA011C /* HUDPlacement in Sources */ = {isa = PBXBuildFile; fileRef = 4704BCFA9CF80CD34CF19E1C /* HUDPlacement */; };
 		23994A26042B010BB4B0563B /* ImageFilters.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF40DB68ABE37CA30B45254C /* ImageFilters.swift */; };
+		26E965FC468A4700A8CD7ACD /* ScrollCaptureSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116DBEC131A52EE9E5FC3FB9 /* ScrollCaptureSession.swift */; };
 		26F34FB74B27B54F962AFC5B /* SendableShims.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3EAF6B7ADD4F90D378C4C82 /* SendableShims.swift */; };
 		27C41A20A563828401C648DD /* RegionSelectionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FAB5EBC1FF677FCF2F5F3CC /* RegionSelectionOverlay.swift */; };
 		2C8A698281597F1C5083C20F /* OverlayEventTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E919C91DC66F3DA690ECE1 /* OverlayEventTap.swift */; };
@@ -32,7 +33,6 @@
 		4221FFD06CECF30A12DDF9E2 /* DelayedCaptureCountdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E05C0765B13C42F2F2D9D12 /* DelayedCaptureCountdown.swift */; };
 		5163CE5A94F2F0F583DB1654 /* CaptureServiceProtocol in Sources */ = {isa = PBXBuildFile; fileRef = BD86912705E1799401C9ABF8 /* CaptureServiceProtocol */; };
 		52BC65B2C3987AAA35B0644F /* EdgeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BFB5193C0866E6D59040CEF /* EdgeDetector.swift */; };
-		535835D1D7A940A5F00CC46F /* PermissionDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2973034C181B384750CA241E /* PermissionDiagnostics.swift */; };
 		53DFF1BB61486826FF1A437E /* EditorCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA25602B3368B0721CE3964 /* EditorCanvasView.swift */; };
 		5497082A834992C249AEB6D7 /* ScreenCaptureKitRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5184A73B7CE30ED8B57533 /* ScreenCaptureKitRecorder.swift */; };
 		5C97E2AC946D194BA4F21609 /* ScreenCaptureKitRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5184A73B7CE30ED8B57533 /* ScreenCaptureKitRecorder.swift */; };
@@ -41,7 +41,6 @@
 		6C8421E6C404DF9F4F93399D /* AccessibilityPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38289F65511C202EC0D15F6F /* AccessibilityPermission.swift */; };
 		6D58CAF9086198C6D1862A03 /* GIFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB1E8C7D6CBB3228F59B7FA /* GIFExporter.swift */; };
 		710B4EFC9749FE9646F983EF /* OverlayPreviewWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F93DF3C124290EB86C78DE6 /* OverlayPreviewWindowController.swift */; };
-		75F065DA0186609CF0B07E89 /* PermissionDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2973034C181B384750CA241E /* PermissionDiagnostics.swift */; };
 		764F92E42F0B4CBFDFCE5EBF /* CaptureOCRIndexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9459B3007D18D5C45F9867 /* CaptureOCRIndexer.swift */; };
 		777605B634E9DEE20495762F /* AnnotationDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F09D13C25E263B36FAF251E /* AnnotationDocument.swift */; };
 		7834B1783914ADBEAA35E9B5 /* CaptureLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 222710FD5409E6C30A730A3C /* CaptureLibrary.swift */; };
@@ -62,9 +61,12 @@
 		9688AEA4C15E31F3E94344D6 /* StripDockPosition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280F6D62D43D430072499AF7 /* StripDockPosition.swift */; };
 		97A9F4F7BA803023E9EA7B28 /* FinderReveal.swift in Sources */ = {isa = PBXBuildFile; fileRef = F44CF99CC5982BA35D35ECEB /* FinderReveal.swift */; };
 		998F85489833E4D6E2C10481 /* SystemScreencaptureRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6642F183214D07B38A4989EE /* SystemScreencaptureRecorder.swift */; };
+		9AA30D932E131EC10978E0D4 /* CapturePreflight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EEFD5FF0BD14DCCDF1E71A8 /* CapturePreflight.swift */; };
 		9CD8299BFB25D0BD126D5C6A /* AccessibilityPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38289F65511C202EC0D15F6F /* AccessibilityPermission.swift */; };
 		9D0234D0A40D71019C44D2C2 /* CloudSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 243F349EB10D72DFBA220F57 /* CloudSyncManager.swift */; };
 		A2E34276D459DA945218C6EC /* VideoTrimExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155CF09078EF6D68E03CF524 /* VideoTrimExporter.swift */; };
+		A559529E139AED186A8FEF30 /* InteractiveWindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 554579C1B58FE4C7398DA68D /* InteractiveWindowPicker.swift */; };
+		A6EAB0AF3458EAAD9A281CAB /* ScrollCaptureRegionDecorator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F19EB3D30B862A1BC2E016B /* ScrollCaptureRegionDecorator.swift */; };
 		AB645D502C030E4B787A6E24 /* MeasurementTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0928040C2B7F29161EC7618 /* MeasurementTool.swift */; };
 		AC1144B2C1943B7B405AED20 /* SystemScreencaptureRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6642F183214D07B38A4989EE /* SystemScreencaptureRecorder.swift */; };
 		AE174C9D99CA927BD27BB55A /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56DDCD0A621D636194169CD /* HotKeyManager.swift */; };
@@ -74,8 +76,10 @@
 		B837776B596729E0BFCDB425 /* AppActivation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 428CE15F48CDFE9759AD1A83 /* AppActivation.swift */; };
 		B98D12D6C2CD454D6E73E19B /* VideoTrimPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C202EFE98A7009AFD92B6B4C /* VideoTrimPresenter.swift */; };
 		C1013C6600C1437CAB077D84 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F52D232066519EA4CD4EC2 /* EditorView.swift */; };
+		C13D1A056B99E09A5FF84627 /* ImageStitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87023AF4E3B0F5848E2081C9 /* ImageStitcher.swift */; };
 		C1FC4FF9DECF1297688232AB /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104F7EFF8F4AA305E74C309F /* WindowPicker.swift */; };
 		C63B1E603B8D24E846E48D85 /* SharePresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177633113AADF0C9E923E8C9 /* SharePresenter.swift */; };
+		C6CDB35C2748EF17045FACC2 /* ScrollCaptureOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804FE009A0AD7B870A994B99 /* ScrollCaptureOverlay.swift */; };
 		C89A0CA61F99CF65EA3E4130 /* RegionIndicatorWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC0042C97382B7F31810FB41 /* RegionIndicatorWindow.swift */; };
 		CBBF0115EB64426FE6ECC3F7 /* RecordingProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6149C38586EF4B08AD2A32A9 /* RecordingProtocol.swift */; };
 		CC5D2AEC41A002D45E1F0790 /* DirectoryWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D8FC844646517328F799DE /* DirectoryWatcher.swift */; };
@@ -128,7 +132,9 @@
 		0870E4129A7A9C53A244408C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0C9459B3007D18D5C45F9867 /* CaptureOCRIndexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureOCRIndexer.swift; sourceTree = "<group>"; };
 		0D4434FB089D5FA1E8CC9F74 /* AnnotationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationModels.swift; sourceTree = "<group>"; };
+		0EEFD5FF0BD14DCCDF1E71A8 /* CapturePreflight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreflight.swift; sourceTree = "<group>"; };
 		104F7EFF8F4AA305E74C309F /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
+		116DBEC131A52EE9E5FC3FB9 /* ScrollCaptureSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollCaptureSession.swift; sourceTree = "<group>"; };
 		13AAC8A7C5CF3B6CB309589C /* EditorWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorWindowController.swift; sourceTree = "<group>"; };
 		155CF09078EF6D68E03CF524 /* VideoTrimExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimExporter.swift; sourceTree = "<group>"; };
 		177633113AADF0C9E923E8C9 /* SharePresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePresenter.swift; sourceTree = "<group>"; };
@@ -137,7 +143,6 @@
 		243F349EB10D72DFBA220F57 /* CloudSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncManager.swift; sourceTree = "<group>"; };
 		253C4680468BEA377635C0E3 /* EditorToolProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorToolProtocol.swift; sourceTree = "<group>"; };
 		280F6D62D43D430072499AF7 /* StripDockPosition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripDockPosition.swift; sourceTree = "<group>"; };
-		2973034C181B384750CA241E /* PermissionDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionDiagnostics.swift; sourceTree = "<group>"; };
 		2AF924D3C42D0237EE972496 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2C487DE61A7A210D92AB4BEA /* FloatingStopButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingStopButton.swift; sourceTree = "<group>"; };
 		3128E6090EC2EA2303F6E690 /* ReusableElementStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReusableElementStore.swift; sourceTree = "<group>"; };
@@ -154,6 +159,7 @@
 		4E05C0765B13C42F2F2D9D12 /* DelayedCaptureCountdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DelayedCaptureCountdown.swift; sourceTree = "<group>"; };
 		4F09D13C25E263B36FAF251E /* AnnotationDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationDocument.swift; sourceTree = "<group>"; };
 		4FE467F0FC840B4062B1FE23 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
+		554579C1B58FE4C7398DA68D /* InteractiveWindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveWindowPicker.swift; sourceTree = "<group>"; };
 		5658667FA07037A04A872FD6 /* PreferencesRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesRootView.swift; sourceTree = "<group>"; };
 		56E919C91DC66F3DA690ECE1 /* OverlayEventTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayEventTap.swift; sourceTree = "<group>"; };
 		5BFB5193C0866E6D59040CEF /* EdgeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeDetector.swift; sourceTree = "<group>"; };
@@ -164,7 +170,10 @@
 		6A5FA0FFEC02DB97E70AD390 /* SystemScreencaptureScreenshotter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemScreencaptureScreenshotter.swift; sourceTree = "<group>"; };
 		6FAB5EBC1FF677FCF2F5F3CC /* RegionSelectionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionSelectionOverlay.swift; sourceTree = "<group>"; };
 		72DC04751C6014FEF091C515 /* CaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureService.swift; sourceTree = "<group>"; };
+		7F19EB3D30B862A1BC2E016B /* ScrollCaptureRegionDecorator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollCaptureRegionDecorator.swift; sourceTree = "<group>"; };
 		80052A8E2EFEB108B05AFFB1 /* ProPreferencesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProPreferencesStore.swift; sourceTree = "<group>"; };
+		804FE009A0AD7B870A994B99 /* ScrollCaptureOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollCaptureOverlay.swift; sourceTree = "<group>"; };
+		87023AF4E3B0F5848E2081C9 /* ImageStitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStitcher.swift; sourceTree = "<group>"; };
 		8A1A6CB47E82AB62EA20D1C8 /* CaptureBackgroundServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureBackgroundServices.swift; sourceTree = "<group>"; };
 		8F93DF3C124290EB86C78DE6 /* OverlayPreviewWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPreviewWindowController.swift; sourceTree = "<group>"; };
 		9398A7CC90A2133ACB6F59ED /* GIFExportPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GIFExportPresenter.swift; sourceTree = "<group>"; };
@@ -358,15 +367,21 @@
 			children = (
 				428CE15F48CDFE9759AD1A83 /* AppActivation.swift */,
 				AFE1EF1A74598DC5A850D66E /* AppDelegate.swift */,
+				0EEFD5FF0BD14DCCDF1E71A8 /* CapturePreflight.swift */,
 				5FD71107E5577A19F69363D8 /* CaptureServiceClient.swift */,
 				4E05C0765B13C42F2F2D9D12 /* DelayedCaptureCountdown.swift */,
 				3323D0DCF7F6AD8E6C623EEE /* DonationWindowController.swift */,
 				F44CF99CC5982BA35D35ECEB /* FinderReveal.swift */,
 				2C487DE61A7A210D92AB4BEA /* FloatingStopButton.swift */,
+				87023AF4E3B0F5848E2081C9 /* ImageStitcher.swift */,
+				554579C1B58FE4C7398DA68D /* InteractiveWindowPicker.swift */,
 				F542D03BFCD396E4EB4F38DE /* main.swift */,
 				FF7E6B90B6875473C1B1F25C /* RecordingPreflight.swift */,
 				EC0042C97382B7F31810FB41 /* RegionIndicatorWindow.swift */,
 				6FAB5EBC1FF677FCF2F5F3CC /* RegionSelectionOverlay.swift */,
+				804FE009A0AD7B870A994B99 /* ScrollCaptureOverlay.swift */,
+				7F19EB3D30B862A1BC2E016B /* ScrollCaptureRegionDecorator.swift */,
+				116DBEC131A52EE9E5FC3FB9 /* ScrollCaptureSession.swift */,
 				104F7EFF8F4AA305E74C309F /* WindowPicker.swift */,
 			);
 			name = App;
@@ -378,7 +393,6 @@
 			children = (
 				38289F65511C202EC0D15F6F /* AccessibilityPermission.swift */,
 				E32B619C918C6428827B9CC2 /* InputMonitoringPermission.swift */,
-				2973034C181B384750CA241E /* PermissionDiagnostics.swift */,
 				BE0DCDFDC126C2B147431C5F /* ScreenRecordingPermission.swift */,
 			);
 			name = Permissions;
@@ -512,7 +526,6 @@
 				2C8A698281597F1C5083C20F /* OverlayEventTap.swift in Sources */,
 				78A309F3ECD6175177BA6673 /* OverlayEvents.swift in Sources */,
 				710B4EFC9749FE9646F983EF /* OverlayPreviewWindowController.swift in Sources */,
-				535835D1D7A940A5F00CC46F /* PermissionDiagnostics.swift in Sources */,
 				D306DE76D48E3D36D996F934 /* RecordingProtocol.swift in Sources */,
 				5C97E2AC946D194BA4F21609 /* ScreenCaptureKitRecorder.swift in Sources */,
 				FCD110F24E0021AE5D99C744 /* ScreenRecordingPermission.swift in Sources */,
@@ -540,6 +553,7 @@
 				2D4E0A9669CE3C8576A35C86 /* CaptureMetadata.swift in Sources */,
 				81620418B14B441AEC841CED /* CaptureMetadataStore.swift in Sources */,
 				764F92E42F0B4CBFDFCE5EBF /* CaptureOCRIndexer.swift in Sources */,
+				9AA30D932E131EC10978E0D4 /* CapturePreflight.swift in Sources */,
 				8F5CD49D2499F0FCF6A743CD /* CaptureServiceClient.swift in Sources */,
 				5163CE5A94F2F0F583DB1654 /* CaptureServiceProtocol in Sources */,
 				9D0234D0A40D71019C44D2C2 /* CloudSyncManager.swift in Sources */,
@@ -561,14 +575,15 @@
 				AE174C9D99CA927BD27BB55A /* HotKeyManager.swift in Sources */,
 				64BC53173AAB0CEE03D1B039 /* HotkeyPreferencesStore.swift in Sources */,
 				23994A26042B010BB4B0563B /* ImageFilters.swift in Sources */,
+				C13D1A056B99E09A5FF84627 /* ImageStitcher.swift in Sources */,
 				1EC36B6EAB469A9E9128600C /* InputMonitoringPermission.swift in Sources */,
+				A559529E139AED186A8FEF30 /* InteractiveWindowPicker.swift in Sources */,
 				AB645D502C030E4B787A6E24 /* MeasurementTool.swift in Sources */,
 				F78042DA654240F0609BC115 /* OverlayEventTap.swift in Sources */,
 				32B10939D9896A3B73EEC47C /* OverlayEvents.swift in Sources */,
 				37A27A783B28C6FACE8177A0 /* OverlayPreferencesStore.swift in Sources */,
 				D58877CF5732B70A1A4BC448 /* OverlayPreviewView.swift in Sources */,
 				E359B01FBE748D938C9BE261 /* OverlayPreviewWindowController.swift in Sources */,
-				75F065DA0186609CF0B07E89 /* PermissionDiagnostics.swift in Sources */,
 				0C7F8BEBCAE7ED5F23E1B76B /* PreferencesPage.swift in Sources */,
 				ED8494FC6B71124F17A58353 /* PreferencesRootView.swift in Sources */,
 				7B9E426181CF0C0F7A7FE04A /* PreferencesView.swift in Sources */,
@@ -583,6 +598,9 @@
 				B29F6D9EB2567B8B781A2853 /* ReusableElementStore.swift in Sources */,
 				5497082A834992C249AEB6D7 /* ScreenCaptureKitRecorder.swift in Sources */,
 				0B21454FCC60E4D6D80D27D0 /* ScreenRecordingPermission.swift in Sources */,
+				C6CDB35C2748EF17045FACC2 /* ScrollCaptureOverlay.swift in Sources */,
+				A6EAB0AF3458EAAD9A281CAB /* ScrollCaptureRegionDecorator.swift in Sources */,
+				26E965FC468A4700A8CD7ACD /* ScrollCaptureSession.swift in Sources */,
 				26F34FB74B27B54F962AFC5B /* SendableShims.swift in Sources */,
 				C63B1E603B8D24E846E48D85 /* SharePresenter.swift in Sources */,
 				3A707153CB220A4894EA8652 /* SnapGuideManager.swift in Sources */,

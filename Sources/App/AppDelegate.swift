@@ -1,6 +1,7 @@
 import Cocoa
 import Combine
 import os.log
+import UniformTypeIdentifiers
 
 private let appLog = OSLog(subsystem: "com.snipsnap.Snipsnap", category: "AppDelegate")
 
@@ -46,6 +47,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   
   /// Floating stop button shown during recording (excluded from capture)
   private let floatingStopButton = FloatingStopButtonController()
+  
+  // Scroll capture UI - kept as instance vars to ensure they stay alive
+  private var scrollCaptureOverlay: ScrollCaptureOverlay?
+  private var scrollCaptureDecorator: ScrollCaptureRegionDecorator?
+  private var scrollCaptureSession: ScrollCaptureSession?
 
   /// Event tap running in main app (which has Accessibility/Input Monitoring permissions)
   /// and forwarding events to the XPC service for baking into video.
@@ -237,52 +243,74 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       return 
     }
 
-    let anchor = statusItem?.button
+    guard let button = statusItem?.button else { return }
+    
     debugLog("Presenting preflight controller...")
-    guard let res = await RecordingPreflightController.present(anchor: anchor, prefDefaults: overlayPrefs) else { 
-      debugLog("Preflight cancelled")
-      return 
-    }
-    debugLog("Preflight result: mode=\(res.mode)")
-    let mode = forceMode ?? res.mode
-    applyPreflight(res)
+    
+    return await withCheckedContinuation { continuation in
+      let preflightMenu = RecordingPreflightController.presentAsMenu(prefDefaults: overlayPrefs) { [weak self] result in
+        guard let self, let result else {
+          debugLog("Preflight cancelled")
+          continuation.resume()
+          return
+        }
+        
+        debugLog("Preflight result: mode=\(result.mode)")
+        let mode = forceMode ?? result.mode
+        self.applyPreflight(result)
 
-    if res.showClicks || res.showKeys {
-      let hasAX = AccessibilityPermission.isTrusted(prompt: true)
-      let hasInput = InputMonitoringPermission.hasAccess(prompt: true)
-      if !hasAX { AccessibilityPermission.showInstructionsAlert() }
-      if !hasInput { InputMonitoringPermission.showInstructionsAlert() }
-    }
+        Task { @MainActor in
+          if result.showClicks || result.showKeys {
+            let hasAX = AccessibilityPermission.isTrusted(prompt: true)
+            let hasInput = InputMonitoringPermission.hasAccess(prompt: true)
+            if !hasAX { AccessibilityPermission.showInstructionsAlert() }
+            if !hasInput { InputMonitoringPermission.showInstructionsAlert() }
+          }
 
-    debugLog("Starting recording with mode: \(mode)")
-    switch mode {
-    case .fullscreen:
-      try await startFullScreenRecording()
-      recordingStartedAt = Date()
-      startTicker()
-    case .window:
-      debugLog("Showing window picker...")
-      if let windowID = await WindowPicker.pickWindow() {
-        debugLog("Window selected: \(windowID) - starting recording")
-        try await startWindowRecording(windowID: windowID)
-        recordingStartedAt = Date()
-        startTicker()
-      } else {
-        debugLog("Window selection cancelled")
+          debugLog("Starting recording with mode: \(mode)")
+          do {
+            switch mode {
+            case .fullscreen:
+              try await self.startFullScreenRecording()
+              self.recordingStartedAt = Date()
+              self.startTicker()
+            case .window:
+              debugLog("Showing window picker...")
+              if let selection = await InteractiveWindowPicker.pick(mode: .window) {
+                debugLog("Window selected: \(selection.windowID) - starting recording")
+                try await self.startWindowRecording(windowID: selection.windowID)
+                self.recordingStartedAt = Date()
+                self.startTicker()
+              } else {
+                debugLog("Window selection cancelled")
+              }
+            case .region:
+              debugLog("Showing region selection overlay...")
+              if let rect = await RegionSelectionOverlay.select() {
+                debugLog("Region selected: \(rect) - starting recording")
+                try await self.startRegionRecording(region: rect)
+                self.recordingStartedAt = Date()
+                self.startTicker()
+              } else {
+                debugLog("Region selection cancelled or failed")
+              }
+            }
+
+            self.refreshMenu()
+          } catch {
+            self.showError(error)
+          }
+          
+          continuation.resume()
+        }
       }
-    case .region:
-      debugLog("Showing region selection overlay...")
-      if let rect = await RegionSelectionOverlay.select() {
-        debugLog("Region selected: \(rect) - starting recording")
-        try await startRegionRecording(region: rect)
-        recordingStartedAt = Date()
-        startTicker()
-      } else {
-        debugLog("Region selection cancelled or failed")
-      }
+      
+      // Position and show the menu - center it under the button
+      let menuWidth: CGFloat = 420
+      let buttonWidth = button.bounds.width
+      let xOffset = (buttonWidth - menuWidth) / 2
+      preflightMenu.popUp(positioning: nil, at: NSPoint(x: xOffset, y: button.bounds.height), in: button)
     }
-
-    refreshMenu()
   }
 
   private func captureRegionScreenshot() async throws {
@@ -291,8 +319,176 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   private func captureWindowScreenshot() async throws {
+    // For screenshots, we need to use the XPC service's interactive selection
+    // since ScreenCaptureKit requires the same process to select and capture
     let url = try await captureService.captureWindowScreenshot()
     lastCaptureURL = url
+  }
+
+  private func captureFullScreenScreenshot() async throws {
+    let url = try await captureService.captureFullScreenScreenshot()
+    lastCaptureURL = url
+  }
+
+  private func captureScrollingWindow() async throws {
+    // Use interactive region picker - scroll capture is ALWAYS region-based
+    guard let selection = await InteractiveWindowPicker.pick(mode: .subRegion) else {
+      debugLog("AppDelegate: Scroll capture cancelled - no region selected")
+      return
+    }
+    
+    // Scroll capture REQUIRES a sub-region
+    guard let subRegion = selection.subRegion else {
+      debugLog("AppDelegate: Scroll capture requires a region to be selected")
+      showError(ScrollCaptureError.noRegionSelected)
+      return
+    }
+    
+    debugLog("AppDelegate: Starting scroll capture for region: \(subRegion)")
+    
+    // Create UI objects as instance variables to keep them alive
+    let overlay = scrollCaptureOverlay ?? ScrollCaptureOverlay()
+    let regionDecorator = scrollCaptureDecorator ?? ScrollCaptureRegionDecorator()
+    let session = ScrollCaptureSession()
+    
+    // Store them
+    self.scrollCaptureOverlay = overlay
+    self.scrollCaptureDecorator = regionDecorator
+    self.scrollCaptureSession = session
+    
+    // Show the region decorator
+    regionDecorator.show(region: subRegion)
+    
+    // Show the overlay UI first
+    overlay.show(
+      onDone: { [weak self] in
+        debugLog("AppDelegate: User clicked Done")
+        // Defer the finish call to avoid blocking UI
+        Task { @MainActor in
+          self?.scrollCaptureSession?.finish()
+        }
+      },
+      onCancel: { [weak self] in
+        debugLog("AppDelegate: User cancelled scroll capture")
+        // Defer the cancel call to avoid blocking UI
+        Task { @MainActor in
+          self?.scrollCaptureSession?.cancel()
+        }
+      }
+    )
+    
+    // Use a separate continuation approach
+    do {
+      let stitchedCGImage = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CGImage, Error>) in
+        // Start the capture session with region
+        session.start(region: subRegion, onProgress: { [weak self] frameCount in
+          Task { @MainActor in
+            self?.scrollCaptureOverlay?.updateFrameCount(frameCount)
+          }
+        }, completion: { [weak self] result in
+          Task { @MainActor in
+            debugLog("AppDelegate: Completion handler called")
+            
+            // Just resume with the result - don't dismiss UI here
+            switch result {
+            case .success(let stitchedImage):
+              continuation.resume(returning: stitchedImage)
+              
+            case .failure(let error):
+              debugLog("AppDelegate: Scroll capture failed: \(error.localizedDescription)")
+              continuation.resume(throwing: error)
+            }
+          }
+        })
+      }
+      
+      // NOW dismiss UI after we have the image
+      debugLog("AppDelegate: Stitching completed, dismissing UI")
+      
+      // Wait a moment to ensure the completion callback has fully executed
+      try? await Task.sleep(nanoseconds: 200_000_000)  // 0.2s
+      
+      scrollCaptureOverlay?.dismiss()
+      scrollCaptureDecorator?.dismiss()
+      
+      // Wait for UI to fully tear down
+      try? await Task.sleep(nanoseconds: 300_000_000)  // 0.3s
+      
+      self.scrollCaptureSession = nil
+      
+      // Save the stitched image (it's already a CGImage)
+      debugLog("AppDelegate: Saving scroll capture...")
+      let url = try saveScrollCapture(stitchedCGImage)
+      lastCaptureURL = url
+      debugLog("AppDelegate: Scroll capture saved to \(url.path)")
+      
+    } catch is CancellationError {
+      // User cancelled - dismiss UI
+      debugLog("AppDelegate: User cancelled, dismissing UI")
+      scrollCaptureOverlay?.dismiss()
+      scrollCaptureDecorator?.dismiss()
+      self.scrollCaptureSession = nil
+      throw CancellationError()
+      
+    } catch {
+      // Error occurred - dismiss UI and show error
+      debugLog("AppDelegate: Error occurred, dismissing UI")
+      scrollCaptureOverlay?.dismiss()
+      scrollCaptureDecorator?.dismiss()
+      self.scrollCaptureSession = nil
+      showError(error)
+      throw error
+    }
+  }
+  
+  private func saveScrollCapture(_ image: CGImage) throws -> URL {
+    // Create a unique filename
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss"
+    let dateStr = formatter.string(from: Date())
+    let filename = "Scroll Capture \(dateStr).png"
+    
+    // Get captures directory
+    let capturesDir = FileManager.default.homeDirectoryForCurrentUser
+      .appendingPathComponent("Library/Application Support/SnipSnap/captures")
+    
+    // Create directory if needed
+    try FileManager.default.createDirectory(at: capturesDir, withIntermediateDirectories: true)
+    
+    let fileURL = capturesDir.appendingPathComponent(filename)
+    
+    // Save as PNG
+    guard let destination = CGImageDestinationCreateWithURL(fileURL as CFURL, UTType.png.identifier as CFString, 1, nil) else {
+      throw NSError(domain: "com.snipsnap.Snipsnap", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create image destination"])
+    }
+    
+    CGImageDestinationAddImage(destination, image, nil)
+    
+    guard CGImageDestinationFinalize(destination) else {
+      throw NSError(domain: "com.snipsnap.Snipsnap", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to save image"])
+    }
+    
+    return fileURL
+  }
+
+
+  private func performCapture(mode: CaptureMode, delay: CaptureDelay) async throws {
+    let delayValue = delay.rawValue
+    
+    if delayValue > 0 {
+      try await Task.sleep(nanoseconds: UInt64(delayValue * 1_000_000_000))
+    }
+    
+    switch mode {
+    case .region:
+      try await captureRegionScreenshot()
+    case .window:
+      try await captureWindowScreenshot()
+    case .fullscreen:
+      try await captureFullScreenScreenshot()
+    case .scrollingWindow:
+      try await captureScrollingWindow()
+    }
   }
 
   private func startHotkeys() {
@@ -307,6 +503,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.onCaptureRegionScreenshot()
       case .captureWindow:
         self.onCaptureWindowScreenshot()
+      case .showCaptureOptions:
+        self.onCapture()
       }
     }
     hotkeys.start()
@@ -315,8 +513,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private func refreshMenu() {
     let menu = NSMenu()
 
-    let prefs = NSMenuItem(title: "Preferences…", action: #selector(onPreferences), keyEquivalent: ",")
-    prefs.keyEquivalentModifierMask = [.command]
+    let prefs = NSMenuItem(title: "Preferences…", action: #selector(onPreferences), keyEquivalent: "")
     prefs.target = self
     menu.addItem(prefs)
 
@@ -364,38 +561,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
       menu.addItem(.separator())
 
-      let shotRegion = NSMenuItem(title: "Capture Region…", action: #selector(onCaptureRegionScreenshot), keyEquivalent: "5")
-      shotRegion.keyEquivalentModifierMask = [.command, .shift]
-      shotRegion.target = self
-      menu.addItem(shotRegion)
-
-      let shotWindow = NSMenuItem(title: "Capture Window…", action: #selector(onCaptureWindowScreenshot), keyEquivalent: "4")
-      shotWindow.keyEquivalentModifierMask = [.command, .shift]
-      shotWindow.target = self
-      menu.addItem(shotWindow)
+      let capture = NSMenuItem(title: "Capture…", action: #selector(onCapture), keyEquivalent: "3")
+      capture.keyEquivalentModifierMask = [.command, .shift]
+      capture.target = self
+      menu.addItem(capture)
       
-      // Delayed capture submenu for context menus etc.
-      let delayMenu = NSMenu()
-      let delay3 = NSMenuItem(title: "3 seconds", action: #selector(onDelayedCapture3), keyEquivalent: "")
-      delay3.target = self
-      delayMenu.addItem(delay3)
-      let delay5 = NSMenuItem(title: "5 seconds", action: #selector(onDelayedCapture5), keyEquivalent: "")
-      delay5.target = self
-      delayMenu.addItem(delay5)
-      let delay10 = NSMenuItem(title: "10 seconds", action: #selector(onDelayedCapture10), keyEquivalent: "")
-      delay10.target = self
-      delayMenu.addItem(delay10)
+      menu.addItem(.separator())
       
-      let delayItem = NSMenuItem(title: "Delayed Capture…", action: nil, keyEquivalent: "")
-      delayItem.submenu = delayMenu
-      menu.addItem(delayItem)
+      let openImage = NSMenuItem(title: "Open Image…", action: #selector(onOpenImage), keyEquivalent: "o")
+      openImage.keyEquivalentModifierMask = [.command]
+      openImage.target = self
+      menu.addItem(openImage)
     }
 
     menu.addItem(.separator())
-
-    let diag = NSMenuItem(title: "Permission Diagnostics…", action: #selector(onShowDiagnostics), keyEquivalent: "")
-    diag.target = self
-    menu.addItem(diag)
 
     let quit = NSMenuItem(title: "Quit SnipSnap", action: #selector(onQuit), keyEquivalent: "q")
     quit.keyEquivalentModifierMask = [.command]
@@ -484,9 +663,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   @objc private func onCaptureRegionScreenshot() {
     Task { @MainActor in
       do {
-        try await captureRegionScreenshot()
-        stripController?.refresh()
-        refreshMenu()
+        let delay = CaptureDelay(rawValue: UserDefaults.standard.double(forKey: "prefs.capture.delay")) ?? .none
+        if delay == .none {
+          try await captureRegionScreenshot()
+          stripController?.refresh()
+          refreshMenu()
+        } else {
+          let seconds = Int(delay.rawValue)
+          DelayedCaptureCountdown.show(seconds: seconds) { [weak self] in
+            Task { @MainActor in
+              guard let self else { return }
+              do {
+                try await self.captureRegionScreenshot()
+                self.stripController?.refresh()
+                self.refreshMenu()
+              } catch {
+                self.showError(error)
+              }
+            }
+          }
+        }
       } catch {
         showError(error)
       }
@@ -496,44 +692,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   @objc private func onCaptureWindowScreenshot() {
     Task { @MainActor in
       do {
-        try await captureWindowScreenshot()
-        stripController?.refresh()
-        refreshMenu()
+        let delay = CaptureDelay(rawValue: UserDefaults.standard.double(forKey: "prefs.capture.delay")) ?? .none
+        if delay == .none {
+          try await captureWindowScreenshot()
+          stripController?.refresh()
+          refreshMenu()
+        } else {
+          let seconds = Int(delay.rawValue)
+          DelayedCaptureCountdown.show(seconds: seconds) { [weak self] in
+            Task { @MainActor in
+              guard let self else { return }
+              do {
+                try await self.captureWindowScreenshot()
+                self.stripController?.refresh()
+                self.refreshMenu()
+              } catch {
+                self.showError(error)
+              }
+            }
+          }
+        }
       } catch {
         showError(error)
       }
     }
   }
-  
-  // MARK: - Delayed Capture
-  
-  @objc private func onDelayedCapture3() {
-    startDelayedCapture(seconds: 3)
-  }
-  
-  @objc private func onDelayedCapture5() {
-    startDelayedCapture(seconds: 5)
-  }
-  
-  @objc private func onDelayedCapture10() {
-    startDelayedCapture(seconds: 10)
-  }
-  
-  private func startDelayedCapture(seconds: Int) {
-    DelayedCaptureCountdown.show(seconds: seconds) { [weak self] in
+
+  @objc private func onCapture() {
+    guard let button = statusItem?.button else { return }
+    
+    let preflightMenu = CapturePreflightController.presentAsMenu { [weak self] result in
+      guard let self, let result else { return }
+      
       Task { @MainActor in
-        guard let self else { return }
         do {
-          try await self.captureRegionScreenshot()
-          self.stripController?.refresh()
-          self.refreshMenu()
+          if result.delay == .none {
+            try await self.performCapture(mode: result.mode, delay: result.delay)
+            self.stripController?.refresh()
+            self.refreshMenu()
+          } else {
+            let seconds = Int(result.delay.rawValue)
+            DelayedCaptureCountdown.show(seconds: seconds) {
+              Task { @MainActor in
+                do {
+                  try await self.performCapture(mode: result.mode, delay: .none)
+                  self.stripController?.refresh()
+                  self.refreshMenu()
+                } catch {
+                  self.showError(error)
+                }
+              }
+            }
+          }
         } catch {
           self.showError(error)
         }
       }
     }
+    
+    // Position and show the menu - center it under the button
+    let menuWidth: CGFloat = 400
+    let buttonWidth = button.bounds.width
+    let xOffset = (buttonWidth - menuWidth) / 2
+    preflightMenu.popUp(positioning: nil, at: NSPoint(x: xOffset, y: button.bounds.height), in: button)
   }
-
+  
   private func startTicker() {
     stopTicker()
     ticker = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -591,10 +814,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     guard let url = lastCaptureURL else { return }
     NSPasteboard.general.clearContents()
     NSPasteboard.general.setString(url.path, forType: .string)
-  }
-
-  @objc private func onShowDiagnostics() {
-    PermissionDiagnostics.showDiagnosticsPanel()
   }
 
   @objc private func onQuit() {
@@ -722,5 +941,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     eventForwardingTimer = nil
     overlayEventTap.stop()
     debugLog("Overlay event forwarding stopped")
+  }
+  
+  @objc private func onOpenImage() {
+    let panel = NSOpenPanel()
+    panel.title = "Open Image"
+    panel.message = "Select an image to edit"
+    panel.allowedContentTypes = [.png, .jpeg, .heic, .tiff, .bmp, .gif]
+    panel.allowsMultipleSelection = false
+    panel.canChooseDirectories = false
+    
+    let response = panel.runModal()
+    guard response == .OK, let url = panel.url else { return }
+    
+    editor.openEditor(for: url)
   }
 }

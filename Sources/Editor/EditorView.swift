@@ -10,6 +10,13 @@ struct EditorView: View {
   @State private var hostWindow: NSWindow? = nil
   @State private var showInspector: Bool = true
   @State private var piiListExpanded: Bool = false
+  
+  // Helper to determine if pan hint should be shown
+  private var needsPanHint: Bool {
+    // Show hint if image is larger than viewport at current zoom
+    let aspectRatio = doc.imageSize.height / doc.imageSize.width
+    return aspectRatio > 2.5 || doc.zoomLevel > 1.0
+  }
 
   var body: some View {
     applyChangeHandlers(to: editorLayout)
@@ -159,6 +166,77 @@ struct EditorView: View {
       }
       .menuStyle(.borderlessButton)
       .help("Export")
+
+      Divider().frame(height: 16)
+      
+      // Zoom controls
+      HStack(spacing: 4) {
+        Button {
+          doc.zoomLevel = max(0.1, doc.zoomLevel / 1.2)
+        } label: {
+          Image(systemName: "minus.magnifyingglass")
+        }
+        .buttonStyle(.borderless)
+        .keyboardShortcut("-", modifiers: .command)
+        .help("Zoom Out (⌘-)")
+        
+        Menu {
+          Button("Fit") {
+            doc.fitMode = .fit
+            doc.zoomLevel = 1.0
+            doc.panOffset = .zero
+          }
+          
+          Button("Fit Width") {
+            doc.fitMode = .fitWidth
+            doc.zoomLevel = 1.0
+            doc.panOffset = .zero
+          }
+          
+          Button("Fit Height") {
+            doc.fitMode = .fitHeight
+            doc.zoomLevel = 1.0
+            doc.panOffset = .zero
+          }
+          
+          Button("Actual Size") {
+            doc.fitMode = .actualSize
+            doc.zoomLevel = 1.0
+            doc.panOffset = .zero
+          }
+          
+          Divider()
+          
+          ForEach([0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0], id: \.self) { zoom in
+            Button("\(Int(zoom * 100))%") {
+              doc.zoomLevel = zoom
+            }
+          }
+        } label: {
+          Text("\(Int(doc.zoomLevel * 100))%")
+            .font(.system(size: 11, design: .monospaced))
+            .frame(minWidth: 40)
+        }
+        .menuStyle(.borderlessButton)
+        .help("Zoom Level")
+        
+        Button {
+          doc.zoomLevel = min(10.0, doc.zoomLevel * 1.2)
+        } label: {
+          Image(systemName: "plus.magnifyingglass")
+        }
+        .buttonStyle(.borderless)
+        .keyboardShortcut("+", modifiers: .command)
+        .help("Zoom In (⌘+)")
+      }
+      
+      // Pan hint for when image extends beyond viewport
+      if needsPanHint {
+        Text("Press H for Hand tool to pan")
+          .font(.system(size: 10))
+          .foregroundColor(.secondary)
+          .padding(.leading, 8)
+      }
 
       Divider().frame(height: 16)
 
@@ -334,6 +412,7 @@ struct EditorView: View {
       VStack(spacing: 4) {
         // Selection
         sidebarToolButton(.select)
+        sidebarToolButton(.hand)
 
         Divider().padding(.vertical, 4)
 
@@ -1006,6 +1085,8 @@ extension EditorView {
           ann = .measurement(m)
         }
       }
+    case .imageLayer:
+      break
     }
   }
 

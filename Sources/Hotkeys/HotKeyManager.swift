@@ -94,9 +94,12 @@ final class HotKeyManager {
   private func registerHotKey(id: UInt32, keyCode: UInt32, modifiers: UInt32) {
     let hotKeyID = EventHotKeyID(signature: OSType(0x534E5053), id: id) // 'SNPS'
     var ref: EventHotKeyRef?
-    let status = RegisterEventHotKey(keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 0, &ref)
+    // Use option 1 for exclusive/non-exclusive mode (some versions of macOS require this)
+    let status = RegisterEventHotKey(keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 1, &ref)
     if status == noErr {
       hotKeyRefs.append(ref)
+    } else {
+      print("SnipSnap: Failed to register hotkey id=\(id) keyCode=\(keyCode) status=\(status)")
     }
   }
 
@@ -114,6 +117,7 @@ extension HotkeyAction {
     case .toggleStrip: return 2
     case .captureRegion: return 3
     case .captureWindow: return 4
+    case .showCaptureOptions: return 5
     }
   }
 }

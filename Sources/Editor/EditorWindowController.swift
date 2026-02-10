@@ -66,6 +66,12 @@ final class EditorWindowController {
             }
             return nil
           }
+          
+          // Cmd+V - Paste image from clipboard
+          if event.charactersIgnoringModifiers == "v" {
+            self.pasteImageFromClipboard(doc: doc)
+            return nil
+          }
         }
 
         // Delete / Backspace
@@ -85,11 +91,12 @@ final class EditorWindowController {
         // Tool shortcuts (only when not editing text)
         if doc.pendingTextInput == nil, !event.modifierFlags.contains(.command) {
           if let char = event.charactersIgnoringModifiers?.lowercased() {
-            let toolShortcuts: [String: AnnotationTool] = [
-              "v": .select,
-              "r": .rect,
-              "l": .line,
-              "a": .arrow,
+              let toolShortcuts: [String: AnnotationTool] = [
+                "v": .select,
+                "h": .hand,
+                "r": .rect,
+                "l": .line,
+                "a": .arrow,
               "m": .freehand,  // marker
               "t": .text,
               "c": .callout,
@@ -135,6 +142,50 @@ final class EditorWindowController {
       NSEvent.removeMonitor(m)
     }
     monitors[url] = nil
+  }
+  
+  private func pasteImageFromClipboard(doc: AnnotationDocument) {
+    let pasteboard = NSPasteboard.general
+    
+    // Try to get image data from clipboard
+    guard let imageData = pasteboard.data(forType: .tiff) ?? pasteboard.data(forType: .png) else {
+      return
+    }
+    
+    // Create NSImage to get dimensions
+    guard let nsImage = NSImage(data: imageData),
+          let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+      return
+    }
+    
+    // Get PNG representation
+    let bitmap = NSBitmapImageRep(cgImage: cgImage)
+    guard let finalData = bitmap.representation(using: .png, properties: [:]) else {
+      return
+    }
+    
+    // Place image in center of canvas at reasonable size
+    let imageWidth = CGFloat(cgImage.width)
+    let imageHeight = CGFloat(cgImage.height)
+    let canvasWidth = doc.imageSize.width
+    let canvasHeight = doc.imageSize.height
+    
+    // Scale to fit within 50% of canvas while maintaining aspect ratio
+    let maxSize = min(canvasWidth, canvasHeight) * 0.5
+    let scale = min(maxSize / imageWidth, maxSize / imageHeight, 1.0)
+    let finalWidth = imageWidth * scale
+    let finalHeight = imageHeight * scale
+    
+    // Center position
+    let x = (canvasWidth - finalWidth) / 2
+    let y = (canvasHeight - finalHeight) / 2
+    
+    let rect = CGRect(x: x, y: y, width: finalWidth, height: finalHeight)
+    let imageLayer = ImageLayerAnnotation(rect: rect, imageData: finalData)
+    
+    doc.pushUndoCheckpoint()
+    doc.annotations.append(.imageLayer(imageLayer))
+    doc.selectedID = imageLayer.id
   }
 }
 

@@ -18,15 +18,22 @@ final class SystemScreencaptureScreenshotter {
     self.capturesDirURL = capturesDirURL
   }
 
-  func captureRegion() async throws -> URL {
-    try await capture(args: ["-i", "-s", "-x"], prefix: "screenshot_region", ext: "png")
+  func captureRegion(delay: TimeInterval = 0) async throws -> URL {
+    try await capture(args: ["-i", "-s", "-x"], prefix: "screenshot_region", ext: "png", delay: delay)
   }
 
-  func captureWindow() async throws -> URL {
-    try await capture(args: ["-i", "-w", "-x"], prefix: "screenshot_window", ext: "png")
+  func captureWindow(delay: TimeInterval = 0) async throws -> URL {
+    try await capture(args: ["-i", "-w", "-x"], prefix: "screenshot_window", ext: "png", delay: delay)
   }
 
-  private func capture(args: [String], prefix: String, ext: String) async throws -> URL {
+  func captureFullScreen(delay: TimeInterval = 0) async throws -> URL {
+    try await capture(args: ["-m", "-x"], prefix: "screenshot_fullscreen", ext: "png", delay: delay)
+  }
+
+  private func capture(args: [String], prefix: String, ext: String, delay: TimeInterval) async throws -> URL {
+    if delay > 0 {
+      try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+    }
     let outURL = try makeCaptureURL(prefix: prefix, ext: ext)
 
     let p = Process()

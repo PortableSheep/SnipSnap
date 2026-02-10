@@ -119,6 +119,28 @@ final class AnnotationDocument: ObservableObject {
   // Active freehand stroke (while drawing)
   @Published var activeFreehandStroke: FreehandAnnotation? = nil
 
+  // Zoom and pan state
+  @Published var zoomLevel: CGFloat = 1.0
+  @Published var panOffset: CGSize = .zero
+  
+  /// Fit mode for initial zoom
+  enum FitMode: String, CaseIterable {
+    case fit
+    case fitWidth
+    case fitHeight
+    case actualSize
+    
+    var label: String {
+      switch self {
+      case .fit: return "Fit"
+      case .fitWidth: return "Fit Width"
+      case .fitHeight: return "Fit Height"
+      case .actualSize: return "Actual Size"
+      }
+    }
+  }
+  @Published var fitMode: FitMode = .fit
+
   // Background settings (Pro feature)
   @Published var backgroundStyle: BackgroundStyle = .none
   @Published var backgroundColor: Color = .gray
@@ -184,6 +206,9 @@ final class AnnotationDocument: ObservableObject {
 
     self.cgImage = cg
     self.imageSize = CGSize(width: cg.width, height: cg.height)
+    
+    // Start with fit for all images - user can zoom as needed
+    self.fitMode = .fit
 
     // Initial state is "saved" (no edits yet).
     savedAnnotationsHash = annotationsHash(annotations)
@@ -456,6 +481,9 @@ final class AnnotationDocument: ObservableObject {
       measurementPPI = m.ppi
       measurementBaseFontSize = m.baseFontSize
       measurementShowExtensionLines = m.showExtensionLines
+    case .imageLayer:
+      // Image layers don't have style properties to sync
+      break
     }
   }
 

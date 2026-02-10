@@ -645,6 +645,8 @@ enum EditorRenderer {
       drawEmoji(e, in: ctx)
     case .measurement(let m):
       drawMeasurement(m, in: ctx)
+    case .imageLayer(let img):
+      drawImageLayer(img, in: ctx)
     }
   }
 
@@ -1120,5 +1122,10 @@ enum EditorRenderer {
     ctx.scaleBy(x: 1, y: -1)
     CTLineDraw(line, ctx)
     ctx.restoreGState()
+  }
+  
+  private static func drawImageLayer(_ img: ImageLayerAnnotation, in ctx: CGContext) {
+    guard let cgImage = CGImage.fromData(img.imageData) else { return }
+    ctx.draw(cgImage, in: img.rect)
   }
 }

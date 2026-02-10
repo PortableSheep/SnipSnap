@@ -9,6 +9,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
   case toggleStrip
   case captureRegion
   case captureWindow
+  case showCaptureOptions
 
   var id: String { rawValue }
 
@@ -18,6 +19,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
     case .toggleStrip: return "Show/Hide Strip"
     case .captureRegion: return "Capture Region"
     case .captureWindow: return "Capture Window"
+    case .showCaptureOptions: return "Show Capture Options"
     }
   }
 
@@ -27,6 +29,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
     case .toggleStrip: return "rectangle.split.3x1"
     case .captureRegion: return "rectangle.dashed"
     case .captureWindow: return "macwindow"
+    case .showCaptureOptions: return "camera.metering.center.weighted"
     }
   }
 }
@@ -121,8 +124,9 @@ struct HotkeyBinding: Codable, Equatable {
   static let defaults: [HotkeyAction: HotkeyBinding] = [
     .toggleRecording: HotkeyBinding(keyCode: UInt32(kVK_ANSI_6), modifiers: UInt32(cmdKey | shiftKey)),
     .toggleStrip: HotkeyBinding(keyCode: UInt32(kVK_ANSI_S), modifiers: UInt32(cmdKey | shiftKey)),
-    .captureRegion: HotkeyBinding(keyCode: UInt32(kVK_ANSI_5), modifiers: UInt32(cmdKey | shiftKey)),
-    .captureWindow: HotkeyBinding(keyCode: UInt32(kVK_ANSI_4), modifiers: UInt32(cmdKey | shiftKey)),
+    .captureRegion: HotkeyBinding(keyCode: UInt32(kVK_ANSI_8), modifiers: UInt32(cmdKey | shiftKey)),
+    .captureWindow: HotkeyBinding(keyCode: UInt32(kVK_ANSI_7), modifiers: UInt32(cmdKey | shiftKey)),
+    .showCaptureOptions: HotkeyBinding(keyCode: UInt32(kVK_ANSI_3), modifiers: UInt32(cmdKey | shiftKey)),
   ]
 }
 

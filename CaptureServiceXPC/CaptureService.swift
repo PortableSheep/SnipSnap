@@ -216,6 +216,18 @@ final class CaptureService: NSObject, CaptureServiceProtocol {
     }
   }
 
+  func captureFullScreenScreenshot(reply: @escaping (String?, String?) -> Void) {
+    Task { @MainActor in
+      do {
+        try await ensureScreenRecordingAccess()
+        let url = try await screenshotter.captureFullScreen()
+        reply(url.path, nil)
+      } catch {
+        reply(nil, error.localizedDescription)
+      }
+    }
+  }
+
   func requestScreenRecordingPermission(reply: @escaping (Bool, String?) -> Void) {
     Task { @MainActor in
       _ = ScreenRecordingPermission.hasAccess(prompt: true)

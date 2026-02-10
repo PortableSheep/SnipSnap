@@ -13,6 +13,10 @@ struct EditorCanvasView: View {
   @State private var originalSelectedAtDragStart: Annotation? = nil
 
   @State private var isShiftDown: Bool = false
+  
+  // Pan gesture state
+  @State private var panGestureActive: Bool = false
+  @State private var panStartOffset: CGSize = .zero
 
   var body: some View {
     GeometryReader { geo in
@@ -27,6 +31,20 @@ struct EditorCanvasView: View {
         }
         .gesture(dragGesture(in: geo.size))
         .simultaneousGesture(tapGesture(in: geo.size))
+        .simultaneousGesture(magnificationGesture())
+        .onContinuousHover { phase in
+          // Update cursor based on pan mode
+          switch phase {
+          case .active:
+            if doc.tool == .hand && doc.pendingTextInput == nil {
+              NSCursor.openHand.set()
+            } else {
+              NSCursor.arrow.set()
+            }
+          case .ended:
+            NSCursor.arrow.set()
+          }
+        }
 
         overlayTextAnnotations(viewSize: geo.size)
 
@@ -39,10 +57,12 @@ struct EditorCanvasView: View {
         }
       }
       .onAppear {
+        // Monitor modifier keys
         NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
           isShiftDown = event.modifierFlags.contains(.shift)
           return event
         }
+        
       }
     }
   }
@@ -266,10 +286,33 @@ struct EditorCanvasView: View {
         // noop; selection handled by drag start for now
       }
   }
+  
+  private func magnificationGesture() -> some Gesture {
+    MagnificationGesture()
+      .onChanged { value in
+        // Clamp zoom between 0.1x and 10x
+        let newZoom = max(0.1, min(10.0, doc.zoomLevel * value))
+        doc.zoomLevel = newZoom
+      }
+  }
 
   private func dragGesture(in size: CGSize) -> some Gesture {
     DragGesture(minimumDistance: 0)
       .onChanged { value in
+        // If hand tool is active, pan the canvas instead of drawing
+        if doc.tool == .hand && doc.pendingTextInput == nil {
+          if !panGestureActive {
+            panGestureActive = true
+            panStartOffset = doc.panOffset
+            NSCursor.closedHand.set()
+          }
+          doc.panOffset = CGSize(
+            width: panStartOffset.width + value.translation.width,
+            height: panStartOffset.height + value.translation.height
+          )
+          return
+        }
+        
         let imgPoint = viewToImage(point: value.location, viewSize: size)
 
         if dragStartImagePoint == nil {
@@ -382,6 +425,18 @@ struct EditorCanvasView: View {
         }
       }
       .onEnded { value in
+        // Reset pan gesture state
+         if panGestureActive {
+           panGestureActive = false
+           // Restore cursor based on current state
+           if doc.tool == .hand && doc.pendingTextInput == nil {
+             NSCursor.openHand.set()
+           } else {
+             NSCursor.arrow.set()
+           }
+          return
+        }
+        
         let imgEnd = viewToImage(point: value.location, viewSize: size)
 
         defer {
@@ -476,11 +531,29 @@ struct EditorCanvasView: View {
     let totalWidth = imageSize.width + (padding * 2)
     let totalHeight = imageSize.height + (padding * 2)
     
-    let scale = min(viewSize.width / totalWidth, viewSize.height / totalHeight)
+    // Calculate base scale based on fit mode
+    let baseScale: CGFloat
+    switch doc.fitMode {
+    case .fit:
+      baseScale = min(viewSize.width / totalWidth, viewSize.height / totalHeight)
+    case .fitWidth:
+      baseScale = viewSize.width / totalWidth
+    case .fitHeight:
+      baseScale = viewSize.height / totalHeight
+    case .actualSize:
+      baseScale = 1.0
+    }
+    
+    // Apply zoom level
+    let scale = baseScale * doc.zoomLevel
+    
     let w = imageSize.width * scale
     let h = imageSize.height * scale
-    let x = (viewSize.width - w) / 2
-    let y = (viewSize.height - h) / 2
+    
+    // Center by default, then apply pan offset
+    let x = (viewSize.width - w) / 2 + doc.panOffset.width
+    let y = (viewSize.height - h) / 2 + doc.panOffset.height
+    
     return CGRect(x: x, y: y, width: w, height: h)
   }
 
@@ -733,6 +806,16 @@ struct EditorCanvasView: View {
     case .emoji:
       // Emoji is rendered as a SwiftUI overlay (see overlayTextAnnotations).
       break
+      
+    case .imageLayer(let img):
+      guard let cgImage = CGImage.fromData(img.imageData) else { break }
+      let vr = CGRect(
+        x: offset.x + img.rect.minX * scale,
+        y: offset.y + img.rect.minY * scale,
+        width: img.rect.width * scale,
+        height: img.rect.height * scale
+      )
+      context.draw(Image(decorative: cgImage, scale: 1), in: vr)
     }
   }
 
@@ -942,6 +1025,11 @@ struct EditorCanvasView: View {
       let halfSize = e.size * scale / 2
       let r = CGRect(x: pos.x - halfSize, y: pos.y - halfSize, width: e.size * scale, height: e.size * scale)
       context.stroke(Path(roundedRect: r, cornerRadius: 8), with: .color(.blue.opacity(0.85)), style: stroke)
+      
+    case .imageLayer(let img):
+      let vr = CGRect(x: offset.x + img.rect.minX * scale, y: offset.y + img.rect.minY * scale, width: img.rect.width * scale, height: img.rect.height * scale)
+      context.stroke(Path(vr), with: .color(.blue.opacity(0.85)), style: stroke)
+      drawRectHandles(rect: vr, context: &context)
     }
   }
 
@@ -1016,6 +1104,10 @@ struct EditorCanvasView: View {
 
     case .spotlight(let sp):
       return hitRectHandle(point: point, rect: sp.rect, hitRadiusImg: hitRadiusImg)
+        .map { HandleHit(kind: .rect($0)) }
+
+    case .imageLayer(let img):
+      return hitRectHandle(point: point, rect: img.rect, hitRadiusImg: hitRadiusImg)
         .map { HandleHit(kind: .rect($0)) }
 
     default:
@@ -1130,6 +1222,10 @@ struct EditorCanvasView: View {
       sp.rect = clampRect(resizedRect(from: o.rect, handle: h, to: current, constrainSquare: isShiftDown))
       annotation = .spotlight(sp)
 
+    case (.rect(let h), .imageLayer(let o), .imageLayer(var img)):
+      img.rect = clampRect(resizedRect(from: o.rect, handle: h, to: current, constrainSquare: isShiftDown))
+      annotation = .imageLayer(img)
+
     default:
       break
     }
@@ -1214,6 +1310,9 @@ struct EditorCanvasView: View {
       case .emoji(let e):
         let approx = CGRect(x: e.position.x - e.size / 2, y: e.position.y - e.size / 2, width: e.size, height: e.size)
         if approx.insetBy(dx: -10, dy: -10).contains(point) { return e.id }
+        
+      case .imageLayer(let img):
+        if img.rect.insetBy(dx: -8, dy: -8).contains(point) { return img.id }
       }
     }
     return nil
@@ -1279,6 +1378,10 @@ struct EditorCanvasView: View {
     case .emoji(var e):
       e.position = CGPoint(x: e.position.x + delta.x, y: e.position.y + delta.y)
       annotation = .emoji(e)
+      
+    case .imageLayer(var img):
+      img.rect = img.rect.offsetBy(dx: delta.x, dy: delta.y)
+      annotation = .imageLayer(img)
     }
   }
 }

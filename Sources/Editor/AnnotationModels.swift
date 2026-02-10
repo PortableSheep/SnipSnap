@@ -1,8 +1,29 @@
 import Foundation
 import SwiftUI
 
+extension CGImage {
+  static func fromData(_ data: Data) -> CGImage? {
+    guard let provider = CGDataProvider(data: data as CFData),
+          let cgImage = CGImage(
+            pngDataProviderSource: provider,
+            decode: nil,
+            shouldInterpolate: true,
+            intent: .defaultIntent
+          ) ?? CGImage(
+            jpegDataProviderSource: provider,
+            decode: nil,
+            shouldInterpolate: true,
+            intent: .defaultIntent
+          ) else {
+      return nil
+    }
+    return cgImage
+  }
+}
+
 enum AnnotationTool: String, CaseIterable, Identifiable {
   case select
+  case hand
   case rect
   case line
   case arrow
@@ -21,6 +42,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
   var label: String {
     switch self {
     case .select: return "Select"
+    case .hand: return "Hand"
     case .rect: return "Rectangle"
     case .line: return "Line"
     case .arrow: return "Arrow"
@@ -39,6 +61,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
   var icon: String {
     switch self {
     case .select: return "arrow.up.left.and.arrow.down.right"
+    case .hand: return "hand.raised"
     case .rect: return "rectangle"
     case .line: return "line.diagonal"
     case .arrow: return "arrow.up.right"
@@ -57,6 +80,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
   var shortcutKey: String? {
     switch self {
     case .select: return "V"
+    case .hand: return "H"
     case .rect: return "R"
     case .line: return "L"
     case .arrow: return "A"
@@ -503,6 +527,18 @@ struct EmojiAnnotation: Identifiable, Hashable {
   }
 }
 
+struct ImageLayerAnnotation: Identifiable, Hashable {
+  let id: UUID
+  var rect: CGRect
+  var imageData: Data
+  
+  init(id: UUID = UUID(), rect: CGRect, imageData: Data) {
+    self.id = id
+    self.rect = rect
+    self.imageData = imageData
+  }
+}
+
 enum Annotation: Identifiable, Hashable {
   case rect(RectAnnotation)
   case line(LineAnnotation)
@@ -516,6 +552,7 @@ enum Annotation: Identifiable, Hashable {
   case counter(CounterAnnotation)
   case emoji(EmojiAnnotation)
   case measurement(MeasurementAnnotation)
+  case imageLayer(ImageLayerAnnotation)
 
   var id: UUID {
     switch self {
@@ -531,6 +568,7 @@ enum Annotation: Identifiable, Hashable {
     case .counter(let a): return a.id
     case .emoji(let a): return a.id
     case .measurement(let a): return a.id
+    case .imageLayer(let a): return a.id
     }
   }
 }
