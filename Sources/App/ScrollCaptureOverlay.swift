@@ -8,14 +8,18 @@ final class ScrollCaptureOverlay {
   private var window: NSPanel?
   private var hostingView: NSHostingView<ScrollCaptureOverlayView>?
   private var frameCount: Int = 0
+  private var statusText: String = ""
+  private var isAutoMode: Bool = true
   private var onDone: (() -> Void)?
   private var onCancel: (() -> Void)?
   
   /// Show the scroll capture overlay
-  func show(onDone: @escaping () -> Void, onCancel: @escaping () -> Void) {
+  func show(isAutoMode: Bool = true, onDone: @escaping () -> Void, onCancel: @escaping () -> Void) {
     self.onDone = onDone
     self.onCancel = onCancel
     self.frameCount = 0
+    self.isAutoMode = isAutoMode
+    self.statusText = isAutoMode ? "Auto-scrolling…" : "Scroll now — click Done when finished"
     
     if let window = window, hostingView != nil {
       updateView()
@@ -32,6 +36,8 @@ final class ScrollCaptureOverlay {
     
     let view = ScrollCaptureOverlayView(
       frameCount: frameCount,
+      statusText: statusText,
+      isAutoMode: isAutoMode,
       onDone: onDone,
       onCancel: onCancel
     )
@@ -79,6 +85,12 @@ final class ScrollCaptureOverlay {
     self.frameCount = count
     updateView()
   }
+
+  /// Update the status text
+  func updateStatus(_ text: String) {
+    self.statusText = text
+    updateView()
+  }
   
   /// Update the hosting view's root view
   private func updateView() {
@@ -88,6 +100,8 @@ final class ScrollCaptureOverlay {
     
     let updatedView = ScrollCaptureOverlayView(
       frameCount: frameCount,
+      statusText: statusText,
+      isAutoMode: isAutoMode,
       onDone: onDone,
       onCancel: onCancel
     )
@@ -119,6 +133,8 @@ final class ScrollCaptureOverlay {
 
 private struct ScrollCaptureOverlayView: View {
   let frameCount: Int
+  let statusText: String
+  let isAutoMode: Bool
   let onDone: () -> Void
   let onCancel: () -> Void
   
@@ -126,7 +142,7 @@ private struct ScrollCaptureOverlayView: View {
     HStack(spacing: 20) {
       // Icon and status
       HStack(spacing: 12) {
-        Image(systemName: "arrow.down.doc.fill")
+        Image(systemName: isAutoMode ? "arrow.down.doc.fill" : "hand.draw.fill")
           .font(.system(size: 24))
           .foregroundColor(.white)
         
@@ -136,9 +152,14 @@ private struct ScrollCaptureOverlayView: View {
             .foregroundColor(.white)
           
           HStack(spacing: 6) {
+            if isAutoMode {
+              ProgressView()
+                .controlSize(.small)
+                .colorScheme(.dark)
+            }
             Image(systemName: "photo.stack")
               .font(.system(size: 11))
-            Text("\(frameCount) frames")
+            Text(statusText.isEmpty ? "\(frameCount) frames" : statusText)
               .font(.system(size: 12))
           }
           .foregroundColor(.white.opacity(0.8))
@@ -156,7 +177,7 @@ private struct ScrollCaptureOverlayView: View {
         .buttonStyle(.borderless)
         .foregroundColor(.white.opacity(0.9))
         
-        Button("Done") {
+        Button(isAutoMode ? "Stop" : "Done") {
           onDone()
         }
         .keyboardShortcut(.defaultAction)
@@ -175,24 +196,5 @@ private struct ScrollCaptureOverlayView: View {
         .fill(Color.black.opacity(0.85))
         .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
     )
-  }
-}
-
-// MARK: - Debug Logging
-
-private func debugLog(_ message: String) {
-  let logFile = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("snipsnap-debug.log")
-  let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
-  let line = "[\(timestamp)] \(message)\n"
-  if let data = line.data(using: .utf8) {
-    if FileManager.default.fileExists(atPath: logFile.path) {
-      if let fileHandle = try? FileHandle(forWritingTo: logFile) {
-        fileHandle.seekToEndOfFile()
-        fileHandle.write(data)
-        fileHandle.closeFile()
-      }
-    } else {
-      try? data.write(to: logFile)
-    }
   }
 }

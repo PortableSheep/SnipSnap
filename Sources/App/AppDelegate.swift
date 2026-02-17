@@ -5,23 +5,6 @@ import UniformTypeIdentifiers
 
 private let appLog = OSLog(subsystem: "com.snipsnap.Snipsnap", category: "AppDelegate")
 
-private func debugLog(_ message: String) {
-  let logFile = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("snipsnap-debug.log")
-  let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
-  let line = "[\(timestamp)] AppDelegate: \(message)\n"
-  if let data = line.data(using: .utf8) {
-    if FileManager.default.fileExists(atPath: logFile.path) {
-      if let fileHandle = try? FileHandle(forWritingTo: logFile) {
-        fileHandle.seekToEndOfFile()
-        fileHandle.write(data)
-        fileHandle.closeFile()
-      }
-    } else {
-      try? data.write(to: logFile)
-    }
-  }
-}
-
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
   private var statusItem: NSStatusItem?
@@ -340,7 +323,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Scroll capture REQUIRES a sub-region
     guard let subRegion = selection.subRegion else {
       debugLog("AppDelegate: Scroll capture requires a region to be selected")
-      showError(ScrollCaptureError.noRegionSelected)
+      showError(ScrollCaptureSession.Error.noRegionSelected)
       return
     }
     
@@ -359,18 +342,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Show the region decorator
     regionDecorator.show(region: subRegion)
     
+    // Default to auto-scroll mode
+    let scrollMode: ScrollCaptureSession.Mode = .auto
+    
     // Show the overlay UI first
     overlay.show(
+      isAutoMode: scrollMode == .auto,
       onDone: { [weak self] in
-        debugLog("AppDelegate: User clicked Done")
-        // Defer the finish call to avoid blocking UI
+        debugLog("AppDelegate: User clicked Done/Stop")
         Task { @MainActor in
           self?.scrollCaptureSession?.finish()
         }
       },
       onCancel: { [weak self] in
         debugLog("AppDelegate: User cancelled scroll capture")
-        // Defer the cancel call to avoid blocking UI
         Task { @MainActor in
           self?.scrollCaptureSession?.cancel()
         }
@@ -380,26 +365,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Use a separate continuation approach
     do {
       let stitchedCGImage = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CGImage, Error>) in
-        // Start the capture session with region
-        session.start(region: subRegion, onProgress: { [weak self] frameCount in
-          Task { @MainActor in
-            self?.scrollCaptureOverlay?.updateFrameCount(frameCount)
-          }
-        }, completion: { [weak self] result in
-          Task { @MainActor in
-            debugLog("AppDelegate: Completion handler called")
-            
-            // Just resume with the result - don't dismiss UI here
-            switch result {
-            case .success(let stitchedImage):
-              continuation.resume(returning: stitchedImage)
+        // Start the capture session with region and mode
+        session.start(
+          region: subRegion,
+          mode: scrollMode,
+          onProgress: { [weak self] frameCount in
+            Task { @MainActor in
+              self?.scrollCaptureOverlay?.updateFrameCount(frameCount)
+            }
+          },
+          onStatus: { [weak self] status in
+            Task { @MainActor in
+              self?.scrollCaptureOverlay?.updateStatus(status)
+            }
+          },
+          completion: { [weak self] result in
+            Task { @MainActor in
+              debugLog("AppDelegate: Completion handler called")
               
-            case .failure(let error):
-              debugLog("AppDelegate: Scroll capture failed: \(error.localizedDescription)")
-              continuation.resume(throwing: error)
+              switch result {
+              case .success(let stitchedImage):
+                continuation.resume(returning: stitchedImage)
+                
+              case .failure(let error):
+                debugLog("AppDelegate: Scroll capture failed: \(error.localizedDescription)")
+                continuation.resume(throwing: error)
+              }
             }
           }
-        })
+        )
       }
       
       // NOW dismiss UI after we have the image
