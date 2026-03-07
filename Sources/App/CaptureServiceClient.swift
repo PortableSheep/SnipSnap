@@ -4,23 +4,6 @@ import os.log
 
 private let clientLog = OSLog(subsystem: "com.snipsnap.Snipsnap", category: "CaptureServiceClient")
 
-private func debugLog(_ message: String) {
-  let logFile = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("snipsnap-debug.log")
-  let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
-  let line = "[\(timestamp)] \(message)\n"
-  if let data = line.data(using: .utf8) {
-    if FileManager.default.fileExists(atPath: logFile.path) {
-      if let fileHandle = try? FileHandle(forWritingTo: logFile) {
-        fileHandle.seekToEndOfFile()
-        fileHandle.write(data)
-        fileHandle.closeFile()
-      }
-    } else {
-      try? data.write(to: logFile)
-    }
-  }
-}
-
 /// Client for communicating with the CaptureService XPC service.
 /// This replaces the old CFMessagePort-based CaptureAgentClient.
 @available(macOS 13.0, *)

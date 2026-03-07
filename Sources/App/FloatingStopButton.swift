@@ -140,19 +140,13 @@ final class FloatingStopButtonController {
     return CGWindowID(window.windowNumber)
   }
   
-  /// Check if a screen point (in CG/Quartz coordinates with top-left origin) is within the floating button's window
-  /// Used to filter out clicks on the pill from being recorded as overlays
-  nonisolated func containsPoint(cgPoint: CGPoint) -> Bool {
-    // Access the window frame on the main thread synchronously
-    // This is safe because it's just reading a frame value
-    var result = false
-    DispatchQueue.main.sync { [self] in
-      guard let window = window, let screen = window.screen ?? NSScreen.main else { return }
-      // Convert from CG coordinates (top-left origin) to Cocoa coordinates (bottom-left origin)
-      let cocoaY = screen.frame.height - cgPoint.y
-      let cocoaPoint = NSPoint(x: cgPoint.x, y: cocoaY)
-      result = window.frame.contains(cocoaPoint)
-    }
-    return result
+  /// Check if a screen point (in CG/Quartz coordinates with top-left origin) is within the floating button's window.
+  /// Called from AppDelegate's event forwarding Timer which runs on the main thread.
+  func containsPoint(cgPoint: CGPoint) -> Bool {
+    guard let window = window, let screen = window.screen ?? NSScreen.main else { return false }
+    // Convert from CG coordinates (top-left origin) to Cocoa coordinates (bottom-left origin)
+    let cocoaY = screen.frame.height - cgPoint.y
+    let cocoaPoint = NSPoint(x: cgPoint.x, y: cocoaY)
+    return window.frame.contains(cocoaPoint)
   }
 }

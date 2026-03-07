@@ -118,20 +118,3 @@ private class BorderView: NSView {
     }
 }
 
-// Simple debug logging
-private func debugLog(_ message: String) {
-    let logPath = NSHomeDirectory() + "/snipsnap-debug.log"
-    let timestamp = ISO8601DateFormatter().string(from: Date())
-    let line = "[\(timestamp)] \(message)\n"
-    if let data = line.data(using: .utf8) {
-        if FileManager.default.fileExists(atPath: logPath) {
-            if let handle = FileHandle(forWritingAtPath: logPath) {
-                handle.seekToEndOfFile()
-                handle.write(data)
-                handle.closeFile()
-            }
-        } else {
-            try? data.write(to: URL(fileURLWithPath: logPath))
-        }
-    }
-}
