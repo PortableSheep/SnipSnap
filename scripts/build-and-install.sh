@@ -15,6 +15,7 @@ INSTALL_DIR="${SNIPSNAP_DEV_INSTALL_DIR:-$HOME/Applications}"
 # Parse arguments
 CONFIGURATION="Debug"
 LAUNCH=false
+RUN_TESTS=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -24,6 +25,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -r|--release)
             CONFIGURATION="Release"
+            shift
+            ;;
+        -t|--test)
+            RUN_TESTS=true
             shift
             ;;
         Debug|Release)
@@ -36,6 +41,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  -l, --launch    Launch the app after installing"
             echo "  -r, --release   Build Release configuration"
+            echo "  -t, --test      Run unit tests after building"
             echo "  -h, --help      Show this help"
             exit 0
             ;;
@@ -73,6 +79,20 @@ xcodebuild \
     -configuration "$CONFIGURATION" \
     -quiet \
     build
+
+# Run tests if requested
+if [[ "$RUN_TESTS" == "true" ]]; then
+    echo "🧪 Running unit tests..."
+    xcodebuild \
+        -scheme SnipSnapTests \
+        -configuration Debug \
+        test \
+        CODE_SIGN_IDENTITY=- \
+        CODE_SIGNING_REQUIRED=NO \
+        CODE_SIGNING_ALLOWED=NO \
+        -quiet
+    echo "✅ All tests passed"
+fi
 
 # Get the built app path (must pass same configuration!)
 DERIVED_DATA=$(xcodebuild -project SnipSnap.xcodeproj -scheme SnipSnap -configuration "$CONFIGURATION" -showBuildSettings 2>/dev/null | grep -m1 "BUILT_PRODUCTS_DIR" | awk '{print $3}')

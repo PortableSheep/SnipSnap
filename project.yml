@@ -65,6 +65,34 @@ targets:
         LSUIElement: true
         NSScreenCaptureUsageDescription: SnipSnap needs Screen Recording permission to capture your screen.
 
+  SnipSnapTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/SnipSnapTests
+    dependencies:
+      - target: SnipSnap
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.snipsnap.SnipSnapTests
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+
+  SnipSnapUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: Tests/SnipSnapUITests
+    dependencies:
+      - target: SnipSnap
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.snipsnap.SnipSnapUITests
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+
   CaptureService:
     type: xpc-service
     platform: macOS
@@ -78,6 +106,8 @@ targets:
         name: Permissions
       - path: Sources/Preferences/HUDPlacement.swift
         name: HUDPlacement
+      - path: Sources/App/DebugLog.swift
+        name: DebugLog
     settings:
       base:
         PRODUCT_NAME: com.snipsnap.CaptureService
