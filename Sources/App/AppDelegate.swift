@@ -123,19 +123,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
   
-  private var stripWasVisibleBeforeRecording = false
-  
   /// Hide SnipSnap UI elements that shouldn't appear in recording
   private func hideUIForRecording() {
-    // Hide the capture strip from screen during recording
-    stripWasVisibleBeforeRecording = stripController?.isVisible ?? false
     stripController?.hide()
     
     // Show floating stop button (excluded from capture)
     floatingStopButton.show { [weak self] in
       Task { @MainActor [weak self] in
-        try? await self?.stopActiveRecording()
-        self?.refreshMenu()
+        guard let self else { return }
+        try? await self.stopActiveRecording()
+        self.stripController?.refresh()
+        self.recordingStartedAt = nil
+        self.stopTicker()
+        self.refreshMenu()
       }
     }
   }
@@ -143,9 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   /// Restore UI elements after recording stops
   private func restoreUIAfterRecording() {
     floatingStopButton.hide()
-    if stripWasVisibleBeforeRecording {
-      stripController?.show()
-    }
+    stripController?.show()
   }
 
   private func startFullScreenRecording() async throws {
