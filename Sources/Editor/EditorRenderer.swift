@@ -84,6 +84,7 @@ enum EditorRenderer {
 
       ctx.interpolationQuality = .high
       let rect = CGRect(x: 0, y: 0, width: CGFloat(w), height: CGFloat(h))
+      ctx.clear(rect)
       let clipPath = CGPath(roundedRect: rect, cornerWidth: cornerRadius, cornerHeight: cornerRadius, transform: nil)
       ctx.addPath(clipPath)
       ctx.clip()

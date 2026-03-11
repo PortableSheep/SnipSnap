@@ -142,6 +142,15 @@ jobs:
           echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
           echo "Created: $ZIP_NAME"
 
+      - name: Generate changelog
+        id: changelog
+        run: |
+          chmod +x scripts/generate-changelog.sh
+          BODY=$(./scripts/generate-changelog.sh "" HEAD)
+          # Write to file for the release step (handles multiline safely)
+          echo "$BODY" > release_notes.md
+          echo "Generated changelog for release"
+
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
@@ -164,7 +173,7 @@ jobs:
             ${{ env.DMG_NAME }}
             ${{ env.ZIP_NAME }}
           draft: false
-          generate_release_notes: true
+          body_path: release_notes.md
           name: SnipSnap ${{ steps.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

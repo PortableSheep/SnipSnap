@@ -72,6 +72,12 @@ final class EditorWindowController {
             self.pasteImageFromClipboard(doc: doc)
             return nil
           }
+
+          // Cmd+W - Close window
+          if event.charactersIgnoringModifiers == "w" {
+            w.performClose(nil)
+            return nil
+          }
         }
 
         // Delete / Backspace

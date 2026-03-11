@@ -38,8 +38,8 @@ final class StripState: ObservableObject {
   init() {
     let raw = UserDefaults.standard.string(forKey: Keys.dockPosition)
     dockPosition = StripDockPosition(rawValue: raw ?? "left") ?? .left
-    // Default to hidden - strip auto-shows when captures exist
-    isVisible = UserDefaults.standard.object(forKey: Keys.isVisible) as? Bool ?? false
+    // Default to visible - auto-hide handles getting out of the way
+    isVisible = UserDefaults.standard.object(forKey: Keys.isVisible) as? Bool ?? true
     autoHideEnabled = UserDefaults.standard.object(forKey: Keys.autoHideEnabled) as? Bool ?? true
   }
 

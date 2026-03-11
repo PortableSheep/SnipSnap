@@ -198,6 +198,18 @@ final class StripWindowController: NSObject {
     library.refresh()
   }
 
+  /// Briefly reveals the strip (e.g. after a new capture) then re-arms auto-hide.
+  func revealForCapture() {
+    guard state.isVisible else { return }
+    if state.isAutoHidden {
+      revealFromAutoHide(animate: true)
+    }
+    // Re-arm so it slides away after the timeout.
+    if state.autoHideEnabled {
+      scheduleAutoHide()
+    }
+  }
+
   private func applyDock(position: StripDockPosition, animate: Bool) {
     guard let screen = panel.screen ?? NSScreen.main else { return }
     let visible = screen.visibleFrame

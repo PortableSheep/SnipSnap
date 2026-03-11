@@ -87,6 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         
         if countIncreased && !self.isRecording {
           self.stripState.isVisible = true
+          self.stripController?.revealForCapture()
         }
       }
       .store(in: &cancellables)
