@@ -617,7 +617,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   @objc private func onPreferences() {
-    prefsWindow.show(prefs: overlayPrefs, proPrefs: proPrefs)
+    prefsWindow.show(prefs: overlayPrefs, proPrefs: proPrefs, stripState: stripState)
   }
 
   @objc private func onCheckForUpdates() {

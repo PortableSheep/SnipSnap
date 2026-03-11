@@ -4,6 +4,7 @@ import SwiftUI
 struct PreferencesRootView: View {
   @ObservedObject var prefs: OverlayPreferencesStore
   @ObservedObject var proPrefs: ProPreferencesStore
+  @ObservedObject var stripState: StripState
   @ObservedObject var hotkeyPrefs = HotkeyPreferencesStore.shared
 
   @State private var page: PreferencesPage = .general
@@ -70,7 +71,7 @@ struct PreferencesRootView: View {
     ScrollView {
       switch page {
       case .general:
-        GeneralPreferencesView(proPrefs: proPrefs)
+        GeneralPreferencesView(proPrefs: proPrefs, stripState: stripState)
       case .overlays:
         OverlaysPreferencesView(prefs: prefs)
       case .shortcuts:
@@ -87,6 +88,7 @@ struct PreferencesRootView: View {
 
 private struct GeneralPreferencesView: View {
   @ObservedObject var proPrefs: ProPreferencesStore
+  @ObservedObject var stripState: StripState
   @AppStorage("LaunchAtLogin") private var launchAtLogin = false
 
   var body: some View {
@@ -98,6 +100,21 @@ private struct GeneralPreferencesView: View {
       PreferenceSection("Startup") {
         PreferenceRow(icon: "power", title: "Launch at login", subtitle: "Start SnipSnap when you log in") {
           Toggle("", isOn: $launchAtLogin)
+            .toggleStyle(.switch)
+            .controlSize(.small)
+        }
+      }
+
+      // Strip
+      PreferenceSection("Capture Strip") {
+        PreferenceRow(icon: "sidebar.squares.leading", title: "Show on startup", subtitle: "Display the capture strip when SnipSnap launches") {
+          Toggle("", isOn: $stripState.showOnStartup)
+            .toggleStyle(.switch)
+            .controlSize(.small)
+        }
+
+        PreferenceRow(icon: "eye.slash", title: "Auto-hide", subtitle: "Slide the strip off-screen after 3 seconds") {
+          Toggle("", isOn: $stripState.autoHideEnabled)
             .toggleStyle(.switch)
             .controlSize(.small)
         }
@@ -419,7 +436,7 @@ private struct AboutPreferencesView: View {
         VStack(alignment: .leading, spacing: 4) {
           Text("SnipSnap")
             .font(.system(size: 24, weight: .bold))
-          Text("Version 1.0.0")
+          Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
             .font(.system(size: 13))
             .foregroundColor(.secondary)
           Text("Free & Open Source")
