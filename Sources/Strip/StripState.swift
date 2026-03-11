@@ -5,6 +5,7 @@ final class StripState: ObservableObject {
   private enum Keys {
     static let dockPosition = "strip.dockPosition"
     static let isVisible = "strip.isVisible"
+    static let autoHideEnabled = "strip.autoHideEnabled"
   }
 
   @Published var dockPosition: StripDockPosition {
@@ -19,6 +20,15 @@ final class StripState: ObservableObject {
     }
   }
 
+  @Published var autoHideEnabled: Bool {
+    didSet {
+      UserDefaults.standard.set(autoHideEnabled, forKey: Keys.autoHideEnabled)
+    }
+  }
+
+  /// Runtime-only: whether the strip is currently slid off-screen.
+  @Published var isAutoHidden: Bool = false
+
   // Session scoping (not persisted): used for “show recent from this session”.
   @Published private(set) var sessionStartDate: Date = Date()
 
@@ -30,6 +40,7 @@ final class StripState: ObservableObject {
     dockPosition = StripDockPosition(rawValue: raw ?? "left") ?? .left
     // Default to hidden - strip auto-shows when captures exist
     isVisible = UserDefaults.standard.object(forKey: Keys.isVisible) as? Bool ?? false
+    autoHideEnabled = UserDefaults.standard.object(forKey: Keys.autoHideEnabled) as? Bool ?? true
   }
 
   func startNewSession() {

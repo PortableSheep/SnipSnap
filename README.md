@@ -1,23 +1,37 @@
+```
+        ✂ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+         ███████╗███╗   ██╗██╗██████╗ ███████╗███╗   ██╗ █████╗ ██████╗
+         ██╔════╝████╗  ██║██║██╔══██╗██╔════╝████╗  ██║██╔══██╗██╔══██╗
+         ███████╗██╔██╗ ██║██║██████╔╝███████╗██╔██╗ ██║███████║██████╔╝
+         ╚════██║██║╚██╗██║██║██╔═══╝ ╚════██║██║╚██╗██║██╔══██║██╔═══╝
+         ███████║██║ ╚████║██║██║     ███████║██║ ╚████║██║  ██║██║
+         ╚══════╝╚═╝  ╚═══╝╚═╝╚═╝     ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝
+
+                     Screen capture that stays out of your way.
+                      Native macOS. No subscriptions. No bloat.
+        ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ✂
+```
+
 # SnipSnap
 
-A powerful screen capture and annotation tool for macOS that actually stays out of your way. Built entirely in Swift, it lives in your menu bar and gives you professional-grade capture and editing tools without the subscription tax.
+A screen capture and annotation tool for macOS that actually stays out of your way. Built entirely in Swift, it lives in your menu bar and gives you professional-grade capture and editing tools without the subscription tax.
 
 ## Why SnipSnap?
 
-I got tired of paying $30/year for screenshot tools that do too much or too little. SnipSnap started as a weekend project to scratch my own itch: I wanted CleanShot's polish with the flexibility of Skitch, minus the bloat and the recurring charges.
+Because it's free and native.
 
 What makes it different:
 
-- **Actually native**: Built with AppKit and ScreenCaptureKit. No Electron, no web views, just pure Swift. Launches in under a second and sips power like a properly behaved Mac app should.
+- **Native**: Built with AppKit and ScreenCaptureKit.
 - **Smart capture workflow**: Your screenshots land in a persistent strip that hugs the edge of your screen. One click to edit, drag to rearrange, or present them in sequence. No hunting through Finder.
 - **Baked-in overlays**: Recording a demo? SnipSnap can burn click animations and keystroke HUDs directly into your video as you record. No post-processing needed.
 - **OCR that works offline**: Screenshots get indexed automatically. Search for text in any capture without sending your data to someone's cloud.
-- **Free. Actually free.** No trials, no paywalls, no "upgrade to unlock." Everything works. If you find it useful, toss a few bucks my way—but it's optional.
+- **Free.** No trials, no paywalls, no "upgrade to unlock." ... just free.
 
 ## Features
 
 ### Screen Recording
-
 - **Region, window, or full screen** — Pick what you want to capture with familiar macOS selection tools
 - **Click and keystroke overlays** — Visualize interactions as colored rings and floating keystroke bubbles
 - **Audio capture** — System audio, microphone, or both
@@ -25,14 +39,11 @@ What makes it different:
 - **Video trimming** — Cut the beginning or end right from the strip context menu
 
 ### Screenshots
-
 - **Instant capture** — ⌘⇧4 for region, ⌘⇧5 for window (customizable)
 - **Delayed capture** — 3, 5, or 10 second countdown for context menus and hover states
 - **Window detection** — Automatically finds and highlights windows as you hover
 
 ### Annotation Editor
-
-The editor is where SnipSnap shines. I wanted Skitch's ease of use without the "acquired by Evernote and left to rot" vibe.
 
 - **Shapes & arrows** — Rectangles, lines, arrows with adjustable thickness and colors
 - **Text & callouts** — Add labels with speech bubbles that actually look good
@@ -44,8 +55,6 @@ The editor is where SnipSnap shines. I wanted Skitch's ease of use without the "
 - **Device frames** — Wrap screenshots in MacBook, iPhone, or iPad mockups
 - **Custom backgrounds** — Solid colors or gradients instead of boring transparency
 - **Emoji stamps** — Sometimes ✨ says it better than words
-
-Everything supports undo/redo, keyboard shortcuts, and you can save annotation templates for repetitive work.
 
 ### Organization
 
@@ -79,7 +88,7 @@ Download the latest `.dmg` or `.zip` from the [Releases](https://github.com/port
 
 macOS will ask for two permissions:
 
-1. **Screen Recording** — Required for captures (duh)
+1. **Screen Recording** — Required for captures
 2. **Accessibility** — Needed for global hotkeys and overlay event capture
 
 Grant both and you're set. The app lives in your menu bar as a scissors icon.
@@ -211,8 +220,6 @@ If you find it useful and want to support development:
 - **One-time**: [Stripe payment](https://buy.stripe.com/aFa6oHbuj9a9f2M4Hk5Ne02)
 - **Monthly**: [GitHub Sponsors](https://github.com/sponsors/PortableSheep)
 
-Every dollar goes toward keeping this maintained and adding features people actually want.
-
 ## Contributing
 
 Pull requests are welcome. For major changes, open an issue first so we can discuss what you're trying to do.
@@ -235,7 +242,6 @@ Things I'm considering (no promises):
 - [ ] Annotation presets (save colors/thickness as named styles)
 - [ ] Pasteboard monitoring (auto-capture screenshots from other apps)
 - [ ] Scripting support (AppleScript/JavaScript for Automation)
-- [ ] Capture scheduling (time-based auto-capture)
 - [ ] Video annotation (draw on videos, not just images)
 
 Got ideas? Open an issue.

@@ -71,6 +71,10 @@ struct StripView: View {
 
         Divider()
 
+        Toggle("Auto-Hide Strip", isOn: $state.autoHideEnabled)
+
+        Divider()
+
         Button("Delete Previous Session Captures…") {
           deleteTask?.cancel()
           deleteTask = Task { @MainActor in

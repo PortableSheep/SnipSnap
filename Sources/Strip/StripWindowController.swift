@@ -8,9 +8,11 @@ final class StripWindowController: NSObject {
   private let collapsedThickness: CGFloat = 76
   private let maxLength: CGFloat = 560
   private let margin: CGFloat = 18
+  private let autoHideDelay: TimeInterval = 3.0
 
   private var isHovered: Bool = false
   private var cancellables = Set<AnyCancellable>()
+  private var autoHideWorkItem: DispatchWorkItem?
 
   let state: StripState
   let library: CaptureLibrary
@@ -18,6 +20,7 @@ final class StripWindowController: NSObject {
   private let presentation: PresentationWindowController
 
   private let panel: NSPanel
+  private let tabPanel: NSPanel
 
   init(state: StripState, library: CaptureLibrary, editor: EditorWindowController, presentation: PresentationWindowController) {
     self.state = state
@@ -37,8 +40,17 @@ final class StripWindowController: NSObject {
       defer: false
     )
 
+    // Auto-hide tab: small panel that peeks from the edge when strip is hidden.
+    tabPanel = NSPanel(
+      contentRect: .init(x: 0, y: 0, width: 44, height: 44),
+      styleMask: [.borderless, .nonactivatingPanel],
+      backing: .buffered,
+      defer: false
+    )
+
     super.init()
 
+    // --- Main panel setup ---
     panel.isFloatingPanel = true
     panel.level = .floating
     panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
@@ -73,13 +85,36 @@ final class StripWindowController: NSObject {
     })
     panel.contentView = NSHostingView(rootView: root)
 
+    // --- Tab panel setup ---
+    tabPanel.isFloatingPanel = true
+    tabPanel.level = .floating
+    tabPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+    tabPanel.isMovableByWindowBackground = false
+    tabPanel.titleVisibility = .hidden
+    tabPanel.titlebarAppearsTransparent = true
+    tabPanel.hasShadow = false
+    tabPanel.backgroundColor = .clear
+    tabPanel.isOpaque = false
+    tabPanel.acceptsMouseMovedEvents = true
+    tabPanel.ignoresMouseEvents = false
+
+    let tabView = AutoHideTabView(state: state) { [weak self] in
+      self?.revealFromTab()
+    }
+    tabPanel.contentView = NSHostingView(rootView: tabView)
+
+    // --- Initial layout ---
     applyDock(position: state.dockPosition, animate: false)
 
     state.$dockPosition
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] pos in
-        self?.applyDock(position: pos, animate: true)
+        guard let self else { return }
+        self.applyDock(position: pos, animate: true)
+        if self.state.isAutoHidden {
+          self.updateTabFrame()
+        }
       }
       .store(in: &cancellables)
     
@@ -93,6 +128,24 @@ final class StripWindowController: NSObject {
           self?.show()
         } else {
           self?.hide()
+        }
+      }
+      .store(in: &cancellables)
+
+    // When auto-hide is toggled off, reveal immediately.
+    state.$autoHideEnabled
+      .dropFirst()
+      .removeDuplicates()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] enabled in
+        guard let self else { return }
+        if !enabled {
+          self.cancelAutoHide()
+          if self.state.isAutoHidden {
+            self.revealFromAutoHide(animate: true)
+          }
+        } else if !self.isHovered {
+          self.scheduleAutoHide()
         }
       }
       .store(in: &cancellables)
@@ -111,13 +164,25 @@ final class StripWindowController: NSObject {
     if !state.isVisible {
       state.isVisible = true
     }
+    cancelAutoHide()
+    hideTab()
+    state.isAutoHidden = false
+    panel.alphaValue = 1
     panel.orderFrontRegardless()
+    applyDock(position: state.dockPosition, animate: false)
+
+    if state.autoHideEnabled && !isHovered {
+      scheduleAutoHide()
+    }
   }
 
   func hide() {
     if state.isVisible {
       state.isVisible = false
     }
+    cancelAutoHide()
+    hideTab()
+    state.isAutoHidden = false
     panel.orderOut(nil)
   }
 
@@ -198,6 +263,107 @@ final class StripWindowController: NSObject {
       ctx.duration = 0.22
       applyDock(position: state.dockPosition, animate: true)
     }
+
+    guard state.autoHideEnabled else { return }
+    if hovering {
+      cancelAutoHide()
+      if state.isAutoHidden {
+        revealFromAutoHide(animate: true)
+      }
+    } else {
+      scheduleAutoHide()
+    }
+  }
+
+  // MARK: - Auto-Hide
+
+  private func scheduleAutoHide() {
+    cancelAutoHide()
+    guard state.autoHideEnabled, !state.isAutoHidden else { return }
+    let work = DispatchWorkItem { [weak self] in
+      DispatchQueue.main.async { self?.performAutoHide() }
+    }
+    autoHideWorkItem = work
+    DispatchQueue.main.asyncAfter(deadline: .now() + autoHideDelay, execute: work)
+  }
+
+  private func cancelAutoHide() {
+    autoHideWorkItem?.cancel()
+    autoHideWorkItem = nil
+  }
+
+  private func performAutoHide() {
+    guard !state.isAutoHidden, state.autoHideEnabled, !isHovered else { return }
+    state.isAutoHidden = true
+
+    let hiddenFrame = computeHiddenFrame()
+    NSAnimationContext.runAnimationGroup { ctx in
+      ctx.duration = 0.3
+      ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
+      panel.animator().setFrame(hiddenFrame, display: true)
+      panel.animator().alphaValue = 0
+    } completionHandler: { [weak self] in
+      self?.showTab()
+    }
+  }
+
+  private func revealFromAutoHide(animate: Bool) {
+    guard state.isAutoHidden else { return }
+    state.isAutoHidden = false
+    hideTab()
+    panel.alphaValue = 1
+    applyDock(position: state.dockPosition, animate: animate)
+  }
+
+  private func revealFromTab() {
+    revealFromAutoHide(animate: true)
+    // Re-arm timer in case mouse doesn't enter the strip content.
+    scheduleAutoHide()
+  }
+
+  private func computeHiddenFrame() -> NSRect {
+    var frame = panel.frame
+    switch state.dockPosition {
+    case .left:   frame.origin.x -= frame.width + margin
+    case .right:  frame.origin.x += frame.width + margin
+    case .top:    frame.origin.y += frame.height + margin
+    case .bottom: frame.origin.y -= frame.height + margin
+    }
+    return frame
+  }
+
+  // MARK: - Tab
+
+  private func showTab() {
+    guard state.isVisible, state.isAutoHidden else { return }
+    updateTabFrame()
+    tabPanel.orderFrontRegardless()
+  }
+
+  private func hideTab() {
+    tabPanel.orderOut(nil)
+  }
+
+  private func updateTabFrame() {
+    guard let screen = panel.screen ?? NSScreen.main else { return }
+    let visible = screen.visibleFrame
+    let full = screen.frame
+    let isVertical = state.dockPosition.isVertical
+    let tabW: CGFloat = isVertical ? 14 : 44
+    let tabH: CGFloat = isVertical ? 44 : 14
+
+    let frame: NSRect
+    switch state.dockPosition {
+    case .left:
+      frame = NSRect(x: full.minX, y: visible.midY - tabH / 2, width: tabW, height: tabH)
+    case .right:
+      frame = NSRect(x: full.maxX - tabW, y: visible.midY - tabH / 2, width: tabW, height: tabH)
+    case .top:
+      frame = NSRect(x: visible.midX - tabW / 2, y: visible.maxY - tabH, width: tabW, height: tabH)
+    case .bottom:
+      frame = NSRect(x: visible.midX - tabW / 2, y: visible.minY, width: tabW, height: tabH)
+    }
+    tabPanel.setFrame(frame, display: true)
   }
 
   private func snapToEdgeIfNeeded() {
@@ -260,6 +426,7 @@ extension StripWindowController: NSWindowDelegate {
   func windowDidMove(_ notification: Notification) {
     // If the strip is moving, treat mouse-up as a drag gesture, not a click.
     state.suppressItemOpens(for: 0.45)
+    cancelAutoHide()
     scheduleSnap()
   }
 
@@ -271,4 +438,36 @@ extension StripWindowController: NSWindowDelegate {
     // keep non-activating behavior
   }
 
+}
+
+// MARK: - Auto-Hide Tab View
+
+private struct AutoHideTabView: View {
+  @ObservedObject var state: StripState
+  let onHoverIn: () -> Void
+  @State private var isHovered = false
+
+  var body: some View {
+    let isVertical = state.dockPosition.isVertical
+
+    Capsule()
+      .fill(Color.primary.opacity(isHovered ? 0.35 : 0.18))
+      .frame(
+        width: isVertical ? 5 : 32,
+        height: isVertical ? 32 : 5
+      )
+      .frame(
+        width: isVertical ? 14 : 44,
+        height: isVertical ? 44 : 14
+      )
+      .contentShape(Rectangle())
+      .onHover { hovering in
+        withAnimation(.easeInOut(duration: 0.15)) {
+          isHovered = hovering
+        }
+        if hovering {
+          onHoverIn()
+        }
+      }
+  }
 }
