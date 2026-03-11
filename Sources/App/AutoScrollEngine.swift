@@ -178,7 +178,52 @@ final class AutoScrollEngine {
     let centerY = region.midY
     let point = CGPoint(x: centerX, y: centerY)
 
-    // Click to focus
+    // Try to raise the window under the region without clicking,
+    // so we don't accidentally trigger buttons/links or steal focus
+    // from a nested scrollable element.
+    if let windowInfo = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
+      for info in windowInfo {
+        guard let bounds = info[kCGWindowBounds as String] as? [String: CGFloat],
+              let pid = info[kCGWindowOwnerPID as String] as? pid_t,
+              let windowNumber = info[kCGWindowNumber as String] as? CGWindowID else { continue }
+        let winRect = CGRect(x: bounds["X"] ?? 0, y: bounds["Y"] ?? 0,
+                             width: bounds["Width"] ?? 0, height: bounds["Height"] ?? 0)
+        if winRect.contains(point) {
+          // Raise via Accessibility API (no click)
+          let appRef = AXUIElementCreateApplication(pid)
+          var windows: CFTypeRef?
+          if AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &windows) == .success,
+             let axWindows = windows as? [AXUIElement] {
+            for axWin in axWindows {
+              var axPos: CFTypeRef?
+              var axSize: CFTypeRef?
+              if AXUIElementCopyAttributeValue(axWin, kAXPositionAttribute as CFString, &axPos) == .success,
+                 AXUIElementCopyAttributeValue(axWin, kAXSizeAttribute as CFString, &axSize) == .success {
+                var pos = CGPoint.zero
+                var size = CGSize.zero
+                AXValueGetValue(axPos as! AXValue, .cgPoint, &pos)
+                AXValueGetValue(axSize as! AXValue, .cgSize, &size)
+                let axRect = CGRect(origin: pos, size: size)
+                if axRect.contains(point) {
+                  AXUIElementSetAttributeValue(axWin, kAXMainAttribute as CFString, kCFBooleanTrue)
+                  AXUIElementPerformAction(axWin, kAXRaiseAction as CFString)
+                  // Bring the owning app forward
+                  if let app = NSRunningApplication(processIdentifier: pid) {
+                    app.activate(options: [])
+                  }
+                  debugLog("AutoScrollEngine: Raised window via Accessibility API (no click)")
+                  return
+                }
+              }
+            }
+          }
+          break
+        }
+      }
+    }
+
+    // Fallback: use a mouse click if Accessibility API didn't work
+    debugLog("AutoScrollEngine: Falling back to click-to-focus")
     let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown,
                             mouseCursorPosition: point, mouseButton: .left)
     let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp,

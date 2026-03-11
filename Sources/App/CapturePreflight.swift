@@ -81,9 +81,8 @@ private struct CapturePreflightView: View {
             Text(d.label).tag(d)
           }
         }
-        .pickerStyle(.menu)
+        .pickerStyle(.segmented)
         .labelsHidden()
-        .frame(width: 130)
       }
       .padding(.horizontal, 24)
       .padding(.vertical, 18)

@@ -87,9 +87,8 @@ private struct RecordingPreflightView: View {
               Text(p.label).tag(p)
             }
           }
-          .pickerStyle(.menu)
+          .pickerStyle(.automatic)
           .labelsHidden()
-          .frame(maxWidth: .infinity, alignment: .leading)
         }
         
         HStack(spacing: 16) {

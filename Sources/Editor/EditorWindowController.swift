@@ -49,6 +49,10 @@ final class EditorWindowController {
           self?.windows[url] = nil
           self?.removeMonitor(for: url)
           self?.delegates[url] = nil
+          // Hide from app switcher when last editor window closes
+          if self?.windows.isEmpty == true {
+            AppActivation.hideFromAppSwitcher()
+          }
         }
       }
 
@@ -126,6 +130,7 @@ final class EditorWindowController {
       monitors[url] = monitor
 
       windows[url] = win
+      AppActivation.showInAppSwitcher()
       AppActivation.bringToFront(win)
 
     } catch {

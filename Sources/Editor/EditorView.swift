@@ -10,6 +10,7 @@ struct EditorView: View {
   @State private var hostWindow: NSWindow? = nil
   @State private var showInspector: Bool = true
   @State private var piiListExpanded: Bool = false
+  @State private var isPinned: Bool = false
   
   // Helper to determine if pan hint should be shown
   private var needsPanHint: Bool {
@@ -239,6 +240,17 @@ struct EditorView: View {
       }
 
       Divider().frame(height: 16)
+
+      // Pin window (always on top)
+      Button {
+        isPinned.toggle()
+        hostWindow?.level = isPinned ? .floating : .normal
+      } label: {
+        Image(systemName: isPinned ? "pin.fill" : "pin")
+      }
+      .buttonStyle(.borderless)
+      .foregroundColor(isPinned ? .accentColor : .secondary)
+      .help(isPinned ? "Unpin (disable always on top)" : "Pin (always on top)")
 
       // Toggle inspector
       Button {
