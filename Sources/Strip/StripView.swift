@@ -72,6 +72,7 @@ struct StripView: View {
         Divider()
 
         Toggle("Auto-Hide Strip", isOn: $state.autoHideEnabled)
+        Toggle("Show on Startup", isOn: $state.showOnStartup)
 
         Divider()
 

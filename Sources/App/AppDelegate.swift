@@ -59,8 +59,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       button.imagePosition = .imageOnly
     }
 
-    // Strip starts hidden - only shows when a new capture is created (like CleanShot)
-    stripState.isVisible = false
+    // Show strip on startup if user preference says so; otherwise start hidden.
+    stripState.isVisible = stripState.showOnStartup
     stripController = StripWindowController(state: stripState, library: captureLibrary, editor: editor, presentation: presentation)
 
     // Global hotkeys (requires Accessibility permissions on many systems).

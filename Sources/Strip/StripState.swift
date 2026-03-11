@@ -6,6 +6,7 @@ final class StripState: ObservableObject {
     static let dockPosition = "strip.dockPosition"
     static let isVisible = "strip.isVisible"
     static let autoHideEnabled = "strip.autoHideEnabled"
+    static let showOnStartup = "strip.showOnStartup"
   }
 
   @Published var dockPosition: StripDockPosition {
@@ -26,6 +27,12 @@ final class StripState: ObservableObject {
     }
   }
 
+  @Published var showOnStartup: Bool {
+    didSet {
+      UserDefaults.standard.set(showOnStartup, forKey: Keys.showOnStartup)
+    }
+  }
+
   /// Runtime-only: whether the strip is currently slid off-screen.
   @Published var isAutoHidden: Bool = false
 
@@ -41,6 +48,7 @@ final class StripState: ObservableObject {
     // Default to visible - auto-hide handles getting out of the way
     isVisible = UserDefaults.standard.object(forKey: Keys.isVisible) as? Bool ?? true
     autoHideEnabled = UserDefaults.standard.object(forKey: Keys.autoHideEnabled) as? Bool ?? true
+    showOnStartup = UserDefaults.standard.object(forKey: Keys.showOnStartup) as? Bool ?? true
   }
 
   func startNewSession() {

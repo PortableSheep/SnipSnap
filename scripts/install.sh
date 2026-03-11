@@ -89,9 +89,14 @@ echo "To launch: open -a SnipSnap"
 echo "Or find it in your Applications folder."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Offer to launch
-read -p "Launch SnipSnap now? [Y/n] " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+# Offer to launch (skip prompt when piped via curl — stdin isn't a terminal)
+if [ -t 0 ]; then
+  read -p "Launch SnipSnap now? [Y/n] " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Nn]$ ]]; then
     open "$INSTALL_DIR/$APP_NAME"
+  fi
+else
+  echo "Launching SnipSnap..."
+  open "$INSTALL_DIR/$APP_NAME"
 fi

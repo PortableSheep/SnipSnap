@@ -75,7 +75,7 @@ What makes it different:
 ### Quick Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/portablesheep/snipsnap/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/portablesheep/snipsnap/master/scripts/install.sh | bash
 ```
 
 This downloads the latest release and drops it in your Applications folder.
