@@ -130,8 +130,41 @@ struct EditorCanvasView: View {
       }
     }
     
-    // Draw the actual image
-    context.draw(Image(decorative: doc.cgImage, scale: 1), in: imageRect)
+    // Draw the actual image (with optional corner radius clipping)
+    let cornerRadius = doc.backgroundCornerRadius
+    if cornerRadius > 0 {
+      let scaledRadius = cornerRadius * scale
+      let roundedPath = Path(roundedRect: imageRect, cornerRadius: scaledRadius)
+
+      // Draw checkerboard behind corners when no background is set
+      if doc.backgroundStyle == .none {
+        let checkerSize: CGFloat = 6
+        context.drawLayer { ctx in
+          ctx.clip(to: roundedPath)
+          let cols = Int(ceil(imageRect.width / checkerSize))
+          let rows = Int(ceil(imageRect.height / checkerSize))
+          for row in 0..<rows {
+            for col in 0..<cols {
+              let r = CGRect(
+                x: imageRect.minX + CGFloat(col) * checkerSize,
+                y: imageRect.minY + CGFloat(row) * checkerSize,
+                width: checkerSize,
+                height: checkerSize
+              )
+              let shade: Color = (row + col) % 2 == 0 ? .white : .gray.opacity(0.2)
+              ctx.fill(Path(r), with: .color(shade))
+            }
+          }
+        }
+      }
+
+      context.drawLayer { ctx in
+        ctx.clip(to: roundedPath)
+        ctx.draw(Image(decorative: doc.cgImage, scale: 1), in: imageRect)
+      }
+    } else {
+      context.draw(Image(decorative: doc.cgImage, scale: 1), in: imageRect)
+    }
   }
 
   private func drawAnnotations(context: inout GraphicsContext, size: CGSize) {

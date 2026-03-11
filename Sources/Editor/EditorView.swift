@@ -826,6 +826,17 @@ struct EditorView: View {
 
   private var presentationInspector: some View {
     VStack(alignment: .leading, spacing: 12) {
+      // Corners - always visible (works with or without background)
+      HStack {
+        Text("Corners")
+          .frame(width: 70, alignment: .leading)
+        Slider(value: $doc.backgroundCornerRadius, in: 0...48)
+        Text("\(Int(doc.backgroundCornerRadius))")
+          .font(.system(size: 11, design: .monospaced))
+          .foregroundColor(.secondary)
+          .frame(width: 24)
+      }
+
       // Background
       VStack(alignment: .leading, spacing: 6) {
         HStack {
@@ -892,16 +903,6 @@ struct EditorView: View {
               .frame(width: 70, alignment: .leading)
             Slider(value: $doc.backgroundPadding, in: 0...120)
             Text("\(Int(doc.backgroundPadding))")
-              .font(.system(size: 11, design: .monospaced))
-              .foregroundColor(.secondary)
-              .frame(width: 24)
-          }
-
-          HStack {
-            Text("Corners")
-              .frame(width: 70, alignment: .leading)
-            Slider(value: $doc.backgroundCornerRadius, in: 0...48)
-            Text("\(Int(doc.backgroundCornerRadius))")
               .font(.system(size: 11, design: .monospaced))
               .foregroundColor(.secondary)
               .frame(width: 24)

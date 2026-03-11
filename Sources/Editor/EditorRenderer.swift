@@ -59,9 +59,37 @@ enum EditorRenderer {
   static func renderFinalExport(doc: AnnotationDocument) -> CGImage? {
     guard let annotatedImage = renderAnnotatedCGImage(doc: doc) else { return nil }
 
-    // If no background, return simple annotated image
-    if doc.backgroundStyle == .none {
+    // If no background and no corner radius, return simple annotated image
+    if doc.backgroundStyle == .none && doc.backgroundCornerRadius <= 0 {
       return annotatedImage
+    }
+
+    // Standalone rounded corners (no background)
+    if doc.backgroundStyle == .none {
+      let w = annotatedImage.width
+      let h = annotatedImage.height
+      let cornerRadius = doc.backgroundCornerRadius
+
+      guard let ctx = CGContext(
+        data: nil,
+        width: w,
+        height: h,
+        bitsPerComponent: 8,
+        bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+      ) else {
+        return annotatedImage
+      }
+
+      ctx.interpolationQuality = .high
+      let rect = CGRect(x: 0, y: 0, width: CGFloat(w), height: CGFloat(h))
+      let clipPath = CGPath(roundedRect: rect, cornerWidth: cornerRadius, cornerHeight: cornerRadius, transform: nil)
+      ctx.addPath(clipPath)
+      ctx.clip()
+      ctx.draw(annotatedImage, in: rect)
+
+      return ctx.makeImage() ?? annotatedImage
     }
 
     let imageW = CGFloat(annotatedImage.width)
