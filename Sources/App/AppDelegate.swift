@@ -90,6 +90,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
       }
       .store(in: &cancellables)
+
+    // Check for updates (respects 24h cooldown)
+    UpdateChecker.shared.checkOnLaunch()
   }
 
   private var cancellables: Set<AnyCancellable> = []
@@ -514,6 +517,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     donate.image = NSImage(systemSymbolName: "gift.fill", accessibilityDescription: "Donate")
     menu.addItem(donate)
 
+    let checkUpdates = NSMenuItem(title: "Check for Updates…", action: #selector(onCheckForUpdates), keyEquivalent: "")
+    checkUpdates.target = self
+    menu.addItem(checkUpdates)
+
     // Presentation Mode submenu
     let presMenu = NSMenu()
     
@@ -612,6 +619,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     prefsWindow.show(prefs: overlayPrefs, proPrefs: proPrefs)
   }
 
+  @objc private func onCheckForUpdates() {
+    UpdateChecker.shared.checkNow()
+  }
 
   @objc private func onToggleStrip() {
     stripController?.toggle()
