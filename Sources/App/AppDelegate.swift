@@ -290,11 +290,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
       }
       
-      // Position and show the menu - center it under the button
+      // Position and show the menu - center it under the button with a small gap
       let menuWidth: CGFloat = 420
       let buttonWidth = button.bounds.width
       let xOffset = (buttonWidth - menuWidth) / 2
-      preflightMenu.popUp(positioning: nil, at: NSPoint(x: xOffset, y: button.bounds.height), in: button)
+      preflightMenu.popUp(positioning: nil, at: NSPoint(x: xOffset, y: button.bounds.height + 4), in: button)
     }
   }
 
@@ -753,11 +753,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       }
     }
     
-    // Position and show the menu - center it under the button
+    // Position and show the menu - center it under the button with a small gap
     let menuWidth: CGFloat = 400
     let buttonWidth = button.bounds.width
     let xOffset = (buttonWidth - menuWidth) / 2
-    preflightMenu.popUp(positioning: nil, at: NSPoint(x: xOffset, y: button.bounds.height), in: button)
+    preflightMenu.popUp(positioning: nil, at: NSPoint(x: xOffset, y: button.bounds.height + 4), in: button)
   }
   
   private func startTicker() {

@@ -215,7 +215,7 @@ final class StripWindowController: NSObject {
     let visible = screen.visibleFrame
     let full = screen.frame
 
-    let thickness = isHovered ? expandedThickness : collapsedThickness
+    let thickness = expandedThickness
 
     // If the Dock occupies an edge, visibleFrame will be inset from full frame.
     // This lets us “avoid Dock” without relying on private APIs.
@@ -269,12 +269,6 @@ final class StripWindowController: NSObject {
   private func setHovered(_ hovering: Bool) {
     guard hovering != isHovered else { return }
     isHovered = hovering
-
-    // Keep the dock position but expand/collapse thickness smoothly.
-    NSAnimationContext.runAnimationGroup { ctx in
-      ctx.duration = 0.22
-      applyDock(position: state.dockPosition, animate: true)
-    }
 
     guard state.autoHideEnabled else { return }
     if hovering {

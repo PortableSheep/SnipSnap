@@ -99,7 +99,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
   /// Whether this tool uses stroke settings (color, width)
   var usesStroke: Bool {
     switch self {
-    case .rect, .line, .arrow, .freehand, .callout:
+    case .rect, .line, .arrow, .freehand, .callout, .measurement:
       return true
     default:
       return false

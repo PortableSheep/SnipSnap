@@ -207,7 +207,7 @@ struct EditorCanvasView: View {
   private func drawRedactionSuggestions(context: inout GraphicsContext, scale: CGFloat, offset: CGPoint) {
     guard !doc.suggestedRedactions.isEmpty else { return }
 
-    for suggestion in doc.suggestedRedactions {
+    for suggestion in doc.suggestedRedactions where suggestion.isSelected {
       let r = suggestion.rect
       let scaled = CGRect(
         x: offset.x + r.minX * scale,

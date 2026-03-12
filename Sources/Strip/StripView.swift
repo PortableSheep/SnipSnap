@@ -171,6 +171,15 @@ struct StripView: View {
           FinderReveal.reveal(item.url)
         }
 
+        Button("Copy") {
+          NSPasteboard.general.clearContents()
+          if item.kind == .image, let image = NSImage(contentsOf: item.url) {
+            NSPasteboard.general.writeObjects([image])
+          } else {
+            NSPasteboard.general.writeObjects([item.url as NSURL])
+          }
+        }
+
         Button("Share…") {
           SharePresenter.share(url: item.url)
         }
@@ -201,6 +210,23 @@ struct StripView: View {
           GIFExportPresenter.exportGIF(fromVideoURL: item.url)
         }
         .disabled(!isVideo)
+
+        Divider()
+
+        Button("Delete…", role: .destructive) {
+          deleteTask?.cancel()
+          deleteTask = Task { @MainActor in
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = "Delete capture?"
+            alert.informativeText = "This will permanently delete \"\(item.url.lastPathComponent)\" and its metadata. This can't be undone."
+            alert.addButton(withTitle: "Delete")
+            alert.addButton(withTitle: "Cancel")
+            let resp = alert.runModal()
+            guard resp == .alertFirstButtonReturn else { return }
+            try? library.delete(item)
+          }
+        }
       }
     }
   }
