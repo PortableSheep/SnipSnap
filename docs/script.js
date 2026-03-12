@@ -29,3 +29,47 @@ window.addEventListener('scroll', () => {
     
     lastScroll = currentScroll;
 });
+
+// Theme toggle
+(function () {
+    const toggle = document.getElementById('theme-toggle');
+    const root = document.documentElement;
+    const storageKey = 'snipsnap-theme';
+
+    function getSystemTheme() {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function getEffectiveTheme(preference) {
+        if (preference === 'system') return getSystemTheme();
+        return preference;
+    }
+
+    function applyTheme(preference) {
+        if (preference === 'system') {
+            root.removeAttribute('data-theme');
+        } else {
+            root.setAttribute('data-theme', preference);
+        }
+        toggle.textContent = getEffectiveTheme(preference) === 'dark' ? '☀️' : '🌙';
+    }
+
+    // Cycle: system → dark → light → system
+    const cycle = { system: 'dark', dark: 'light', light: 'system' };
+
+    toggle.addEventListener('click', () => {
+        const current = localStorage.getItem(storageKey) || 'system';
+        const next = cycle[current];
+        localStorage.setItem(storageKey, next);
+        applyTheme(next);
+    });
+
+    // React to system theme changes when in "system" mode
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        const pref = localStorage.getItem(storageKey) || 'system';
+        if (pref === 'system') applyTheme('system');
+    });
+
+    // Initialize
+    applyTheme(localStorage.getItem(storageKey) || 'system');
+})();

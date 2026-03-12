@@ -6,8 +6,42 @@
     --accent-hover: #0077ed;
     --border: #d2d2d7;
     --surface: #f5f5f7;
+    --card-bg: #ffffff;
+    --code-bg: #1d1d1f;
+    --code-text: #ffffff;
+    --nav-bg: rgba(255, 255, 255, 0.8);
     --radius: 12px;
     --spacing: 80px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #000000;
+        --text: #f5f5f7;
+        --text-secondary: #a1a1a6;
+        --accent: #2997ff;
+        --accent-hover: #64b5f6;
+        --border: #38383d;
+        --surface: #1c1c1e;
+        --card-bg: #2c2c2e;
+        --code-bg: #1c1c1e;
+        --code-text: #f5f5f7;
+        --nav-bg: rgba(0, 0, 0, 0.8);
+    }
+}
+
+[data-theme="dark"] {
+    --bg: #000000;
+    --text: #f5f5f7;
+    --text-secondary: #a1a1a6;
+    --accent: #2997ff;
+    --accent-hover: #64b5f6;
+    --border: #38383d;
+    --surface: #1c1c1e;
+    --card-bg: #2c2c2e;
+    --code-bg: #1c1c1e;
+    --code-text: #f5f5f7;
+    --nav-bg: rgba(0, 0, 0, 0.8);
 }
 
 * {
@@ -34,7 +68,7 @@ body {
 .nav {
     position: sticky;
     top: 0;
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--nav-bg);
     backdrop-filter: saturate(180%) blur(20px);
     border-bottom: 1px solid var(--border);
     z-index: 100;
@@ -281,7 +315,7 @@ body {
 }
 
 .feature-card {
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius);
     padding: 28px 24px;
     border: 1px solid var(--border);
@@ -290,7 +324,7 @@ body {
 
 .feature-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .feature-card-icon {
@@ -366,13 +400,14 @@ body {
 }
 
 .download-option pre {
-    background: var(--text);
-    color: #fff;
+    background: var(--code-bg);
+    color: var(--code-text);
     padding: 24px;
     border-radius: var(--radius);
     overflow-x: auto;
     font-size: 14px;
     font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+    border: 1px solid var(--border);
 }
 
 .download-option p {
@@ -414,7 +449,7 @@ body {
 }
 
 .shortcut {
-    background: white;
+    background: var(--card-bg);
     padding: 24px;
     border-radius: var(--radius);
     text-align: center;
@@ -592,6 +627,24 @@ body {
 .footer-bottom p {
     font-size: 13px;
     color: var(--text-secondary);
+}
+
+/* Theme Toggle */
+.theme-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    transition: border-color 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.theme-toggle:hover {
+    border-color: var(--accent);
 }
 
 /* Responsive */
