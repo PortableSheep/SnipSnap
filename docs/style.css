@@ -260,6 +260,56 @@ body {
     letter-spacing: 0.05em;
 }
 
+/* Feature Grid */
+.feature-grid-section {
+    padding: var(--spacing) 0;
+    background: var(--surface);
+}
+
+.feature-grid-section h2 {
+    font-size: 48px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 60px;
+    letter-spacing: -0.03em;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 24px;
+}
+
+.feature-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    border: 1px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.feature-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.feature-card-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.feature-card h4 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.feature-card p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
 /* Technical */
 .technical {
     padding: var(--spacing) 0;
@@ -388,6 +438,23 @@ body {
     text-align: center;
     color: var(--text-secondary);
     font-size: 14px;
+}
+
+.shortcuts-subheading {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    letter-spacing: -0.02em;
+}
+
+.shortcut-compact {
+    padding: 16px;
+}
+
+.shortcut-compact .shortcut-keys {
+    font-size: 20px;
+    margin-bottom: 4px;
 }
 
 /* Support */
