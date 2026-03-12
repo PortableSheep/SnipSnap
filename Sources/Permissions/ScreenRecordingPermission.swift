@@ -46,7 +46,7 @@ final class ScreenRecordingPermission {
     let alert = NSAlert()
     alert.alertStyle = .warning
     alert.messageText = "Enable Screen Recording Permission"
-    alert.informativeText = "To record your screen, SnipSnap needs Screen Recording permission.\n\nGo to System Settings → Privacy & Security → Screen Recording, enable SnipSnap Capture Agent, then quit and relaunch SnipSnap."
+    alert.informativeText = "To record your screen, SnipSnap needs Screen Recording permission.\n\nGo to System Settings → Privacy & Security → Screen Recording, enable SnipSnap, then quit and relaunch SnipSnap."
     alert.addButton(withTitle: "Open Settings")
     alert.addButton(withTitle: "Not Now")
 

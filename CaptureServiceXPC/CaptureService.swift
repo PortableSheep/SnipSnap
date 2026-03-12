@@ -72,18 +72,11 @@ final class CaptureService: NSObject, CaptureServiceProtocol {
 
   @MainActor
   private func ensureScreenRecordingAccess() async throws {
+    // Only check — never prompt from the XPC service.
+    // The main app handles prompting so macOS shows the correct app icon
+    // and creates a single TCC entry for the main bundle.
     if await ScreenRecordingPermission.checkAccess() { return }
     if ScreenRecordingPermission.hasAccess(prompt: false) { return }
-
-    // Trigger the system prompt
-    _ = ScreenRecordingPermission.hasAccess(prompt: true)
-
-    if await ScreenRecordingPermission.checkAccess() { return }
-
-    // Open Settings if still not granted
-    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-      NSWorkspace.shared.open(url)
-    }
 
     throw NSError(
       domain: "CaptureService",
@@ -230,15 +223,8 @@ final class CaptureService: NSObject, CaptureServiceProtocol {
 
   func requestScreenRecordingPermission(reply: @escaping (Bool, String?) -> Void) {
     Task { @MainActor in
-      _ = ScreenRecordingPermission.hasAccess(prompt: true)
+      // Only check — never prompt from the XPC service.
       let granted = ScreenRecordingPermission.hasAccess(prompt: false)
-
-      if !granted {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-          NSWorkspace.shared.open(url)
-        }
-      }
-
       reply(granted, granted ? nil : "Screen Recording permission not granted")
     }
   }

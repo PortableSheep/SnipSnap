@@ -94,6 +94,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Check for updates (respects 24h cooldown)
     UpdateChecker.shared.checkOnLaunch()
+
+    // Show onboarding on first launch to guide users through permissions
+    if !OnboardingWindowController.hasCompletedOnboarding {
+      OnboardingWindowController.shared.show()
+    }
   }
 
   private var cancellables: Set<AnyCancellable> = []
@@ -150,8 +155,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     stripController?.show()
   }
 
+  /// Check Screen Recording permission from the main app process so macOS
+  /// shows the correct app icon and creates a single TCC entry.
+  /// Returns true if permission is granted; shows instructions if denied.
+  private func ensureScreenRecordingPermission() async -> Bool {
+    if await ScreenRecordingPermission.checkAccess() { return true }
+    // Trigger the system prompt from the main app (correct icon in dialog)
+    _ = ScreenRecordingPermission.hasAccess(prompt: true)
+    // Re-check via ScreenCaptureKit (more reliable than CGPreflight after prompt)
+    if await ScreenRecordingPermission.checkAccess() { return true }
+    // Still not granted — user denied or needs to restart
+    ScreenRecordingPermission.showInstructionsAlert()
+    return false
+  }
+
   private func startFullScreenRecording() async throws {
     os_log(.info, log: appLog, "startFullScreenRecording called")
+    guard await ensureScreenRecordingPermission() else { return }
     hideUIForRecording()
     let settings = makeOverlaySettingsForService()
     try await captureService.startFullScreenRecording(settings: settings)
@@ -166,6 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   private func startWindowRecording(windowID: CGWindowID) async throws {
     debugLog("startWindowRecording called with windowID: \(windowID)")
+    guard await ensureScreenRecordingPermission() else { return }
     hideUIForRecording()
     let settings = makeOverlaySettingsForService()
     try await captureService.startWindowRecording(settings: settings, windowID: windowID)
@@ -178,7 +199,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   private func makeOverlaySettingsForService() -> CaptureServiceSettings {
-    // Capture permissions are owned by the capture service (XPC). The main app only sends overlay settings.
     return CaptureServiceSettings.from(
       showClickOverlay: overlayPrefs.showClickOverlay,
       showKeystrokeHUD: overlayPrefs.showKeystrokeHUD,
@@ -189,6 +209,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   private func startRegionRecording(region: CGRect) async throws {
+    guard await ensureScreenRecordingPermission() else { return }
     hideUIForRecording()
     let settings = makeOverlaySettingsForService()
     try await captureService.startRegionRecording(settings: settings, region: region)
@@ -299,23 +320,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   private func captureRegionScreenshot() async throws {
+    guard await ensureScreenRecordingPermission() else { return }
     let url = try await captureService.captureRegionScreenshot()
     lastCaptureURL = url
   }
 
   private func captureWindowScreenshot() async throws {
-    // For screenshots, we need to use the XPC service's interactive selection
-    // since ScreenCaptureKit requires the same process to select and capture
+    guard await ensureScreenRecordingPermission() else { return }
     let url = try await captureService.captureWindowScreenshot()
     lastCaptureURL = url
   }
 
   private func captureFullScreenScreenshot() async throws {
+    guard await ensureScreenRecordingPermission() else { return }
     let url = try await captureService.captureFullScreenScreenshot()
     lastCaptureURL = url
   }
 
   private func captureScrollingWindow() async throws {
+    guard await ensureScreenRecordingPermission() else { return }
     // Use interactive region picker - scroll capture is ALWAYS region-based
     guard let selection = await InteractiveWindowPicker.pick(mode: .subRegion) else {
       debugLog("AppDelegate: Scroll capture cancelled - no region selected")
@@ -513,6 +536,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     prefs.target = self
     menu.addItem(prefs)
 
+    let setupPerms = NSMenuItem(title: "Setup Permissions…", action: #selector(onSetupPermissions), keyEquivalent: "")
+    setupPerms.target = self
+    menu.addItem(setupPerms)
+
     let donate = NSMenuItem(title: "Support Development", action: #selector(onDonate), keyEquivalent: "")
     donate.target = self
     donate.image = NSImage(systemSymbolName: "gift.fill", accessibilityDescription: "Donate")
@@ -618,6 +645,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   @objc private func onPreferences() {
     prefsWindow.show(prefs: overlayPrefs, proPrefs: proPrefs, stripState: stripState)
+  }
+
+  @objc private func onSetupPermissions() {
+    OnboardingWindowController.shared.show(markComplete: false)
   }
 
   @objc private func onCheckForUpdates() {
@@ -840,9 +871,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       case .remoteError(let message):
         let m = message.lowercased()
         if m.contains("screen recording") && (m.contains("not granted") || m.contains("not authorized") || m.contains("not permitted") || m.contains("privacy") || m.contains("tcc")) {
-          Task { [captureService] in
-            _ = try? await captureService.requestScreenRecordingPermission()
-          }
+          // Prompt from the main app (not via XPC) so macOS shows the correct icon
+          _ = ScreenRecordingPermission.hasAccess(prompt: true)
           ScreenRecordingPermission.showInstructionsAlert()
           return
         }
