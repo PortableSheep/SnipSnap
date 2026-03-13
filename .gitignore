@@ -47,6 +47,10 @@ fastlane/test_output/
 *.mobileprovision
 *.provisionprofile
 
+# Code signing certificates
+*.p12
+*.p12.b64
+
 # App Store Connect API key
 AuthKey_*.p8
 

@@ -40,6 +40,44 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      - name: Import Code Signing Certificate
+        id: signing
+        env:
+          P12_BASE64: ${{ secrets.SIGNING_CERTIFICATE_P12 }}
+          P12_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          if [[ -z "$P12_BASE64" ]]; then
+            echo "⚠️  No signing certificate configured — build will be unsigned."
+            echo "   To fix: run scripts/generate-release-cert.sh and add secrets."
+            echo "signed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "$P12_BASE64" | base64 --decode > certificate.p12
+
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(uuidgen)
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security import certificate.p12 \
+            -k "$KEYCHAIN_PATH" \
+            -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign
+
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security list-keychains -d user -s "$KEYCHAIN_PATH" \
+            $(security list-keychains -d user | tr -d '"')
+
+          rm -f certificate.p12
+          echo "✅ Signing certificate imported."
+          echo "signed=true" >> $GITHUB_OUTPUT
+
       - name: Determine version
         id: version
         run: |
@@ -68,14 +106,24 @@ jobs:
         env:
           SS_LICENSE_PUBLIC_KEY_V1: ${{ secrets.SS_LICENSE_PUBLIC_KEY_V1 }}
         run: |
+          if [[ "${{ steps.signing.outputs.signed }}" == "true" ]]; then
+            SIGN_IDENTITY="SnipSnap Release"
+            SIGN_REQUIRED=YES
+            SIGN_ALLOWED=YES
+          else
+            SIGN_IDENTITY="-"
+            SIGN_REQUIRED=NO
+            SIGN_ALLOWED=NO
+          fi
+
           xcodebuild \
             -project $PROJECT \
             -scheme $SCHEME \
             -configuration Release \
             -derivedDataPath build \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
+            CODE_SIGNING_REQUIRED="$SIGN_REQUIRED" \
+            CODE_SIGNING_ALLOWED="$SIGN_ALLOWED" \
             MARKETING_VERSION="${{ steps.version.outputs.version }}" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             SS_LICENSE_PUBLIC_KEY_V1="$SS_LICENSE_PUBLIC_KEY_V1" \
@@ -177,3 +225,7 @@ jobs:
           name: SnipSnap ${{ steps.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean up signing keychain
+        if: always() && steps.signing.outputs.signed == 'true'
+        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true

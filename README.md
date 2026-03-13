@@ -154,6 +154,10 @@ The project's `project.yml` already expects this certificate name. Change `SNIPS
 
 Now rebuilds won't wipe your Screen Recording permission.
 
+### Release Signing
+
+Release builds use a separate "SnipSnap Release" certificate to preserve permissions across updates for end users. See [docs/release-signing.md](docs/release-signing.md) for setup instructions.
+
 ### Quick Build Script
 
 ```bash
