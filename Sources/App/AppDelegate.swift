@@ -159,10 +159,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   /// shows the correct app icon and creates a single TCC entry.
   /// Returns true if permission is granted; shows instructions if denied.
   private func ensureScreenRecordingPermission() async -> Bool {
+    // Fast path: CGPreflight returns true immediately after granting permission
+    // (even before the app is restarted), avoiding a false-negative from SCShareableContent.
+    if ScreenRecordingPermission.hasAccess(prompt: false) { return true }
+    // Slower but more reliable check via ScreenCaptureKit
     if await ScreenRecordingPermission.checkAccess() { return true }
     // Trigger the system prompt from the main app (correct icon in dialog)
     _ = ScreenRecordingPermission.hasAccess(prompt: true)
-    // Re-check via ScreenCaptureKit (more reliable than CGPreflight after prompt)
+    // Re-check both ways
+    if ScreenRecordingPermission.hasAccess(prompt: false) { return true }
     if await ScreenRecordingPermission.checkAccess() { return true }
     // Still not granted — user denied or needs to restart
     ScreenRecordingPermission.showInstructionsAlert()
@@ -871,8 +876,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       case .remoteError(let message):
         let m = message.lowercased()
         if m.contains("screen recording") && (m.contains("not granted") || m.contains("not authorized") || m.contains("not permitted") || m.contains("privacy") || m.contains("tcc")) {
-          // Prompt from the main app (not via XPC) so macOS shows the correct icon
-          _ = ScreenRecordingPermission.hasAccess(prompt: true)
+          // Only re-prompt if permission isn't already granted (avoids creating
+          // duplicate TCC entries when the XPC service can't see the grant yet).
+          if !ScreenRecordingPermission.hasAccess(prompt: false) {
+            _ = ScreenRecordingPermission.hasAccess(prompt: true)
+          }
           ScreenRecordingPermission.showInstructionsAlert()
           return
         }

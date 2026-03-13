@@ -161,22 +161,43 @@ final class UpdateChecker {
 
   private func showUpdateAlert(release: GitHubRelease) {
     let alert = NSAlert()
-    alert.messageText = "A new version of SnipSnap is available"
-    alert.informativeText = """
-    \(release.name)
-
-    \(formatReleaseNotes(release.body))
-
-    Current version: \(currentAppVersion())
-    New version: \(release.version)
-    """
+    alert.messageText = "\(release.name)"
+    alert.informativeText = "Current version: \(currentAppVersion())  →  New version: \(release.version)"
     alert.alertStyle = .informational
+
+    // Render the changelog as styled text in a scrollable accessory view
+    let changelogBody = release.body.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !changelogBody.isEmpty {
+      let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 420, height: 220))
+      scrollView.hasVerticalScroller = true
+      scrollView.hasHorizontalScroller = false
+      scrollView.autohidesScrollers = true
+      scrollView.borderType = .bezelBorder
+
+      let textView = NSTextView(frame: scrollView.contentView.bounds)
+      textView.isEditable = false
+      textView.isSelectable = true
+      textView.autoresizingMask = [.width]
+      textView.textContainerInset = NSSize(width: 10, height: 10)
+      textView.textContainer?.widthTracksTextView = true
+      textView.textContainer?.lineFragmentPadding = 4
+      textView.backgroundColor = .controlBackgroundColor
+
+      let styledText = renderMarkdownChangelog(changelogBody)
+      textView.textStorage?.setAttributedString(styledText)
+
+      scrollView.documentView = textView
+      alert.accessoryView = scrollView
+    }
 
     if release.zipURL != nil {
       alert.addButton(withTitle: "Download & Install")
     }
     alert.addButton(withTitle: "Remind Later")
     alert.addButton(withTitle: "Skip This Version")
+
+    // Size the alert window to accommodate the accessory view
+    alert.layout()
 
     let response = alert.runModal()
     let buttonIndex = response.rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
@@ -191,11 +212,111 @@ final class UpdateChecker {
         break
       }
     } else {
-      // No ZIP available — second button is "Skip"
       if buttonIndex == 1 {
         UserDefaults.standard.set(release.version, forKey: Defaults.skippedVersion)
       }
     }
+  }
+
+  /// Converts a GitHub release body (markdown) into a styled NSAttributedString.
+  private func renderMarkdownChangelog(_ markdown: String) -> NSAttributedString {
+    let result = NSMutableAttributedString()
+    let bodyFont = NSFont.systemFont(ofSize: 12)
+    let bodyColor = NSColor.labelColor
+    let headerFont = NSFont.systemFont(ofSize: 13, weight: .semibold)
+    let dimColor = NSColor.secondaryLabelColor
+
+    let defaultAttrs: [NSAttributedString.Key: Any] = [
+      .font: bodyFont,
+      .foregroundColor: bodyColor
+    ]
+
+    let lines = markdown.components(separatedBy: "\n")
+    var isFirstBlock = true
+
+    for line in lines {
+      let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+      // Skip empty lines but preserve paragraph spacing
+      if trimmed.isEmpty {
+        if result.length > 0 {
+          result.append(NSAttributedString(string: "\n", attributes: defaultAttrs))
+        }
+        continue
+      }
+
+      // ### Section headers (e.g. "### ✨ Features")
+      if trimmed.hasPrefix("### ") {
+        let headerText = String(trimmed.dropFirst(4))
+        if !isFirstBlock {
+          result.append(NSAttributedString(string: "\n", attributes: defaultAttrs))
+        }
+        result.append(NSAttributedString(string: headerText + "\n", attributes: [
+          .font: headerFont,
+          .foregroundColor: bodyColor
+        ]))
+        isFirstBlock = false
+        continue
+      }
+
+      // ## Top-level headers
+      if trimmed.hasPrefix("## ") {
+        let headerText = String(trimmed.dropFirst(3))
+        if !isFirstBlock {
+          result.append(NSAttributedString(string: "\n", attributes: defaultAttrs))
+        }
+        result.append(NSAttributedString(string: headerText + "\n", attributes: [
+          .font: NSFont.systemFont(ofSize: 14, weight: .bold),
+          .foregroundColor: bodyColor
+        ]))
+        isFirstBlock = false
+        continue
+      }
+
+      // Bullet items (- or *)
+      if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
+        var itemText = String(trimmed.dropFirst(2))
+
+        // Strip trailing commit hashes like (`abc1234`)
+        if let range = itemText.range(of: #"\s*\(`?[a-f0-9]{7,}`?\)\s*$"#, options: .regularExpression) {
+          itemText = String(itemText[itemText.startIndex..<range.lowerBound])
+        }
+
+        // Strip inline markdown bold **text**
+        itemText = itemText.replacingOccurrences(of: #"\*\*(.+?)\*\*"#, with: "$1", options: .regularExpression)
+
+        // Strip inline markdown backticks `code`
+        itemText = itemText.replacingOccurrences(of: #"`(.+?)`"#, with: "$1", options: .regularExpression)
+
+        result.append(NSAttributedString(string: "  •  " + itemText + "\n", attributes: defaultAttrs))
+        continue
+      }
+
+      // Plain text (strip bold/backtick markers)
+      var plainText = trimmed
+      plainText = plainText.replacingOccurrences(of: #"\*\*(.+?)\*\*"#, with: "$1", options: .regularExpression)
+      plainText = plainText.replacingOccurrences(of: #"`(.+?)`"#, with: "$1", options: .regularExpression)
+      result.append(NSAttributedString(string: plainText + "\n", attributes: defaultAttrs))
+    }
+
+    // Trim trailing whitespace/newlines
+    let fullRange = NSRange(location: 0, length: result.length)
+    let str = result.string as NSString
+    var end = str.length
+    while end > 0 && CharacterSet.whitespacesAndNewlines.contains(Unicode.Scalar(str.character(at: end - 1))!) {
+      end -= 1
+    }
+    if end < str.length {
+      result.deleteCharacters(in: NSRange(location: end, length: str.length - end))
+    }
+
+    // Apply paragraph style for comfortable line spacing
+    let paraStyle = NSMutableParagraphStyle()
+    paraStyle.lineSpacing = 2
+    paraStyle.paragraphSpacing = 2
+    result.addAttribute(.paragraphStyle, value: paraStyle, range: NSRange(location: 0, length: result.length))
+
+    return result
   }
 
   private func showUpToDateAlert() {
@@ -214,16 +335,6 @@ final class UpdateChecker {
     alert.alertStyle = .warning
     alert.addButton(withTitle: "OK")
     alert.runModal()
-  }
-
-  private func formatReleaseNotes(_ body: String) -> String {
-    let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
-    if trimmed.isEmpty { return "" }
-    // Limit to ~500 chars for the alert
-    if trimmed.count > 500 {
-      return String(trimmed.prefix(500)) + "…"
-    }
-    return trimmed
   }
 
   // MARK: - Download & Install

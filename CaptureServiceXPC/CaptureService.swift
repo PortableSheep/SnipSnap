@@ -72,10 +72,10 @@ final class CaptureService: NSObject, CaptureServiceProtocol {
 
   @MainActor
   private func ensureScreenRecordingAccess() async throws {
-    // Only check — never prompt from the XPC service.
-    // The main app handles prompting so macOS shows the correct app icon
-    // and creates a single TCC entry for the main bundle.
-    if await ScreenRecordingPermission.checkAccess() { return }
+    // Only use CGPreflight — never prompt and never call SCShareableContent from the
+    // XPC service. SCShareableContent from a separate process context can create a
+    // duplicate TCC entry with the wrong icon. The main app handles prompting and
+    // SCShareableContent checks so macOS shows the correct app icon.
     if ScreenRecordingPermission.hasAccess(prompt: false) { return }
 
     throw NSError(

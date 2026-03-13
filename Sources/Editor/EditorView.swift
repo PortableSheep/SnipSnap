@@ -480,6 +480,8 @@ struct EditorView: View {
       .foregroundColor(isSelected ? .white : .primary)
     }
     .buttonStyle(.plain)
+    .frame(maxWidth: .infinity, minHeight: 40)
+    .contentShape(Rectangle())
     .help(shortcut.isEmpty ? tool.label : "\(tool.label) – Press \(shortcut)")
   }
 

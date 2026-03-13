@@ -91,30 +91,32 @@ struct OnboardingView: View {
         )
 
         Divider().padding(.horizontal)
+          
+          PermissionRow(
+            icon: "hand.raised",
+            title: "Accessibility",
+            description: "Required for global hotkeys and click/keystroke overlays.",
+            isGranted: accessibilityGranted,
+            onGrant: {
+                _ = AccessibilityPermission.isTrusted(prompt: true)
+                refreshPermissions()
+            }
+          )
+          
+          if (!isUnifiedPermissionOS()) {
+              Divider().padding(.horizontal)
 
-        PermissionRow(
-          icon: "hand.raised",
-          title: "Accessibility",
-          description: "Required for global hotkeys and click/keystroke overlays.",
-          isGranted: accessibilityGranted,
-          onGrant: {
-            _ = AccessibilityPermission.isTrusted(prompt: true)
-            refreshPermissions()
+              PermissionRow(
+                icon: "keyboard",
+                title: "Input Monitoring",
+                description: "Required to show keystroke and click overlays in recordings.",
+                isGranted: inputMonitoringGranted,
+                onGrant: {
+                  _ = InputMonitoringPermission.hasAccess(prompt: true)
+                  refreshPermissions()
+                }
+              )
           }
-        )
-
-        Divider().padding(.horizontal)
-
-        PermissionRow(
-          icon: "keyboard",
-          title: "Input Monitoring",
-          description: "Required to show keystroke and click overlays in recordings.",
-          isGranted: inputMonitoringGranted,
-          onGrant: {
-            _ = InputMonitoringPermission.hasAccess(prompt: true)
-            refreshPermissions()
-          }
-        )
       }
       .background(Color(nsColor: .controlBackgroundColor))
       .cornerRadius(10)
@@ -146,16 +148,29 @@ struct OnboardingView: View {
     .onAppear { refreshPermissions() }
   }
 
-  private var allGranted: Bool {
-    screenRecordingGranted && accessibilityGranted && inputMonitoringGranted
-  }
+    private var allGranted: Bool {
+        screenRecordingGranted && accessibilityGranted && inputMonitoringGranted
+    }
 
-  private func refreshPermissions() {
-    screenRecordingGranted = ScreenRecordingPermission.hasAccess(prompt: false)
-    accessibilityGranted = AccessibilityPermission.isTrusted(prompt: false)
-    inputMonitoringGranted = InputMonitoringPermission.hasAccess(prompt: false)
-    refreshID = UUID()
-  }
+    private func refreshPermissions() {
+        screenRecordingGranted = ScreenRecordingPermission.hasAccess(prompt: false)
+        
+        if (isUnifiedPermissionOS()) {
+            accessibilityGranted = AccessibilityPermission.isTrusted(prompt: false)
+            inputMonitoringGranted = accessibilityGranted
+        } else {
+            accessibilityGranted = AccessibilityPermission.isTrusted(prompt: false)
+            inputMonitoringGranted = InputMonitoringPermission.hasAccess(prompt: false)
+        }
+        
+        refreshID = UUID()
+    }
+
+    private func isUnifiedPermissionOS() -> Bool {
+        let v = ProcessInfo.processInfo.operatingSystemVersion
+        // macOS 15+ or 14.4+
+        return (v.majorVersion > 14) || (v.majorVersion == 14 && v.minorVersion >= 4)
+    }
 }
 
 // MARK: - Permission Row

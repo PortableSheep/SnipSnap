@@ -25,8 +25,14 @@ enum EditorRenderer {
 
     ctx.interpolationQuality = .high
 
-    // Base image
+    // Base image (drawn in standard CG coordinates — bottom-left origin)
     ctx.draw(doc.cgImage, in: CGRect(x: 0, y: 0, width: CGFloat(w), height: CGFloat(h)))
+
+    // Flip to top-left origin for annotations.
+    // Annotations store coordinates with origin at top-left (matching SwiftUI canvas),
+    // but CGContext uses bottom-left origin. This transform makes them match.
+    ctx.translateBy(x: 0, y: CGFloat(h))
+    ctx.scaleBy(x: 1, y: -1)
 
     // Blur/pixelate should be applied under other overlays.
     // Pass the original image so filters work correctly on overlapping regions
@@ -684,6 +690,17 @@ enum EditorRenderer {
     return CGColor(red: ns.redComponent, green: ns.greenComponent, blue: ns.blueComponent, alpha: ns.alphaComponent * alpha)
   }
 
+  /// Draws a CGImage right-side-up in a flipped (top-left-origin) context.
+  /// `ctx.draw` maps the image bottom to rect.minY, which produces an upside-down
+  /// result when the context is flipped. This helper applies a local un-flip.
+  private static func drawImageRightSideUp(_ image: CGImage, in rect: CGRect, ctx: CGContext) {
+    ctx.saveGState()
+    ctx.translateBy(x: rect.origin.x, y: rect.origin.y + rect.height)
+    ctx.scaleBy(x: 1, y: -1)
+    ctx.draw(image, in: CGRect(origin: .zero, size: rect.size))
+    ctx.restoreGState()
+  }
+
   private static func drawRect(_ r: RectAnnotation, in ctx: CGContext) {
     if r.fill.enabled {
       ctx.setFillColor(cgColor(r.fill.color))
@@ -825,7 +842,7 @@ enum EditorRenderer {
     let imageToFilter = sourceImage ?? ctx.makeImage()
     guard let image = imageToFilter else { return }
     guard let filtered = ImageFilters.filteredRegion(source: image, rect: b.rect, mode: b.mode, amount: b.amount) else { return }
-    ctx.draw(filtered, in: b.rect)
+    drawImageRightSideUp(filtered, in: b.rect, ctx: ctx)
   }
 
   private static func drawStep(_ s: StepAnnotation, in ctx: CGContext) {
@@ -1155,6 +1172,6 @@ enum EditorRenderer {
   
   private static func drawImageLayer(_ img: ImageLayerAnnotation, in ctx: CGContext) {
     guard let cgImage = CGImage.fromData(img.imageData) else { return }
-    ctx.draw(cgImage, in: img.rect)
+    drawImageRightSideUp(cgImage, in: img.rect, ctx: ctx)
   }
 }
