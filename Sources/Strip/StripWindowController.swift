@@ -13,6 +13,7 @@ final class StripWindowController: NSObject {
   private var isHovered: Bool = false
   private var cancellables = Set<AnyCancellable>()
   private var autoHideWorkItem: DispatchWorkItem?
+  private var screenChangeWorkItem: DispatchWorkItem?
 
   let state: StripState
   let library: CaptureLibrary
@@ -150,10 +151,33 @@ final class StripWindowController: NSObject {
       }
       .store(in: &cancellables)
 
+    // Re-dock the strip when the display configuration changes (e.g. external monitor disconnect).
+    NotificationCenter.default.addObserver(
+      forName: NSApplication.didChangeScreenParametersNotification,
+      object: NSApplication.shared,
+      queue: .main
+    ) { [weak self] _ in
+      self?.handleScreenParametersChanged()
+    }
+
     // Only show on init if state says visible (after AppDelegate may have set it to false)
     if state.isVisible {
       show()
     }
+  }
+
+  private func handleScreenParametersChanged() {
+    // Debounce: macOS may fire the notification before screen geometry is fully settled.
+    screenChangeWorkItem?.cancel()
+    let work = DispatchWorkItem { [weak self] in
+      guard let self, self.panel.isVisible || self.state.isAutoHidden else { return }
+      self.applyDock(position: self.state.dockPosition, animate: false)
+      if self.state.isAutoHidden {
+        self.updateTabFrame()
+      }
+    }
+    screenChangeWorkItem = work
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
   }
 
   var isVisible: Bool {
