@@ -237,14 +237,29 @@ jobs:
         env:
           SPARKLE_EDDSA_PRIVATE_KEY: ${{ secrets.SPARKLE_EDDSA_PRIVATE_KEY }}
         run: |
+          if [ -z "$SPARKLE_EDDSA_PRIVATE_KEY" ]; then
+            echo "⚠️  SPARKLE_EDDSA_PRIVATE_KEY not set — skipping Sparkle signing"
+            echo "SPARKLE_SIGNATURE=" >> $GITHUB_ENV
+            echo "ZIP_SIZE=$(stat -f%z "$ZIP_NAME")" >> $GITHUB_ENV
+            exit 0
+          fi
+          
           # Download Sparkle CLI tools
           SPARKLE_VERSION="2.9.0"
           curl -sL "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz" -o sparkle.tar.xz
           mkdir -p sparkle_tools
           tar -xf sparkle.tar.xz -C sparkle_tools
           
+          # Write private key to a temp file (sign_update requires a file path)
+          KEY_FILE=$(mktemp)
+          echo -n "$SPARKLE_EDDSA_PRIVATE_KEY" > "$KEY_FILE"
+          
           # Sign the ZIP with EdDSA
-          SIGNATURE=$(echo -n "$SPARKLE_EDDSA_PRIVATE_KEY" | ./sparkle_tools/bin/sign_update "$ZIP_NAME" --ed-key-file -)
+          SIGNATURE=$(./sparkle_tools/bin/sign_update "$ZIP_NAME" -f "$KEY_FILE")
+          
+          # Clean up key file
+          rm -f "$KEY_FILE"
+          
           echo "SPARKLE_SIGNATURE=$SIGNATURE" >> $GITHUB_ENV
           
           # Get file size
