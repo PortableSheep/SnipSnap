@@ -56,6 +56,7 @@ struct OnboardingView: View {
   @State private var accessibilityGranted = false
   @State private var inputMonitoringGranted = false
   @State private var refreshID = UUID()
+  @State private var pollTimer: Timer?
 
   var body: some View {
     VStack(spacing: 20) {
@@ -145,8 +146,29 @@ struct OnboardingView: View {
       .padding(.bottom, 20)
     }
     .frame(width: 520, height: 520)
-    .onAppear { refreshPermissions() }
+    .onAppear {
+      refreshPermissions()
+      startPolling()
+    }
+    .onDisappear {
+      stopPolling()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+      refreshPermissions()
+    }
   }
+
+    private func startPolling() {
+        stopPolling()
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+            Task { @MainActor in refreshPermissions() }
+        }
+    }
+
+    private func stopPolling() {
+        pollTimer?.invalidate()
+        pollTimer = nil
+    }
 
     private var allGranted: Bool {
         screenRecordingGranted && accessibilityGranted && inputMonitoringGranted

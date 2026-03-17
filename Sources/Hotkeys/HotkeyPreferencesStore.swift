@@ -9,7 +9,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
   case toggleStrip
   case captureRegion
   case captureWindow
-  case showCaptureOptions
+  case quickCapture = "showCaptureOptions"
 
   var id: String { rawValue }
 
@@ -19,7 +19,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
     case .toggleStrip: return "Show/Hide Strip"
     case .captureRegion: return "Capture Region"
     case .captureWindow: return "Capture Window"
-    case .showCaptureOptions: return "Show Capture Options"
+    case .quickCapture: return "Quick Capture"
     }
   }
 
@@ -29,7 +29,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
     case .toggleStrip: return "rectangle.split.3x1"
     case .captureRegion: return "rectangle.dashed"
     case .captureWindow: return "macwindow"
-    case .showCaptureOptions: return "camera.metering.center.weighted"
+    case .quickCapture: return "camera.metering.center.weighted"
     }
   }
 }
@@ -126,7 +126,7 @@ struct HotkeyBinding: Codable, Equatable {
     .toggleStrip: HotkeyBinding(keyCode: UInt32(kVK_ANSI_S), modifiers: UInt32(cmdKey | shiftKey)),
     .captureRegion: HotkeyBinding(keyCode: UInt32(kVK_ANSI_8), modifiers: UInt32(cmdKey | shiftKey)),
     .captureWindow: HotkeyBinding(keyCode: UInt32(kVK_ANSI_7), modifiers: UInt32(cmdKey | shiftKey)),
-    .showCaptureOptions: HotkeyBinding(keyCode: UInt32(kVK_ANSI_3), modifiers: UInt32(cmdKey | shiftKey)),
+    .quickCapture: HotkeyBinding(keyCode: UInt32(kVK_ANSI_2), modifiers: UInt32(cmdKey | shiftKey)),
   ]
 }
 
@@ -137,6 +137,9 @@ final class HotkeyPreferencesStore: ObservableObject {
   @Published var bindings: [HotkeyAction: HotkeyBinding] {
     didSet { save() }
   }
+
+  /// Actions whose Carbon registration failed (updated by HotKeyManager).
+  @Published var failedRegistrations: Set<HotkeyAction> = []
 
   private let key = "HotkeyBindings"
 

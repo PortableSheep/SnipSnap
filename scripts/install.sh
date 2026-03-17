@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # SnipSnap Installer
-# Installs SnipSnap to /Applications and removes quarantine flag
-# Can be run locally or via curl from remote
+# Downloads the latest signed & notarized release and installs to /Applications.
+# Can be run locally or via: curl -fsSL <url> | bash
 
 APP_NAME="SnipSnap.app"
 INSTALL_DIR="/Applications"
@@ -57,6 +57,16 @@ if [[ ! -d "$SCRIPT_DIR/$APP_NAME" ]]; then
     exit 1
 fi
 
+# Verify code signature before installing
+echo "🔏 Verifying code signature..."
+if ! codesign --verify --deep --strict "$SCRIPT_DIR/$APP_NAME" 2>/dev/null; then
+    echo "❌ Code signature verification failed!"
+    echo "   The app may be corrupted or tampered with."
+    echo "   Download a fresh copy from https://github.com/$GITHUB_REPO/releases"
+    exit 1
+fi
+echo "   ✅ Code signature valid"
+
 # Kill running instance
 if pgrep -f "$APP_NAME" > /dev/null 2>&1; then
     echo "⏹️  Stopping running SnipSnap..."
@@ -71,9 +81,12 @@ if [[ -d "$INSTALL_DIR/$APP_NAME" ]]; then
 fi
 cp -R "$SCRIPT_DIR/$APP_NAME" "$INSTALL_DIR/"
 
-# Remove quarantine flag (bypasses Gatekeeper for unsigned apps)
-echo "🔓 Removing quarantine flag..."
-xattr -rd com.apple.quarantine "$INSTALL_DIR/$APP_NAME" 2>/dev/null || true
+# Verify notarization (warning only — may fail offline or before ticket is cached)
+if ! spctl --assess --type exec "$INSTALL_DIR/$APP_NAME" 2>/dev/null; then
+    echo "⚠️  Could not verify notarization status."
+    echo "   This is normal on first launch or when offline."
+    echo "   macOS will verify notarization when you open the app."
+fi
 
 # Register with LaunchServices
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"

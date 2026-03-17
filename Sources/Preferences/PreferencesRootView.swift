@@ -224,6 +224,7 @@ private struct ShortcutsPreferencesView: View {
               action: action,
               binding: hotkeyPrefs.binding(for: action),
               isRecording: recordingAction == action,
+              isFailed: hotkeyPrefs.failedRegistrations.contains(action),
               onStartRecording: {
                 recordingAction = action
               },
@@ -278,6 +279,7 @@ private struct ShortcutRow: View {
   let action: HotkeyAction
   let binding: HotkeyBinding
   let isRecording: Bool
+  let isFailed: Bool
   let onStartRecording: () -> Void
   let onStopRecording: (HotkeyBinding?) -> Void
 
@@ -294,6 +296,13 @@ private struct ShortcutRow: View {
         Text("Global hotkey")
           .font(.system(size: 12))
           .foregroundColor(.secondary)
+      }
+
+      if isFailed {
+        Image(systemName: "exclamationmark.triangle.fill")
+          .font(.system(size: 14))
+          .foregroundColor(.orange)
+          .help("This shortcut could not be registered. It may conflict with a system shortcut.")
       }
 
       Spacer()

@@ -64,7 +64,6 @@
 		86D415967BF395CC6EACA0BB /* CaptureBackgroundServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A1A6CB47E82AB62EA20D1C8 /* CaptureBackgroundServices.swift */; };
 		8815660E1E51FF537EA0BFD4 /* FeatureMatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED364C95A79AD70B690ACB0D /* FeatureMatcherTests.swift */; };
 		88331C566ABBBC3D4654C746 /* EditorToolProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 253C4680468BEA377635C0E3 /* EditorToolProtocol.swift */; };
-		8DC5A0B8AC56FF9A03BED675 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C1325186B63DD3C2E7ABC4 /* UpdateChecker.swift */; };
 		8F5CD49D2499F0FCF6A743CD /* CaptureServiceClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FD71107E5577A19F69363D8 /* CaptureServiceClient.swift */; };
 		8FB949FC2585F21E4E8BA9FD /* AnnotationTemplateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD92A38499E581425687F83C /* AnnotationTemplateStore.swift */; };
 		90CF5A7C510BC8F1052BDB50 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE1EF1A74598DC5A850D66E /* AppDelegate.swift */; };
@@ -114,6 +113,7 @@
 		F269532B1511C8899E607D57 /* CaptureLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23E42E2807C053C228299A4D /* CaptureLibraryTests.swift */; };
 		F2780CA3D6438E1AC942EE61 /* AnnotationTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36CEC1012690269A675DC1B8 /* AnnotationTemplate.swift */; };
 		F78042DA654240F0609BC115 /* OverlayEventTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E919C91DC66F3DA690ECE1 /* OverlayEventTap.swift */; };
+		F78E4B28CA83BC788EC5D218 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 3BD836F306856CFCDF10E8BC /* Sparkle */; };
 		F949A7AE37584843BAD0AE66 /* WallpaperHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA5BBE2EE1531C7E20A430A /* WallpaperHelper.swift */; };
 		FAF94652720AA60627EE79C7 /* CaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72DC04751C6014FEF091C515 /* CaptureService.swift */; };
 		FCD110F24E0021AE5D99C744 /* ScreenRecordingPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE0DCDFDC126C2B147431C5F /* ScreenRecordingPermission.swift */; };
@@ -206,7 +206,6 @@
 		5E5184A73B7CE30ED8B57533 /* ScreenCaptureKitRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureKitRecorder.swift; sourceTree = "<group>"; };
 		5FD71107E5577A19F69363D8 /* CaptureServiceClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureServiceClient.swift; sourceTree = "<group>"; };
 		6149C38586EF4B08AD2A32A9 /* RecordingProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingProtocol.swift; sourceTree = "<group>"; };
-		62C1325186B63DD3C2E7ABC4 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		63D99435730BD80B011034CA /* SnipSnapTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SnipSnapTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6642F183214D07B38A4989EE /* SystemScreencaptureRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemScreencaptureRecorder.swift; sourceTree = "<group>"; };
 		6A5FA0FFEC02DB97E70AD390 /* SystemScreencaptureScreenshotter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemScreencaptureScreenshotter.swift; sourceTree = "<group>"; };
@@ -261,6 +260,17 @@
 		FD45AEC0D8BDE316F4F7F1E7 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		FF7E6B90B6875473C1B1F25C /* RecordingPreflight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingPreflight.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		851C7A7491A5D63568310FAE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F78E4B28CA83BC788EC5D218 /* Sparkle in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		0E48DF1122F6A0B4E77310E0 /* Snapping */ = {
@@ -474,7 +484,6 @@
 				7F19EB3D30B862A1BC2E016B /* ScrollCaptureRegionDecorator.swift */,
 				116DBEC131A52EE9E5FC3FB9 /* ScrollCaptureSession.swift */,
 				6C7BEC60BB6C6C040C53E9DA /* StickyElementDetector.swift */,
-				62C1325186B63DD3C2E7ABC4 /* UpdateChecker.swift */,
 				881E02CD85F3A699F2CF1B18 /* VisionImageRegistration.swift */,
 				104F7EFF8F4AA305E74C309F /* WindowPicker.swift */,
 			);
@@ -529,6 +538,7 @@
 				F4F127019D44092F68182810 /* Sources */,
 				767104BF8E6AF78605CC2D43 /* Resources */,
 				60B970FAEE7FC06512C7EB29 /* CopyFiles */,
+				851C7A7491A5D63568310FAE /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -537,6 +547,7 @@
 			);
 			name = SnipSnap;
 			packageProductDependencies = (
+				3BD836F306856CFCDF10E8BC /* Sparkle */,
 			);
 			productName = SnipSnap;
 			productReference = 9AE82028F9B284CB4A1824C1 /* SnipSnap.app */;
@@ -605,26 +616,25 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					B326219152D47D9D79DD805E = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(SNIPSNAP_DEVELOPMENT_TEAM)";
 						ProvisioningStyle = Manual;
 					};
 					CDDBD0BBB6FE62FB5F0FA1F4 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(SNIPSNAP_DEVELOPMENT_TEAM)";
 						ProvisioningStyle = Manual;
 						TestTargetID = B326219152D47D9D79DD805E;
 					};
 					D809D49B0932D3555F152431 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(SNIPSNAP_DEVELOPMENT_TEAM)";
 						ProvisioningStyle = Manual;
 					};
 					E77A7E18BAB8E94E646E00CF = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(SNIPSNAP_DEVELOPMENT_TEAM)";
 						ProvisioningStyle = Manual;
 					};
 				};
 			};
 			buildConfigurationList = 9D42394B3E9D5BB57D0E83BB /* Build configuration list for PBXProject "SnipSnap" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -633,7 +643,11 @@
 			);
 			mainGroup = A1A14AFB5ACA682D4B2438BF;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7BBAEA81B4D97657A0A6AF12 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
+			productRefGroup = E91CE6D2881EC4A249BBF5F5 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -784,7 +798,6 @@
 				998F85489833E4D6E2C10481 /* SystemScreencaptureRecorder.swift in Sources */,
 				D8BEF7CB791BEAA0E4E60E92 /* SystemScreencaptureScreenshotter.swift in Sources */,
 				0D07687B99BFD66D96EF6513 /* ToolRegistry.swift in Sources */,
-				8DC5A0B8AC56FF9A03BED675 /* UpdateChecker.swift in Sources */,
 				A2E34276D459DA945218C6EC /* VideoTrimExporter.swift in Sources */,
 				B98D12D6C2CD454D6E73E19B /* VideoTrimPresenter.swift in Sources */,
 				BAB9C17E653E85AAE194843D /* VisionImageRegistration.swift in Sources */,
@@ -872,7 +885,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = "$(SNIPSNAP_DEVELOPMENT_TEAM)";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -899,6 +912,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SNIPSNAP_CODE_SIGN_IDENTITY = "SnipSnap Local Dev";
+				SNIPSNAP_DEVELOPMENT_TEAM = "";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_ENABLE_INCREMENTAL_COMPILATION = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1000,7 +1014,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = "$(SNIPSNAP_DEVELOPMENT_TEAM)";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -1020,6 +1034,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SNIPSNAP_CODE_SIGN_IDENTITY = "SnipSnap Local Dev";
+				SNIPSNAP_DEVELOPMENT_TEAM = "";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -1148,6 +1163,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7BBAEA81B4D97657A0A6AF12 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3BD836F306856CFCDF10E8BC /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7BBAEA81B4D97657A0A6AF12 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 73D4435CC7142AE0EBADA504 /* Project object */;
 }

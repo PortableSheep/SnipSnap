@@ -1,6 +1,7 @@
 import Cocoa
 import Combine
 import os.log
+import Sparkle
 import UniformTypeIdentifiers
 
 private let appLog = OSLog(subsystem: "com.snipsnap.Snipsnap", category: "AppDelegate")
@@ -27,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private let prefsWindow = PreferencesWindowController()
 
   private let presentation = PresentationWindowController()
+  private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
   
   /// Floating stop button shown during recording (excluded from capture)
   private let floatingStopButton = FloatingStopButtonController()
@@ -63,10 +65,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     stripState.isVisible = stripState.showOnStartup
     stripController = StripWindowController(state: stripState, library: captureLibrary, editor: editor, presentation: presentation)
 
-    // Global hotkeys (requires Accessibility permissions on many systems).
-    if AccessibilityPermission.isTrusted(prompt: false) {
-      startHotkeys()
-    }
+    // Global hotkeys via Carbon RegisterEventHotKey (no Accessibility permission needed).
+    startHotkeys()
 
     refreshMenu()
 
@@ -92,8 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       }
       .store(in: &cancellables)
 
-    // Check for updates (respects 24h cooldown)
-    UpdateChecker.shared.checkOnLaunch()
+    // Sparkle handles automatic update checks on launch (startingUpdater: true)
 
     // Show onboarding on first launch to guide users through permissions
     if !OnboardingWindowController.hasCompletedOnboarding {
@@ -527,8 +526,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.onCaptureRegionScreenshot()
       case .captureWindow:
         self.onCaptureWindowScreenshot()
-      case .showCaptureOptions:
-        self.onCapture()
+      case .quickCapture:
+        self.onQuickCapture()
       }
     }
     hotkeys.start()
@@ -550,8 +549,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     donate.image = NSImage(systemSymbolName: "gift.fill", accessibilityDescription: "Donate")
     menu.addItem(donate)
 
-    let checkUpdates = NSMenuItem(title: "Check for Updates…", action: #selector(onCheckForUpdates), keyEquivalent: "")
-    checkUpdates.target = self
+    let checkUpdates = NSMenuItem(title: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+    checkUpdates.target = updaterController
     menu.addItem(checkUpdates)
 
     // Presentation Mode submenu
@@ -593,7 +592,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
       menu.addItem(.separator())
 
-      let capture = NSMenuItem(title: "Capture…", action: #selector(onCapture), keyEquivalent: "3")
+      let capture = NSMenuItem(title: "Capture…", action: #selector(onCapture), keyEquivalent: "2")
       capture.keyEquivalentModifierMask = [.command, .shift]
       capture.target = self
       menu.addItem(capture)
@@ -654,10 +653,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   @objc private func onSetupPermissions() {
     OnboardingWindowController.shared.show(markComplete: false)
-  }
-
-  @objc private func onCheckForUpdates() {
-    UpdateChecker.shared.checkNow()
   }
 
   @objc private func onToggleStrip() {
@@ -794,6 +789,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let buttonWidth = button.bounds.width
     let xOffset = (buttonWidth - menuWidth) / 2
     preflightMenu.popUp(positioning: nil, at: NSPoint(x: xOffset, y: button.bounds.height + 4), in: button)
+  }
+
+  /// Quick capture using last-chosen mode and delay (no preflight dialog).
+  private func onQuickCapture() {
+    Task { @MainActor in
+      do {
+        let modeRaw = UserDefaults.standard.string(forKey: "prefs.capture.mode")
+        let mode = CaptureMode(rawValue: modeRaw ?? "region") ?? .region
+        let delayValue = UserDefaults.standard.double(forKey: "prefs.capture.delay")
+        let delay = CaptureDelay(rawValue: delayValue) ?? .none
+
+        if delay == .none {
+          try await performCapture(mode: mode, delay: delay)
+          stripController?.refresh()
+          refreshMenu()
+        } else {
+          let seconds = Int(delay.rawValue)
+          DelayedCaptureCountdown.show(seconds: seconds) { [weak self] in
+            Task { @MainActor in
+              guard let self else { return }
+              do {
+                try await self.performCapture(mode: mode, delay: .none)
+                self.stripController?.refresh()
+                self.refreshMenu()
+              } catch {
+                self.showError(error)
+              }
+            }
+          }
+        }
+      } catch {
+        showError(error)
+      }
+    }
   }
   
   private func startTicker() {

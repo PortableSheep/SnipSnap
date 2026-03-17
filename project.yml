@@ -1,14 +1,22 @@
 name: SnipSnap
 options:
   bundleIdPrefix: com.snipsnap
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.9.0"
 settings:
   base:
     MACOSX_DEPLOYMENT_TARGET: 13.0
     SWIFT_VERSION: 5.0
-    # Local dev signing (no Apple Developer Program required).
-    # Create a self-signed Code Signing certificate in Keychain Access matching
-    # `SNIPSNAP_CODE_SIGN_IDENTITY` and trust it, then regenerate the project.
-    DEVELOPMENT_TEAM: ""
+    # Signing supports two modes:
+    #   1. Local dev (default): Create a self-signed Code Signing certificate in
+    #      Keychain Access matching `SNIPSNAP_CODE_SIGN_IDENTITY` and trust it.
+    #      No Apple Developer Program required.
+    #   2. CI / Developer ID: Override SNIPSNAP_CODE_SIGN_IDENTITY and
+    #      SNIPSNAP_DEVELOPMENT_TEAM via xcodebuild command-line arguments.
+    SNIPSNAP_DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "$(SNIPSNAP_DEVELOPMENT_TEAM)"
     CODE_SIGN_STYLE: Manual
     SNIPSNAP_CODE_SIGN_IDENTITY: "SnipSnap Local Dev"
     CODE_SIGN_IDENTITY: "$(SNIPSNAP_CODE_SIGN_IDENTITY)"
@@ -48,6 +56,8 @@ targets:
         codeSign: true
         copyPhase:
           destination: xpcServices
+      - package: Sparkle
+        product: Sparkle
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.snipsnap.Snipsnap
@@ -66,6 +76,10 @@ targets:
         NSHighResolutionCapable: true
         LSUIElement: true
         NSScreenCaptureUsageDescription: SnipSnap needs Screen Recording permission to capture your screen.
+        SUFeedURL: https://portablesheep.github.io/snipsnap/appcast.xml
+        SUPublicEDKey: "F/ram4+XMkAhklEyc9TP5rCQn/h611jy3n6RdyRFl2Q="
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
 
   SnipSnapTests:
     type: bundle.unit-test

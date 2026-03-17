@@ -86,6 +86,8 @@ Download the latest `.dmg` or `.zip` from the [Releases](https://github.com/port
 
 ### First Launch
 
+SnipSnap is signed and notarized by Apple, so it launches without Gatekeeper warnings.
+
 macOS will ask for two permissions:
 
 1. **Screen Recording** — Required for captures
@@ -208,8 +210,9 @@ Captures live in `~/Library/Application Support/SnipSnap/captures/` with sidecar
 - **AVFoundation** — Video encoding/decoding
 - **Vision** — OCR text recognition
 - **CoreGraphics** — Low-level canvas rendering
+- **[Sparkle 2](https://sparkle-project.org/)** — Secure auto-updates with EdDSA signature verification
 
-No third-party dependencies. XcodeGen generates the Xcode project from `project.yml` so it's not checked into Git.
+XcodeGen generates the Xcode project from `project.yml` so it's not checked into Git.
 
 ## Donationware
 

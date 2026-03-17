@@ -1,6 +1,9 @@
 import AppKit
 import Carbon
 import Combine
+import os.log
+
+private let hotkeyLog = OSLog(subsystem: "com.snipsnap.Snipsnap", category: "Hotkeys")
 
 final class HotKeyManager {
   private var eventHandler: EventHandlerRef?
@@ -48,8 +51,10 @@ final class HotKeyManager {
     )
 
     if status != noErr {
+      os_log(.error, log: hotkeyLog, "Failed to install Carbon event handler (status %d)", status)
       return
     }
+    os_log(.info, log: hotkeyLog, "Carbon event handler installed")
 
     // Register hotkeys from preferences
     registerAllHotkeys()
@@ -71,11 +76,15 @@ final class HotKeyManager {
     hotKeyRefs.removeAll()
 
     // Register from preferences
+    var failed = Set<HotkeyAction>()
     let prefs = HotkeyPreferencesStore.shared
     for action in HotkeyAction.allCases {
       let binding = prefs.binding(for: action)
-      registerHotKey(id: action.hotkeyID, keyCode: binding.keyCode, modifiers: binding.modifiers)
+      if !registerHotKey(id: action.hotkeyID, keyCode: binding.keyCode, modifiers: binding.modifiers) {
+        failed.insert(action)
+      }
     }
+    prefs.failedRegistrations = failed
   }
 
   func stop() {
@@ -91,15 +100,19 @@ final class HotKeyManager {
     }
   }
 
-  private func registerHotKey(id: UInt32, keyCode: UInt32, modifiers: UInt32) {
+  /// Returns `true` if the hotkey was registered successfully.
+  @discardableResult
+  private func registerHotKey(id: UInt32, keyCode: UInt32, modifiers: UInt32) -> Bool {
     let hotKeyID = EventHotKeyID(signature: OSType(0x534E5053), id: id) // 'SNPS'
     var ref: EventHotKeyRef?
-    // Use option 1 for exclusive/non-exclusive mode (some versions of macOS require this)
-    let status = RegisterEventHotKey(keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 1, &ref)
+    let status = RegisterEventHotKey(keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 0, &ref)
     if status == noErr {
       hotKeyRefs.append(ref)
+      os_log(.info, log: hotkeyLog, "Registered hotkey id=%d keyCode=%d modifiers=0x%x", id, keyCode, modifiers)
+      return true
     } else {
-      print("SnipSnap: Failed to register hotkey id=\(id) keyCode=\(keyCode) status=\(status)")
+      os_log(.error, log: hotkeyLog, "Failed to register hotkey id=%d keyCode=%d modifiers=0x%x (status %d)", id, keyCode, modifiers, status)
+      return false
     }
   }
 
@@ -117,7 +130,7 @@ extension HotkeyAction {
     case .toggleStrip: return 2
     case .captureRegion: return 3
     case .captureWindow: return 4
-    case .showCaptureOptions: return 5
+    case .quickCapture: return 5
     }
   }
 }
