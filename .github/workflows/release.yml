@@ -181,6 +181,10 @@ jobs:
           ./scripts/notarize.sh "build/Build/Products/Release/SnipSnap.app"
 
       - name: Create DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           APP_PATH="build/Build/Products/Release/SnipSnap.app"
           VERSION="${{ steps.version.outputs.version }}"
