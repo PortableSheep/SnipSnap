@@ -251,23 +251,34 @@ jobs:
           tar -xf sparkle.tar.xz -C sparkle_tools
           chmod +x ./sparkle_tools/bin/sign_update
           
-          # Write private key to a temp file (sign_update needs a file path, not stdin)
-          KEY_FILE=$(mktemp)
-          printf '%s' "$SPARKLE_EDDSA_PRIVATE_KEY" > "$KEY_FILE"
-          KEY_SIZE=$(wc -c < "$KEY_FILE" | tr -d ' ')
-          echo "Key file written ($KEY_SIZE bytes)"
+          # Validate key format before attempting to sign
+          KEY_VALUE=$(printf '%s' "$SPARKLE_EDDSA_PRIVATE_KEY" | tr -d '[:space:]')
+          KEY_CHARS=${#KEY_VALUE}
+          DECODED_SIZE=$(printf '%s' "$KEY_VALUE" | base64 -d 2>/dev/null | wc -c | tr -d ' ')
+          echo "Key: ${KEY_CHARS} base64 chars → ${DECODED_SIZE} decoded bytes"
           
-          # Sign the ZIP with EdDSA
+          if [ "$DECODED_SIZE" -eq 44 ]; then
+            echo "⚠️  Key appears double-base64-encoded (44 decoded bytes = base64 of 32-byte seed)"
+            echo "   Attempting to unwrap one layer of encoding..."
+            KEY_VALUE=$(printf '%s' "$KEY_VALUE" | base64 -d 2>/dev/null)
+            DECODED_SIZE=$(printf '%s' "$KEY_VALUE" | base64 -d 2>/dev/null | wc -c | tr -d ' ')
+            echo "   After unwrap: ${DECODED_SIZE} decoded bytes"
+          fi
+          
+          if [ "$DECODED_SIZE" -ne 32 ] && [ "$DECODED_SIZE" -ne 96 ]; then
+            echo "❌ Invalid key: expected 32 bytes (new format) or 96 bytes (old format), got ${DECODED_SIZE}"
+            echo "   Re-export with: ./bin/generate_keys -x sparkle.key"
+            echo "   Then set SPARKLE_EDDSA_PRIVATE_KEY to the exact file contents (no extra encoding)"
+            exit 1
+          fi
+          
+          # Sign via stdin (avoids temp file; sign_update supports --ed-key-file -)
           echo "Signing $ZIP_NAME..."
-          SIGNATURE=$(./sparkle_tools/bin/sign_update "$ZIP_NAME" -f "$KEY_FILE" 2>&1) || {
+          SIGNATURE=$(printf '%s' "$KEY_VALUE" | ./sparkle_tools/bin/sign_update "$ZIP_NAME" --ed-key-file - 2>&1) || {
             echo "❌ sign_update failed with output:"
             echo "$SIGNATURE"
-            rm -f "$KEY_FILE"
             exit 1
           }
-          
-          # Clean up key file immediately
-          rm -f "$KEY_FILE"
           
           echo "SPARKLE_SIGNATURE=$SIGNATURE" >> $GITHUB_ENV
           
@@ -275,6 +286,15 @@ jobs:
           ZIP_SIZE=$(stat -f%z "$ZIP_NAME")
           echo "ZIP_SIZE=$ZIP_SIZE" >> $GITHUB_ENV
           echo "✅ Sparkle EdDSA signature: $SIGNATURE"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          chmod +x scripts/generate-changelog.sh
+          BODY=$(./scripts/generate-changelog.sh "" HEAD)
+          # Write to file for the release step (handles multiline safely)
+          echo "$BODY" > release_notes.md
+          echo "Generated changelog for release"
 
       - name: Generate appcast
         run: |
@@ -297,17 +317,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/appcast.xml
-          git commit -m "Update appcast.xml for v${{ steps.version.outputs.version }}" || echo "No appcast changes"
+          git commit -m "chore: update appcast.xml for v${{ steps.version.outputs.version }} [skip ci]" || echo "No appcast changes"
           git push || echo "Push failed — appcast update will be included in next push"
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          chmod +x scripts/generate-changelog.sh
-          BODY=$(./scripts/generate-changelog.sh "" HEAD)
-          # Write to file for the release step (handles multiline safely)
-          echo "$BODY" > release_notes.md
-          echo "Generated changelog for release"
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
