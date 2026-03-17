@@ -116,6 +116,61 @@ jobs:
             SS_LICENSE_PUBLIC_KEY_V1="$SS_LICENSE_PUBLIC_KEY_V1" \
             build
 
+      - name: Re-sign embedded frameworks for notarization
+        run: |
+          APP_PATH="build/Build/Products/Release/SnipSnap.app"
+          SIGN_IDENTITY="Developer ID Application"
+          SIGN_FLAGS="--timestamp -o runtime"
+          
+          # Sparkle.framework contains pre-built binaries that xcodebuild doesn't
+          # re-sign with our Developer ID cert. Apple notarization requires every
+          # binary in the bundle to be signed with Developer ID + secure timestamp.
+          # Sign inside-out: deepest binaries first, then bundles, then framework.
+          
+          SPARKLE_FW="$APP_PATH/Contents/Frameworks/Sparkle.framework"
+          
+          if [ -d "$SPARKLE_FW" ]; then
+            echo "🔏 Re-signing Sparkle framework binaries..."
+            
+            # Find and sign all Mach-O binaries inside the framework (inside-out)
+            find "$SPARKLE_FW" -type f \( -name "*.dylib" -o -perm +111 \) | while read -r binary; do
+              # Skip non-Mach-O files (e.g. plists, shell scripts)
+              if file "$binary" | grep -q "Mach-O"; then
+                echo "   Signing: ${binary#$APP_PATH/}"
+                codesign --force --sign "$SIGN_IDENTITY" $SIGN_FLAGS "$binary"
+              fi
+            done
+            
+            # Re-sign XPC services (as bundles)
+            find "$SPARKLE_FW" -name "*.xpc" -type d | while read -r xpc; do
+              echo "   Signing bundle: ${xpc#$APP_PATH/}"
+              codesign --force --sign "$SIGN_IDENTITY" $SIGN_FLAGS "$xpc"
+            done
+            
+            # Re-sign nested .app bundles
+            find "$SPARKLE_FW" -name "*.app" -type d | while read -r app; do
+              echo "   Signing bundle: ${app#$APP_PATH/}"
+              codesign --force --sign "$SIGN_IDENTITY" $SIGN_FLAGS "$app"
+            done
+            
+            # Re-sign the framework itself
+            echo "   Signing: Sparkle.framework"
+            codesign --force --sign "$SIGN_IDENTITY" $SIGN_FLAGS "$SPARKLE_FW"
+            
+            echo "✅ Sparkle framework re-signed"
+          fi
+          
+          # Re-sign the outer app bundle (seal updated after framework re-signing)
+          echo "🔏 Re-signing SnipSnap.app..."
+          codesign --force --sign "$SIGN_IDENTITY" $SIGN_FLAGS \
+            --entitlements SnipSnap.entitlements \
+            "$APP_PATH"
+          
+          # Verify the final signature
+          echo "🔍 Verifying signature..."
+          codesign --verify --deep --strict "$APP_PATH"
+          echo "✅ Signature verification passed"
+
       - name: Notarize App
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
