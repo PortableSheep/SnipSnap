@@ -249,15 +249,24 @@ jobs:
           curl -sL "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz" -o sparkle.tar.xz
           mkdir -p sparkle_tools
           tar -xf sparkle.tar.xz -C sparkle_tools
+          chmod +x ./sparkle_tools/bin/sign_update
           
-          # Write private key to a temp file (sign_update requires a file path)
+          # Write private key to a temp file (sign_update needs a file path, not stdin)
           KEY_FILE=$(mktemp)
-          echo -n "$SPARKLE_EDDSA_PRIVATE_KEY" > "$KEY_FILE"
+          printf '%s' "$SPARKLE_EDDSA_PRIVATE_KEY" > "$KEY_FILE"
+          KEY_SIZE=$(wc -c < "$KEY_FILE" | tr -d ' ')
+          echo "Key file written ($KEY_SIZE bytes)"
           
           # Sign the ZIP with EdDSA
-          SIGNATURE=$(./sparkle_tools/bin/sign_update "$ZIP_NAME" -f "$KEY_FILE")
+          echo "Signing $ZIP_NAME..."
+          SIGNATURE=$(./sparkle_tools/bin/sign_update "$ZIP_NAME" -f "$KEY_FILE" 2>&1) || {
+            echo "❌ sign_update failed with output:"
+            echo "$SIGNATURE"
+            rm -f "$KEY_FILE"
+            exit 1
+          }
           
-          # Clean up key file
+          # Clean up key file immediately
           rm -f "$KEY_FILE"
           
           echo "SPARKLE_SIGNATURE=$SIGNATURE" >> $GITHUB_ENV
@@ -265,7 +274,7 @@ jobs:
           # Get file size
           ZIP_SIZE=$(stat -f%z "$ZIP_NAME")
           echo "ZIP_SIZE=$ZIP_SIZE" >> $GITHUB_ENV
-          echo "✅ Sparkle EdDSA signature generated"
+          echo "✅ Sparkle EdDSA signature: $SIGNATURE"
 
       - name: Generate appcast
         run: |
