@@ -539,6 +539,7 @@
 				767104BF8E6AF78605CC2D43 /* Resources */,
 				60B970FAEE7FC06512C7EB29 /* CopyFiles */,
 				851C7A7491A5D63568310FAE /* Frameworks */,
+				84F8E3940CA3F503A2F8697E /* Re-sign Sparkle helpers */,
 			);
 			buildRules = (
 			);
@@ -669,6 +670,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		84F8E3940CA3F503A2F8697E /* Re-sign Sparkle helpers */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Re-sign Sparkle helpers";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Sparkle's pre-built helper binaries are ad-hoc signed. Re-sign them\n# with the same identity as the main app so macOS allows loading.\nSPARKLE_FW=\"${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sparkle.framework\"\nif [ -d \"$SPARKLE_FW\" ] && [ \"$CODE_SIGN_IDENTITY\" != \"-\" ] && [ -n \"$CODE_SIGN_IDENTITY\" ]; then\n  SIGN_FLAGS=\"--force --sign \\\"${EXPANDED_CODE_SIGN_IDENTITY}\\\"\"\n  if [ -n \"${OTHER_CODE_SIGN_FLAGS:-}\" ]; then\n    SIGN_FLAGS=\"$SIGN_FLAGS ${OTHER_CODE_SIGN_FLAGS}\"\n  fi\n  find \"$SPARKLE_FW\" -type f -perm +111 \\\n    ! -name \"*.plist\" ! -name \"*.strings\" ! -name \"*.nib\" \\\n    -exec sh -c \"eval codesign $SIGN_FLAGS \\\"{}\\\"\" \\;\n  echo \"✅ Re-signed Sparkle framework helpers with ${CODE_SIGN_IDENTITY}\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		932CBA3A1E1442609A2EB623 /* Sources */ = {

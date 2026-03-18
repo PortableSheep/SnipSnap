@@ -62,8 +62,26 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.snipsnap.Snipsnap
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    postBuildScripts:
+      - name: Re-sign Sparkle helpers
+        script: |
+          # Sparkle's pre-built helper binaries are ad-hoc signed. Re-sign them
+          # with the same identity as the main app so macOS allows loading.
+          SPARKLE_FW="${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sparkle.framework"
+          if [ -d "$SPARKLE_FW" ] && [ "$CODE_SIGN_IDENTITY" != "-" ] && [ -n "$CODE_SIGN_IDENTITY" ]; then
+            SIGN_FLAGS="--force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\""
+            if [ -n "${OTHER_CODE_SIGN_FLAGS:-}" ]; then
+              SIGN_FLAGS="$SIGN_FLAGS ${OTHER_CODE_SIGN_FLAGS}"
+            fi
+            find "$SPARKLE_FW" -type f -perm +111 \
+              ! -name "*.plist" ! -name "*.strings" ! -name "*.nib" \
+              -exec sh -c "eval codesign $SIGN_FLAGS \"{}\"" \;
+            echo "✅ Re-signed Sparkle framework helpers with ${CODE_SIGN_IDENTITY}"
+          fi
     entitlements:
       path: SnipSnap.entitlements
+      properties:
+        com.apple.security.cs.disable-library-validation: true
     info:
       path: Info.plist
       properties:
