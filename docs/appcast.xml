@@ -6,6 +6,30 @@
     <description>SnipSnap update feed</description>
     <language>en</language>
     <item>
+      <title>Version 1.1.9</title>
+      <sparkle:version>24</sparkle:version>
+      <sparkle:shortVersionString>1.1.9</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 1.1.9</h2>
+        <h3>🐛 Bug Fixes</h3>
+
+<ul>
+<li>Fix release action (<code>ce865a0</code>)</li>
+</ul>
+
+<h3>📦 Other Changes</h3>
+
+<ul>
+<li>Remove version 1.1.9 from appcast.xml (<code>6434d9b</code>)</li>
+<li>Remove version 1.1.9 entry from appcast (<code>b99ca9a</code>)</li>
+<li>Update appcast.xml for v1.1.9 (<code>0ca2a48</code>)</li>
+</ul>
+      ]]></description>
+      <pubDate>Wed, 18 Mar 2026 04:43:32 GMT</pubDate>
+      <enclosure url="https://github.com/PortableSheep/SnipSnap/releases/download/v1.1.9/SnipSnap-1.1.9.zip" sparkle:edSignature="1b4tISiq2dHBfGpZwm4kCU8mSF+ws044QmuA2UTUjDBhcAElQecL1GSrjFZY9uzmF3qVC07YAcLZDyx5eFwrDQ==" length="2790535" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.1.8</title>
       <sparkle:version>20</sparkle:version>
       <sparkle:shortVersionString>1.1.8</sparkle:shortVersionString>
