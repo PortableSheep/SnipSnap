@@ -319,8 +319,9 @@ jobs:
           git commit -m "Update appcast.xml for v${{ steps.version.outputs.version }}" || echo "No appcast changes"
           git push origin master || echo "Push failed — appcast update will be included in next push"
           
-          # Return to the original branch
+          # Return to the original branch and restore stashed build artifacts
           git checkout -
+          git stash pop || true
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
