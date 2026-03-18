@@ -78,10 +78,12 @@ targets:
               -exec sh -c "eval codesign $SIGN_FLAGS \"{}\"" \;
             echo "✅ Re-signed Sparkle framework helpers with ${CODE_SIGN_IDENTITY}"
           fi
-    entitlements:
-      path: SnipSnap.entitlements
-      properties:
-        com.apple.security.cs.disable-library-validation: true
+    settings:
+      configs:
+        Debug:
+          CODE_SIGN_ENTITLEMENTS: SnipSnap-Debug.entitlements
+        Release:
+          CODE_SIGN_ENTITLEMENTS: SnipSnap.entitlements
     info:
       path: Info.plist
       properties:

@@ -854,14 +854,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = SnipSnap.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "SnipSnap-Debug.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.snipsnap.Snipsnap;
+				PRODUCT_BUNDLE_IDENTIFIER = com.snipsnap.SnipSnap;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -1131,7 +1131,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.snipsnap.Snipsnap;
+				PRODUCT_BUNDLE_IDENTIFIER = com.snipsnap.SnipSnap;
 				SDKROOT = macosx;
 			};
 			name = Release;
