@@ -35,7 +35,7 @@
 	<key>SUFeedURL</key>
 	<string>https://portablesheep.github.io/snipsnap/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string></string>
+	<string>F/ram4+XMkAhklEyc9TP5rCQn/h611jy3n6RdyRFl2Q=</string>
 	<key>SUScheduledCheckInterval</key>
 	<integer>86400</integer>
 </dict>
