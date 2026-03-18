@@ -33,7 +33,7 @@
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://portablesheep.github.io/snipsnap/appcast.xml</string>
+	<string>https://portablesheep.github.io/SnipSnap/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>F/ram4+XMkAhklEyc9TP5rCQn/h611jy3n6RdyRFl2Q=</string>
 	<key>SUScheduledCheckInterval</key>

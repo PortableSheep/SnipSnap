@@ -276,12 +276,25 @@ jobs:
           echo "ZIP_SIZE=$ZIP_SIZE" >> $GITHUB_ENV
           echo "✅ Sparkle EdDSA signature: $SIGNATURE"
 
+      - name: Generate changelog
+        id: changelog
+        run: |
+          chmod +x scripts/generate-changelog.sh
+          BODY=$(./scripts/generate-changelog.sh "" HEAD)
+          # Write to file for the release step (handles multiline safely)
+          echo "$BODY" > release_notes.md
+          echo "Generated changelog for release"
+
       - name: Generate appcast
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           BUILD="${{ github.run_number }}"
           DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${ZIP_NAME}"
           CHANGELOG=$(cat release_notes.md 2>/dev/null || echo "")
+          
+          # Fetch the current appcast from master so we preserve previous entries
+          git fetch origin master
+          git show origin/master:docs/appcast.xml > docs/appcast.xml 2>/dev/null || true
           
           python3 scripts/generate-appcast.py \
             --version "$VERSION" \
@@ -296,18 +309,18 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Stash the updated appcast, switch to master, apply, and push
+          cp docs/appcast.xml /tmp/appcast.xml
+          git stash --include-untracked || true
+          git checkout master
+          cp /tmp/appcast.xml docs/appcast.xml
           git add docs/appcast.xml
           git commit -m "Update appcast.xml for v${{ steps.version.outputs.version }}" || echo "No appcast changes"
-          git push || echo "Push failed — appcast update will be included in next push"
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          chmod +x scripts/generate-changelog.sh
-          BODY=$(./scripts/generate-changelog.sh "" HEAD)
-          # Write to file for the release step (handles multiline safely)
-          echo "$BODY" > release_notes.md
-          echo "Generated changelog for release"
+          git push origin master || echo "Push failed — appcast update will be included in next push"
+          
+          # Return to the original branch
+          git checkout -
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4

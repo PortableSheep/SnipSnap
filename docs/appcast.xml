@@ -2,8 +2,55 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>SnipSnap Updates</title>
-    <link>https://portablesheep.github.io/snipsnap/appcast.xml</link>
+    <link>https://portablesheep.github.io/SnipSnap/appcast.xml</link>
     <description>SnipSnap update feed</description>
     <language>en</language>
+    <item>
+      <title>Version 1.1.8</title>
+      <sparkle:version>20</sparkle:version>
+      <sparkle:shortVersionString>1.1.8</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 1.1.8</h2>
+      ]]></description>
+      <pubDate>Wed, 18 Mar 2026 03:37:30 GMT</pubDate>
+      <enclosure url="https://github.com/PortableSheep/SnipSnap/releases/download/v1.1.8/SnipSnap-1.1.8.zip" sparkle:edSignature="g59GLlXdOYFuFnP7WJXUXwX2kyErP3v1GaycjPtm3WCSOnRVnjK30UrMggZ9sDdtjWhYXBrMVl8Vr5T/QL+pAQ==" length="2790527" type="application/octet-stream"/>
+    </item>
+    <item>
+      <title>Version 1.1.7</title>
+      <sparkle:version>19</sparkle:version>
+      <sparkle:shortVersionString>1.1.7</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 1.1.7</h2>
+        <h3>✨ Features</h3>
+
+<ul>
+<li>Add diagnostic logging to sparkle sign (<code>6fbb840</code>)</li>
+<li>Add tweaks for sparkle (<code>2eb14eb</code>)</li>
+</ul>
+
+<h3>🐛 Bug Fixes</h3>
+
+<ul>
+<li>fix: EdDSA signing validation, step ordering, and recursive trigger (<code>f08cd1a</code>)</li>
+</ul>
+
+<h3>🔧 Improvements</h3>
+
+<ul>
+<li>Tweak release action (<code>3c330a9</code>)</li>
+</ul>
+
+<h3>📦 Other Changes</h3>
+
+<ul>
+<li>Change dmg step to use secrets and not env (<code>b1b14fa</code>)</li>
+<li>Signing and sparkle changes (<code>1cbb7d4</code>)</li>
+</ul>
+      ]]></description>
+      <pubDate>Tue, 17 Mar 2026 04:32:43 GMT</pubDate>
+      <enclosure url="https://github.com/PortableSheep/SnipSnap/releases/download/v1.1.7/SnipSnap-1.1.7.zip" sparkle:edSignature="XbUUetxokXc3BkuHTUwRkiBcwdLpQ6cnk3jNCyaBE+U0mf/N2kBsgT1Lj0l21oDvzuLxVTyjF8ITdxQbHN62Aw==" length="2790677" type="application/octet-stream"/>
+    </item>
   </channel>
 </rss>

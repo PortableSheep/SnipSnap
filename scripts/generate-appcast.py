@@ -13,7 +13,7 @@ SPARKLE_NS = "http://www.andymatuschak.org/xml-namespaces/sparkle"
 DC_NS = "http://purl.org/dc/elements/1.1/"
 
 CHANNEL_TITLE = "SnipSnap Updates"
-CHANNEL_LINK = "https://portablesheep.github.io/snipsnap/appcast.xml"
+CHANNEL_LINK = "https://portablesheep.github.io/SnipSnap/appcast.xml"
 CHANNEL_DESC = "SnipSnap update feed"
 
 

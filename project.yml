@@ -96,7 +96,7 @@ targets:
         NSHighResolutionCapable: true
         LSUIElement: true
         NSScreenCaptureUsageDescription: SnipSnap needs Screen Recording permission to capture your screen.
-        SUFeedURL: https://portablesheep.github.io/snipsnap/appcast.xml
+        SUFeedURL: https://portablesheep.github.io/SnipSnap/appcast.xml
         SUPublicEDKey: "F/ram4+XMkAhklEyc9TP5rCQn/h611jy3n6RdyRFl2Q="
         SUEnableAutomaticChecks: true
         SUScheduledCheckInterval: 86400
