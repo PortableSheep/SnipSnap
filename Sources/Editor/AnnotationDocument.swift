@@ -471,7 +471,12 @@ final class AnnotationDocument: ObservableObject {
       selectedEmoji = e.emoji
       emojiSize = e.size
     case .freehand(let f):
-      stroke = f.stroke
+      stroke.color = f.stroke.color
+      if !f.isHighlighter {
+        // Only sync lineWidth from non-highlighter strokes; highlighter
+        // width is derived (base * 3) and must not feed back into base.
+        stroke.lineWidth = f.stroke.lineWidth
+      }
       freehandIsHighlighter = f.isHighlighter
     case .line(let l):
       stroke = l.stroke
