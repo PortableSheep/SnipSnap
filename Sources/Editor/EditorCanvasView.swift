@@ -123,9 +123,10 @@ struct EditorCanvasView: View {
       
       // Draw shadow if enabled
       if doc.backgroundShadowEnabled {
+        let shadowCornerRadius = doc.backgroundCornerRadius > 0 ? doc.backgroundCornerRadius * scale : 0
         context.drawLayer { ctx in
           ctx.addFilter(.shadow(color: .black.opacity(doc.backgroundShadowOpacity), radius: doc.backgroundShadowRadius * scale))
-          ctx.fill(Path(imageRect), with: .color(.white))
+          ctx.fill(Path(roundedRect: imageRect, cornerRadius: shadowCornerRadius), with: .color(.white))
         }
       }
     }
@@ -397,6 +398,9 @@ struct EditorCanvasView: View {
             return
           }
 
+          // Clicked empty canvas — deselect any selected annotation
+          doc.selectedID = nil
+
           switch doc.tool {
           case .select:
             // If user grabbed a handle on the currently-selected annotation, resize that.
@@ -419,8 +423,9 @@ struct EditorCanvasView: View {
             if let tool = ToolRegistry.tool(for: doc.tool) {
               let res = tool.begin(doc: doc, at: imgPoint, isShiftDown: isShiftDown)
               if res == .handled {
-                dragStartImagePoint = nil
-                dragCurrentImagePoint = nil
+                // Keep dragStartImagePoint set so subsequent drag events
+                // skip this init block and reach continuation handlers
+                // (e.g. continueFreehandStroke for the freehand tool).
               }
             }
           }
