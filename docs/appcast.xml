@@ -6,6 +6,32 @@
     <description>SnipSnap update feed</description>
     <language>en</language>
     <item>
+      <title>Version 1.1.10</title>
+      <sparkle:version>25</sparkle:version>
+      <sparkle:shortVersionString>1.1.10</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 1.1.10</h2>
+        <h3>🐛 Bug Fixes</h3>
+
+<ul>
+<li>Fix release action (<code>ce865a0</code>)</li>
+</ul>
+
+<h3>📦 Other Changes</h3>
+
+<ul>
+<li>Merge counter tools. Fix text tool. Tweak onboarding window. (<code>7334032</code>)</li>
+<li>Update appcast.xml for v1.1.9 (<code>ccacfd1</code>)</li>
+<li>Remove version 1.1.9 from appcast.xml (<code>6434d9b</code>)</li>
+<li>Remove version 1.1.9 entry from appcast (<code>b99ca9a</code>)</li>
+<li>Update appcast.xml for v1.1.9 (<code>0ca2a48</code>)</li>
+</ul>
+      ]]></description>
+      <pubDate>Thu, 19 Mar 2026 03:11:06 GMT</pubDate>
+      <enclosure url="https://github.com/PortableSheep/SnipSnap/releases/download/v1.1.10/SnipSnap-1.1.10.zip" sparkle:edSignature="Hp/lHKd07D5nO5gsP1fOP6BOvn1+KwEXtwMiztpwP6MD5m1uYkX5ouxYw4rzjH6Bl6C0ffHhqMnEkQxETcbJDg==" length="2792438" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.1.9</title>
       <sparkle:version>24</sparkle:version>
       <sparkle:shortVersionString>1.1.9</sparkle:shortVersionString>
