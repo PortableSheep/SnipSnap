@@ -33,7 +33,6 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
   case blur
   case spotlight
   case step
-  case counter
   case emoji
   case measurement
 
@@ -52,7 +51,6 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
     case .blur: return "Blur"
     case .spotlight: return "Spotlight"
     case .step: return "Steps"
-    case .counter: return "Counter"
     case .emoji: return "Emoji"
     case .measurement: return "Measure"
     }
@@ -71,7 +69,6 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
     case .blur: return "square.dashed"
     case .spotlight: return "flashlight.on.fill"
     case .step: return "list.number"
-    case .counter: return "number.circle"
     case .emoji: return "face.smiling"
     case .measurement: return "ruler"
     }
@@ -90,7 +87,6 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
     case .blur: return "B"
     case .spotlight: return "S"
     case .step: return "N"  // N for Numbered steps
-    case .counter: return "#"  // # for manual number badge
     case .emoji: return "E"
     case .measurement: return "D"
     }
@@ -296,16 +292,22 @@ struct StepAnnotation: Identifiable, Hashable {
   let id: UUID
   var center: CGPoint
   var number: Int
+  var mode: CounterMode
   var radius: CGFloat
   var fillColor: Color
   var textColor: Color
   var borderColor: Color
   var borderWidth: CGFloat
 
+  var displayValue: String {
+    mode.value(for: number)
+  }
+
   init(
     id: UUID = UUID(),
     center: CGPoint,
     number: Int,
+    mode: CounterMode = .numbers,
     radius: CGFloat,
     fillColor: Color,
     textColor: Color,
@@ -315,6 +317,7 @@ struct StepAnnotation: Identifiable, Hashable {
     self.id = id
     self.center = center
     self.number = number
+    self.mode = mode
     self.radius = radius
     self.fillColor = fillColor
     self.textColor = textColor

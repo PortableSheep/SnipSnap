@@ -11,7 +11,6 @@ enum ToolRegistry {
     .blur: BlurTool(),
     .spotlight: SpotlightTool(),
     .step: StepTool(),
-    .counter: CounterTool(),
     .emoji: EmojiTool(),
     .measurement: MeasurementTool(),
   ]
@@ -187,6 +186,7 @@ private struct StepTool: EditorTool {
         StepAnnotation(
           center: point,
           number: n,
+          mode: doc.stepMode,
           radius: doc.stepRadius,
           fillColor: doc.stepFillColor,
           textColor: doc.stepTextColor,
@@ -253,34 +253,6 @@ private struct SpotlightTool: EditorTool {
       doc.selectedID = doc.annotations.last?.id
     }
   }
-}
-
-private struct CounterTool: EditorTool {
-  let id: AnnotationTool = .counter
-  let capabilities: ToolCapabilities = [.clickOnly]
-
-  func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
-    doc.pushUndoCheckpoint()
-    let value = doc.nextCounterValue()
-    doc.annotations.append(
-      .counter(
-        CounterAnnotation(
-          center: point,
-          value: value,
-          radius: doc.counterRadius,
-          fillColor: doc.counterFillColor,
-          textColor: doc.counterTextColor,
-          borderColor: doc.counterBorderColor,
-          borderWidth: doc.counterBorderWidth
-        )
-      )
-    )
-    doc.selectedID = doc.annotations.last?.id
-    return .handled
-  }
-
-  func preview(doc: AnnotationDocument, start: CGPoint, current: CGPoint, isShiftDown: Bool) -> Annotation? { nil }
-  func commit(doc: AnnotationDocument, start: CGPoint, end: CGPoint, isShiftDown: Bool) {}
 }
 
 private struct EmojiTool: EditorTool {

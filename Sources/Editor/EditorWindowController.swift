@@ -84,10 +84,12 @@ final class EditorWindowController {
           }
         }
 
-        // Delete / Backspace
+        // Delete / Backspace (skip when editing inline text so the TextField receives the event)
         if event.keyCode == 51 || event.keyCode == 117 {
-          doc.deleteSelected()
-          return nil
+          if doc.pendingTextInput == nil {
+            doc.deleteSelected()
+            return nil
+          }
         }
 
         // Escape closes pending text input
@@ -113,7 +115,6 @@ final class EditorWindowController {
               "b": .blur,
               "s": .spotlight,
               "n": .step,     // numbered steps
-              "#": .counter,  // manual number badge (shift+3)
               "e": .emoji,
               "d": .measurement  // dimension
             ]

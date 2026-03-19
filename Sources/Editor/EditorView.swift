@@ -443,7 +443,7 @@ struct EditorView: View {
         Divider().padding(.vertical, 4)
 
         // Pro tools
-        ForEach([AnnotationTool.blur, .spotlight, .step, .counter], id: \.self) { tool in
+        ForEach([AnnotationTool.blur, .spotlight, .step], id: \.self) { tool in
           sidebarToolButton(tool)
         }
 
@@ -590,7 +590,7 @@ struct EditorView: View {
 
   private var hasToolSpecificOptions: Bool {
     switch doc.tool {
-    case .blur, .spotlight, .step, .counter, .arrow, .text, .callout, .freehand, .emoji, .measurement:
+    case .blur, .spotlight, .step, .arrow, .text, .callout, .freehand, .emoji, .measurement:
       return true
     default:
       return false
@@ -605,7 +605,7 @@ struct EditorView: View {
         blurOptions
       case .spotlight:
         spotlightOptions
-      case .step, .counter:
+      case .step:
         badgeOptions
       case .arrow:
         arrowOptions
@@ -687,20 +687,18 @@ struct EditorView: View {
   }
 
   private var badgeOptions: some View {
-    let isCounter = doc.tool == .counter
-
-    return VStack(alignment: .leading, spacing: 10) {
+    VStack(alignment: .leading, spacing: 10) {
       HStack {
         Text("Fill")
           .frame(width: 60, alignment: .leading)
-        ColorPicker("", selection: isCounter ? $doc.counterFillColor : $doc.stepFillColor, supportsOpacity: true)
+        ColorPicker("", selection: $doc.stepFillColor, supportsOpacity: true)
           .labelsHidden()
       }
 
       HStack {
         Text("Text")
           .frame(width: 60, alignment: .leading)
-        ColorPicker("", selection: isCounter ? $doc.counterTextColor : $doc.stepTextColor, supportsOpacity: true)
+        ColorPicker("", selection: $doc.stepTextColor, supportsOpacity: true)
           .labelsHidden()
       }
 
@@ -708,27 +706,21 @@ struct EditorView: View {
         Text("Size")
           .frame(width: 60, alignment: .leading)
         Slider(value: Binding(get: {
-          Double(isCounter ? doc.counterRadius : doc.stepRadius)
+          Double(doc.stepRadius)
         }, set: { v in
-          if isCounter {
-            doc.counterRadius = CGFloat(v)
-          } else {
-            doc.stepRadius = CGFloat(v)
-          }
+          doc.stepRadius = CGFloat(v)
         }), in: 10...44)
       }
 
-      if isCounter {
-        HStack {
-          Text("Mode")
-            .frame(width: 60, alignment: .leading)
-          Picker("", selection: $doc.counterMode) {
-            ForEach(CounterMode.allCases) { m in
-              Text(m.label).tag(m)
-            }
+      HStack {
+        Text("Mode")
+          .frame(width: 60, alignment: .leading)
+        Picker("", selection: $doc.stepMode) {
+          ForEach(CounterMode.allCases) { m in
+            Text(m.label).tag(m)
           }
-          .labelsHidden()
         }
+        .labelsHidden()
       }
     }
   }
@@ -984,6 +976,9 @@ struct EditorView: View {
       .onChange(of: doc.stepBorderWidth) { _ in
         applyStepToSelectionIfNeeded()
       }
+      .onChange(of: doc.stepMode) { _ in
+        applyStepToSelectionIfNeeded()
+      }
       .onChange(of: doc.measurementUnit) { _ in
         applyMeasurementToSelectionIfNeeded()
       }
@@ -1194,6 +1189,7 @@ extension EditorView {
         s.textColor = doc.stepTextColor
         s.borderColor = doc.stepBorderColor
         s.borderWidth = doc.stepBorderWidth
+        s.mode = doc.stepMode
         ann = .step(s)
       }
     }

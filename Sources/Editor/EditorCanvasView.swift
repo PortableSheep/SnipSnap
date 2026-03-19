@@ -52,7 +52,7 @@ struct EditorCanvasView: View {
           Color.black.opacity(0.28)
             .ignoresSafeArea()
             .onTapGesture {
-              doc.cancelPendingTextInput()
+              doc.commitPendingTextInput()
             }
         }
       }
@@ -915,7 +915,7 @@ struct EditorCanvasView: View {
         case .step(let s):
           let center = CGPoint(x: rect.origin.x + s.center.x * scale, y: rect.origin.y + s.center.y * scale)
           let r = s.radius * scale
-          Text(String(s.number))
+          Text(s.displayValue)
             .font(.system(size: max(10, r * 0.9), weight: .semibold))
             .foregroundStyle(s.textColor)
             .position(x: center.x, y: center.y)

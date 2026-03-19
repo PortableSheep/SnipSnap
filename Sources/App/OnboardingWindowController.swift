@@ -87,7 +87,7 @@ struct OnboardingView: View {
           isGranted: screenRecordingGranted,
           onGrant: {
             _ = ScreenRecordingPermission.hasAccess(prompt: true)
-            refreshPermissions()
+            Task { await refreshPermissions() }
           }
         )
 
@@ -100,7 +100,7 @@ struct OnboardingView: View {
             isGranted: accessibilityGranted,
             onGrant: {
                 _ = AccessibilityPermission.isTrusted(prompt: true)
-                refreshPermissions()
+                Task { await refreshPermissions() }
             }
           )
           
@@ -114,7 +114,7 @@ struct OnboardingView: View {
                 isGranted: inputMonitoringGranted,
                 onGrant: {
                   _ = InputMonitoringPermission.hasAccess(prompt: true)
-                  refreshPermissions()
+                  Task { await refreshPermissions() }
                 }
               )
           }
@@ -147,21 +147,21 @@ struct OnboardingView: View {
     }
     .frame(width: 520, height: 520)
     .onAppear {
-      refreshPermissions()
+      Task { await refreshPermissions() }
       startPolling()
     }
     .onDisappear {
       stopPolling()
     }
     .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-      refreshPermissions()
+      Task { await refreshPermissions() }
     }
   }
 
     private func startPolling() {
         stopPolling()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-            Task { @MainActor in refreshPermissions() }
+            Task { @MainActor in await refreshPermissions() }
         }
     }
 
@@ -174,8 +174,8 @@ struct OnboardingView: View {
         screenRecordingGranted && accessibilityGranted && inputMonitoringGranted
     }
 
-    private func refreshPermissions() {
-        screenRecordingGranted = ScreenRecordingPermission.hasAccess(prompt: false)
+    private func refreshPermissions() async {
+        screenRecordingGranted = await ScreenRecordingPermission.checkAccess()
         
         if (isUnifiedPermissionOS()) {
             accessibilityGranted = AccessibilityPermission.isTrusted(prompt: false)

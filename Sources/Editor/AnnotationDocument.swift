@@ -85,6 +85,7 @@ final class AnnotationDocument: ObservableObject {
   @Published var stepTextColor: Color = .white
   @Published var stepBorderColor: Color = .white
   @Published var stepBorderWidth: CGFloat = 3
+  @Published var stepMode: CounterMode = .numbers
 
   // Measurement tool settings
   @Published var measurementUnit: MeasurementUnit = .pixels
@@ -97,14 +98,6 @@ final class AnnotationDocument: ObservableObject {
   @Published var spotlightShape: SpotlightShape = .roundedRect
   @Published var spotlightDimmingOpacity: CGFloat = 0.65
   @Published var spotlightShowBorder: Bool = false
-
-  // Counter tool settings
-  @Published var counterRadius: CGFloat = 18
-  @Published var counterFillColor: Color = .blue
-  @Published var counterTextColor: Color = .white
-  @Published var counterBorderColor: Color = .white
-  @Published var counterBorderWidth: CGFloat = 2
-  @Published var counterMode: CounterMode = .numbers  // numbers, letters, custom
 
   // Emoji tool settings
   @Published var selectedEmoji: String = "👍"
@@ -454,6 +447,7 @@ final class AnnotationDocument: ObservableObject {
       stepTextColor = s.textColor
       stepBorderColor = s.borderColor
       stepBorderWidth = s.borderWidth
+      stepMode = s.mode
     case .spotlight(let sp):
       spotlightShape = sp.shape
       spotlightDimmingOpacity = sp.dimmingOpacity
@@ -462,11 +456,11 @@ final class AnnotationDocument: ObservableObject {
         stroke = bs
       }
     case .counter(let c):
-      counterRadius = c.radius
-      counterFillColor = c.fillColor
-      counterTextColor = c.textColor
-      counterBorderColor = c.borderColor
-      counterBorderWidth = c.borderWidth
+      stepRadius = c.radius
+      stepFillColor = c.fillColor
+      stepTextColor = c.textColor
+      stepBorderColor = c.borderColor
+      stepBorderWidth = c.borderWidth
     case .emoji(let e):
       selectedEmoji = e.emoji
       emojiSize = e.size
@@ -498,14 +492,6 @@ final class AnnotationDocument: ObservableObject {
       return nil
     }
     return (nums.max() ?? 0) + 1
-  }
-
-  func nextCounterValue() -> String {
-    let existingCount = annotations.filter { a in
-      if case .counter = a { return true }
-      return false
-    }.count
-    return counterMode.value(for: existingCount + 1)
   }
 
   // MARK: - Freehand Drawing

@@ -862,7 +862,7 @@ enum EditorRenderer {
       kCTForegroundColorAttributeName as NSAttributedString.Key: cgColor(s.textColor)
     ]
 
-    let str = NSAttributedString(string: String(s.number), attributes: attrs)
+    let str = NSAttributedString(string: s.displayValue, attributes: attrs)
     let line = CTLineCreateWithAttributedString(str)
     let bounds = CTLineGetBoundsWithOptions(line, [])
 
