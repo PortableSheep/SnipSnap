@@ -19,15 +19,17 @@ final class StripWindowController: NSObject {
   let library: CaptureLibrary
   private let editor: EditorWindowController
   private let presentation: PresentationWindowController
+  private let pinnedImages: PinnedImageWindowController
 
   private let panel: NSPanel
   private let tabPanel: NSPanel
 
-  init(state: StripState, library: CaptureLibrary, editor: EditorWindowController, presentation: PresentationWindowController) {
+  init(state: StripState, library: CaptureLibrary, editor: EditorWindowController, presentation: PresentationWindowController, pinnedImages: PinnedImageWindowController) {
     self.state = state
     self.library = library
     self.editor = editor
     self.presentation = presentation
+    self.pinnedImages = pinnedImages
 
     // Session is scoped to this app run.
     self.state.startNewSession()
@@ -73,6 +75,8 @@ final class StripWindowController: NSObject {
       case .video:
         self.library.open(item)
       }
+    }, onPin: { [weak self] item in
+      self?.pinnedImages.pin(url: item.url)
     }, onPresent: { [weak self] item in
       guard let self else { return }
       // Present from this item onwards (items from this point to the end)

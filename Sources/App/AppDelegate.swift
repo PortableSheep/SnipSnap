@@ -19,6 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   private lazy var editor = EditorWindowController()
 
+  private let pinnedImages = PinnedImageWindowController()
+
   private let hotkeys = HotKeyManager()
   private var recordingStartedAt: Date?
   private var ticker: Timer?
@@ -63,7 +65,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Show strip on startup if user preference says so; otherwise start hidden.
     stripState.isVisible = stripState.showOnStartup
-    stripController = StripWindowController(state: stripState, library: captureLibrary, editor: editor, presentation: presentation)
+    stripController = StripWindowController(state: stripState, library: captureLibrary, editor: editor, presentation: presentation, pinnedImages: pinnedImages)
+
+    pinnedImages.onEdit = { [weak self] url in
+      self?.editor.openEditor(for: url)
+    }
 
     // Global hotkeys via Carbon RegisterEventHotKey (no Accessibility permission needed).
     startHotkeys()
@@ -97,10 +103,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Show onboarding on first launch to guide users through permissions
     if !OnboardingWindowController.hasCompletedOnboarding {
       OnboardingWindowController.shared.show()
+    } else {
+      // On subsequent launches, check if permissions are still granted
+      Task { @MainActor in
+        await self.checkPermissionsAndPrompt()
+      }
     }
+
+    // Periodic permission check (every 5 minutes)
+    startPermissionCheckTimer()
   }
 
   private var cancellables: Set<AnyCancellable> = []
+  private var permissionCheckTimer: Timer?
+  /// Tracks whether onboarding was already shown this session to avoid spamming
+  private var permissionPromptSuppressed = false
 
   private var isRecording: Bool {
     isServiceRecording
@@ -171,6 +188,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Still not granted — user denied or needs to restart
     ScreenRecordingPermission.showInstructionsAlert()
     return false
+  }
+
+  // MARK: - Startup & Periodic Permission Checks
+
+  /// Check core permissions and show onboarding if any are missing.
+  private func checkPermissionsAndPrompt() async {
+    guard !permissionPromptSuppressed else { return }
+
+    let hasScreenRecording = await ScreenRecordingPermission.checkAccess()
+    let hasAccessibility = AccessibilityPermission.isTrusted(prompt: false)
+
+    if !hasScreenRecording || !hasAccessibility {
+      permissionPromptSuppressed = true
+      OnboardingWindowController.shared.show(markComplete: false)
+    }
+  }
+
+  private func startPermissionCheckTimer() {
+    permissionCheckTimer?.invalidate()
+    permissionCheckTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+      Task { @MainActor in
+        self?.permissionPromptSuppressed = false
+        await self?.checkPermissionsAndPrompt()
+      }
+    }
   }
 
   private func startFullScreenRecording() async throws {

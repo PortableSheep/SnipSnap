@@ -228,6 +228,7 @@ private final class EditorWindowDelegate: NSObject, NSWindowDelegate {
       do {
         _ = try EditorRenderer.exportPNGNextToSource(doc: doc)
         doc.markSaved()
+        NotificationCenter.default.post(name: .editorDidSave, object: doc.sourceURL)
         return true
       } catch {
         let err = NSAlert(error: error)

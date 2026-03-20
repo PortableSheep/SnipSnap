@@ -317,7 +317,7 @@ jobs:
           cp /tmp/appcast.xml docs/appcast.xml
           git add docs/appcast.xml
           git commit -m "Update appcast.xml for v${{ steps.version.outputs.version }}" || echo "No appcast changes"
-          git push origin master || echo "Push failed — appcast update will be included in next push"
+          git push origin master
           
           # Return to the original branch and restore stashed build artifacts
           git checkout -

@@ -34,6 +34,7 @@
 		3A707153CB220A4894EA8652 /* SnapGuideManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EEEB346E0D8CB29529E668 /* SnapGuideManager.swift */; };
 		3F1ED9AAD0CDE94C61D2922D /* CaptureServiceProtocol in Sources */ = {isa = PBXBuildFile; fileRef = BD86912705E1799401C9ABF8 /* CaptureServiceProtocol */; };
 		4221FFD06CECF30A12DDF9E2 /* DelayedCaptureCountdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E05C0765B13C42F2F2D9D12 /* DelayedCaptureCountdown.swift */; };
+		46FB65C596759896D62B1BD6 /* PinnedImageWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5588BC24A7DA225AA2D80AC8 /* PinnedImageWindowController.swift */; };
 		5163CE5A94F2F0F583DB1654 /* CaptureServiceProtocol in Sources */ = {isa = PBXBuildFile; fileRef = BD86912705E1799401C9ABF8 /* CaptureServiceProtocol */; };
 		52BC65B2C3987AAA35B0644F /* EdgeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BFB5193C0866E6D59040CEF /* EdgeDetector.swift */; };
 		53DFF1BB61486826FF1A437E /* EditorCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA25602B3368B0721CE3964 /* EditorCanvasView.swift */; };
@@ -199,6 +200,7 @@
 		4FE467F0FC840B4062B1FE23 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
 		5072B3E46CA45364D360FD41 /* PreferencesStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesStoreTests.swift; sourceTree = "<group>"; };
 		554579C1B58FE4C7398DA68D /* InteractiveWindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveWindowPicker.swift; sourceTree = "<group>"; };
+		5588BC24A7DA225AA2D80AC8 /* PinnedImageWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedImageWindowController.swift; sourceTree = "<group>"; };
 		5658667FA07037A04A872FD6 /* PreferencesRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesRootView.swift; sourceTree = "<group>"; };
 		56E919C91DC66F3DA690ECE1 /* OverlayEventTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayEventTap.swift; sourceTree = "<group>"; };
 		5B76F47F8635FE7C343C9C50 /* CaptureServiceErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureServiceErrorTests.swift; sourceTree = "<group>"; };
@@ -519,6 +521,7 @@
 				9E1AD7FFCBF7BDB3DF854992 /* CaptureItem.swift */,
 				222710FD5409E6C30A730A3C /* CaptureLibrary.swift */,
 				F6D8FC844646517328F799DE /* DirectoryWatcher.swift */,
+				5588BC24A7DA225AA2D80AC8 /* PinnedImageWindowController.swift */,
 				280F6D62D43D430072499AF7 /* StripDockPosition.swift */,
 				F55AC62A3B888A7C2108E079 /* StripState.swift */,
 				FAD9996DF0736883E2F03F69 /* StripView.swift */,
@@ -792,6 +795,7 @@
 				37A27A783B28C6FACE8177A0 /* OverlayPreferencesStore.swift in Sources */,
 				D58877CF5732B70A1A4BC448 /* OverlayPreviewView.swift in Sources */,
 				E359B01FBE748D938C9BE261 /* OverlayPreviewWindowController.swift in Sources */,
+				46FB65C596759896D62B1BD6 /* PinnedImageWindowController.swift in Sources */,
 				0C7F8BEBCAE7ED5F23E1B76B /* PreferencesPage.swift in Sources */,
 				ED8494FC6B71124F17A58353 /* PreferencesRootView.swift in Sources */,
 				7B9E426181CF0C0F7A7FE04A /* PreferencesView.swift in Sources */,

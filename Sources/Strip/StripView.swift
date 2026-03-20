@@ -7,6 +7,7 @@ struct StripView: View {
   @ObservedObject var library: CaptureLibrary
   @ObservedObject var state: StripState
   let onOpen: ThumbAction
+  let onPin: ThumbAction
   let onPresent: (CaptureItem) -> Void
   let onHoverChanged: (Bool) -> Void
 
@@ -182,6 +183,12 @@ struct StripView: View {
 
         Button("Share…") {
           SharePresenter.share(url: item.url)
+        }
+
+        if item.kind == .image {
+          Button("Pin Image") {
+            onPin(item)
+          }
         }
         
         Divider()
