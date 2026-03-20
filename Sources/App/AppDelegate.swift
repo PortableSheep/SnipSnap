@@ -98,26 +98,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       }
       .store(in: &cancellables)
 
-    // Sparkle handles automatic update checks on launch (startingUpdater: true)
+    // Ensure automatic checks are enabled and check now on every launch
+    updaterController.updater.automaticallyChecksForUpdates = true
+    updaterController.updater.checkForUpdatesInBackground()
 
     // Show onboarding on first launch to guide users through permissions
     if !OnboardingWindowController.hasCompletedOnboarding {
       OnboardingWindowController.shared.show()
     } else {
-      // On subsequent launches, check if permissions are still granted
+      // On subsequent launches, check if permissions are still granted.
+      // Delay slightly so the app finishes launching before showing any alerts.
       Task { @MainActor in
-        await self.checkPermissionsAndPrompt()
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        await self.checkPermissionsOnStartup()
       }
     }
-
-    // Periodic permission check (every 5 minutes)
-    startPermissionCheckTimer()
   }
 
   private var cancellables: Set<AnyCancellable> = []
-  private var permissionCheckTimer: Timer?
-  /// Tracks whether onboarding was already shown this session to avoid spamming
-  private var permissionPromptSuppressed = false
 
   private var isRecording: Bool {
     isServiceRecording
@@ -190,27 +188,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     return false
   }
 
-  // MARK: - Startup & Periodic Permission Checks
+  // MARK: - Startup Permission Check
 
-  /// Check core permissions and show onboarding if any are missing.
-  private func checkPermissionsAndPrompt() async {
-    guard !permissionPromptSuppressed else { return }
-
-    let hasScreenRecording = await ScreenRecordingPermission.checkAccess()
+  /// One-time startup check — shows a simple alert if permissions are missing.
+  /// Does NOT use the onboarding window (which has a poll timer that can
+  /// re-trigger system prompts). The user can always open onboarding manually
+  /// via the menu, or permissions are checked at point-of-use before capture.
+  private func checkPermissionsOnStartup() async {
+    let hasScreenRecording = ScreenRecordingPermission.hasAccess(prompt: false)
     let hasAccessibility = AccessibilityPermission.isTrusted(prompt: false)
 
-    if !hasScreenRecording || !hasAccessibility {
-      permissionPromptSuppressed = true
-      OnboardingWindowController.shared.show(markComplete: false)
-    }
-  }
+    guard !hasScreenRecording || !hasAccessibility else { return }
 
-  private func startPermissionCheckTimer() {
-    permissionCheckTimer?.invalidate()
-    permissionCheckTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
-      Task { @MainActor in
-        self?.permissionPromptSuppressed = false
-        await self?.checkPermissionsAndPrompt()
+    var missing: [String] = []
+    if !hasScreenRecording { missing.append("Screen Recording") }
+    if !hasAccessibility { missing.append("Accessibility") }
+
+    let alert = NSAlert()
+    alert.alertStyle = .informational
+    alert.messageText = "Missing Permissions"
+    alert.informativeText = "SnipSnap needs \(missing.joined(separator: " and ")) permission\(missing.count > 1 ? "s" : "") to work properly. You can grant them in System Settings → Privacy & Security."
+    alert.addButton(withTitle: "Open Settings")
+    alert.addButton(withTitle: "Later")
+
+    let resp = alert.runModal()
+    if resp == .alertFirstButtonReturn {
+      if !hasScreenRecording {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+          NSWorkspace.shared.open(url)
+        }
+      } else if !hasAccessibility {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+          NSWorkspace.shared.open(url)
+        }
       }
     }
   }
