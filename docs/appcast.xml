@@ -6,6 +6,31 @@
     <description>SnipSnap update feed</description>
     <language>en</language>
     <item>
+      <title>Version 1.1.11</title>
+      <sparkle:version>27</sparkle:version>
+      <sparkle:shortVersionString>1.1.11</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 1.1.11</h2>
+        <h3>✨ Features</h3>
+
+<ul>
+<li>Add action tweak for pages publish after release (<code>5e06fe1</code>)</li>
+</ul>
+
+<h3>📦 Other Changes</h3>
+
+<ul>
+<li>Fixes for reprompts (<code>c16e2cb</code>)</li>
+<li>Remove version 1.1.11 details from appcast.xml (<code>9b99d60</code>)</li>
+<li>Update appcast.xml for v1.1.11 (<code>de9a107</code>)</li>
+<li>Move pinning. Appcast tweaks. Better permission detection. (<code>5ea3ddb</code>)</li>
+</ul>
+      ]]></description>
+      <pubDate>Fri, 20 Mar 2026 03:06:26 GMT</pubDate>
+      <enclosure url="https://github.com/PortableSheep/SnipSnap/releases/download/v1.1.11/SnipSnap-1.1.11.zip" sparkle:edSignature="FSofElAysHAz0oDXDWQaa3fa228zmFY+hzzuqs6hEJq6MJJeg01FGYQp0eky87gaZg2TKtC4pqP0ZLLduNf5AA==" length="2806860" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.1.10</title>
       <sparkle:version>25</sparkle:version>
       <sparkle:shortVersionString>1.1.10</sparkle:shortVersionString>
