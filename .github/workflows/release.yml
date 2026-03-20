@@ -187,30 +187,34 @@ jobs:
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          brew install create-dmg
+          
           APP_PATH="build/Build/Products/Release/SnipSnap.app"
           VERSION="${{ steps.version.outputs.version }}"
           DMG_NAME="SnipSnap-${VERSION}.dmg"
           
-          # Create temporary directory for DMG contents
-          mkdir -p dmg_contents
-          cp -R "$APP_PATH" dmg_contents/
-          ln -s /Applications dmg_contents/Applications
+          # create-dmg returns exit code 2 if it can't set the background (non-fatal)
+          set +e
+          create-dmg \
+            --volname "SnipSnap" \
+            --window-pos 200 120 \
+            --window-size 660 400 \
+            --icon-size 128 \
+            --icon "SnipSnap.app" 170 180 \
+            --app-drop-link 490 180 \
+            --background "scripts/dmg-background@2x.png" \
+            --hide-extension "SnipSnap.app" \
+            --no-internet-enable \
+            "$DMG_NAME" \
+            "$APP_PATH"
+          DMG_EXIT=$?
+          set -e
           
-          # Add install instructions
-          cat > dmg_contents/README.txt << 'EOF'
-          SnipSnap Installation
-          =====================
-          
-          Drag SnipSnap.app to the Applications folder and launch.
-          
-          This app is signed and notarized by Apple — no additional steps needed.
-          EOF
-          
-          # Create DMG
-          hdiutil create -volname "SnipSnap" \
-            -srcfolder dmg_contents \
-            -ov -format UDZO \
-            "$DMG_NAME"
+          # create-dmg exits 0 on success, 2 if background couldn't be set (still usable)
+          if [ $DMG_EXIT -ne 0 ] && [ $DMG_EXIT -ne 2 ]; then
+            echo "❌ create-dmg failed with exit code $DMG_EXIT"
+            exit 1
+          fi
           
           # Sign the DMG
           codesign --sign "Developer ID Application" \

@@ -87,7 +87,7 @@ struct OnboardingView: View {
           isGranted: screenRecordingGranted,
           onGrant: {
             _ = ScreenRecordingPermission.hasAccess(prompt: true)
-            Task { await refreshPermissions() }
+            refreshPermissions()
           }
         )
 
@@ -100,7 +100,7 @@ struct OnboardingView: View {
             isGranted: accessibilityGranted,
             onGrant: {
                 _ = AccessibilityPermission.isTrusted(prompt: true)
-                Task { await refreshPermissions() }
+                refreshPermissions()
             }
           )
           
@@ -114,7 +114,7 @@ struct OnboardingView: View {
                 isGranted: inputMonitoringGranted,
                 onGrant: {
                   _ = InputMonitoringPermission.hasAccess(prompt: true)
-                  Task { await refreshPermissions() }
+                  refreshPermissions()
                 }
               )
           }
@@ -147,21 +147,21 @@ struct OnboardingView: View {
     }
     .frame(width: 520, height: 520)
     .onAppear {
-      Task { await refreshPermissions() }
+      refreshPermissions()
       startPolling()
     }
     .onDisappear {
       stopPolling()
     }
     .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-      Task { await refreshPermissions() }
+      refreshPermissions()
     }
   }
 
     private func startPolling() {
         stopPolling()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-            Task { @MainActor in await refreshPermissions() }
+            Task { @MainActor in self.refreshPermissions() }
         }
     }
 
@@ -174,8 +174,12 @@ struct OnboardingView: View {
         screenRecordingGranted && accessibilityGranted && inputMonitoringGranted
     }
 
-    private func refreshPermissions() async {
-        screenRecordingGranted = await ScreenRecordingPermission.checkAccess()
+    private func refreshPermissions() {
+        // Use the non-prompting CGPreflight check for polling.
+        // SCShareableContent (checkAccess) can trigger system permission dialogs
+        // on every call when permission hasn't been granted yet, causing an
+        // infinite prompt loop with the 2-second poll timer.
+        screenRecordingGranted = ScreenRecordingPermission.hasAccess(prompt: false)
         
         if (isUnifiedPermissionOS()) {
             accessibilityGranted = AccessibilityPermission.isTrusted(prompt: false)

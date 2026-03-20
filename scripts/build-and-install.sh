@@ -10,7 +10,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-INSTALL_DIR="${SNIPSNAP_DEV_INSTALL_DIR:-$HOME/Applications}"
+INSTALL_DIR="${SNIPSNAP_DEV_INSTALL_DIR:-/Applications}"
 
 # Parse arguments
 CONFIGURATION="Debug"
