@@ -6,6 +6,22 @@
     <description>SnipSnap update feed</description>
     <language>en</language>
     <item>
+      <title>Version 1.1.12</title>
+      <sparkle:version>30</sparkle:version>
+      <sparkle:shortVersionString>1.1.12</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 1.1.12</h2>
+        <h3>🐛 Bug Fixes</h3>
+
+<ul>
+<li>Fix pin and visibility issues. (<code>bc50400</code>)</li>
+</ul>
+      ]]></description>
+      <pubDate>Fri, 27 Mar 2026 11:47:13 GMT</pubDate>
+      <enclosure url="https://github.com/PortableSheep/SnipSnap/releases/download/v1.1.12/SnipSnap-1.1.12.zip" sparkle:edSignature="Kg60VtqcG7P5OQBqXAgJXsZpb/JlBKD0cAdcWn12OOniAPNIgAJVBEWtfwZuuBVfH+sUksVXzAkH+t8XzoTxCw==" length="2802103" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.1.11</title>
       <sparkle:version>29</sparkle:version>
       <sparkle:shortVersionString>1.1.11</sparkle:shortVersionString>
