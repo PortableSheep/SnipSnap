@@ -377,24 +377,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   private func captureRegionScreenshot() async throws {
     guard await ensureScreenRecordingPermission() else { return }
+    let wasVisible = stripController?.isVisible == true
+    if wasVisible { stripController?.hide() }
+    defer { if wasVisible { stripController?.show() } }
     let url = try await captureService.captureRegionScreenshot()
     lastCaptureURL = url
   }
 
   private func captureWindowScreenshot() async throws {
     guard await ensureScreenRecordingPermission() else { return }
+    let wasVisible = stripController?.isVisible == true
+    if wasVisible { stripController?.hide() }
+    defer { if wasVisible { stripController?.show() } }
     let url = try await captureService.captureWindowScreenshot()
     lastCaptureURL = url
   }
 
   private func captureFullScreenScreenshot() async throws {
     guard await ensureScreenRecordingPermission() else { return }
+    let wasVisible = stripController?.isVisible == true
+    if wasVisible { stripController?.hide() }
+    defer { if wasVisible { stripController?.show() } }
     let url = try await captureService.captureFullScreenScreenshot()
     lastCaptureURL = url
   }
 
   private func captureScrollingWindow() async throws {
     guard await ensureScreenRecordingPermission() else { return }
+    let wasVisible = stripController?.isVisible == true
+    if wasVisible { stripController?.hide() }
+    defer { if wasVisible { stripController?.show() } }
     // Use interactive region picker - scroll capture is ALWAYS region-based
     guard let selection = await InteractiveWindowPicker.pick(mode: .subRegion) else {
       debugLog("AppDelegate: Scroll capture cancelled - no region selected")

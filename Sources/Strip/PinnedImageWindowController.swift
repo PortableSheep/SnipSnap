@@ -60,6 +60,7 @@ final class PinnedImageWindowController {
       defer: false
     )
     panel.isFloatingPanel = true
+    panel.hidesOnDeactivate = false
     panel.level = .floating
     panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
     panel.titleVisibility = .hidden
