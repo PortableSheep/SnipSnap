@@ -3,6 +3,7 @@ import Foundation
 enum ToolRegistry {
   static let allTools: [AnnotationTool: any EditorTool] = [
     .rect: RectTool(),
+    .ellipse: EllipseTool(),
     .line: LineTool(),
     .arrow: ArrowTool(),
     .freehand: FreehandTool(),
@@ -39,6 +40,29 @@ private struct RectTool: EditorTool {
     if r.width >= 2 && r.height >= 2 {
       doc.pushUndoCheckpoint()
       doc.annotations.append(.rect(RectAnnotation(rect: r, stroke: doc.stroke, fill: doc.fill)))
+      doc.selectedID = doc.annotations.last?.id
+    }
+  }
+}
+
+private struct EllipseTool: EditorTool {
+  let id: AnnotationTool = .ellipse
+  let capabilities: ToolCapabilities = [.usesDrag]
+
+  func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
+    .startDrag
+  }
+
+  func preview(doc: AnnotationDocument, start: CGPoint, current: CGPoint, isShiftDown: Bool) -> Annotation? {
+    let r = rectFrom(start: start, end: current, constrainSquare: isShiftDown)
+    return .ellipse(EllipseAnnotation(rect: r, stroke: doc.stroke, fill: doc.fill))
+  }
+
+  func commit(doc: AnnotationDocument, start: CGPoint, end: CGPoint, isShiftDown: Bool) {
+    let r = rectFrom(start: start, end: end, constrainSquare: isShiftDown)
+    if r.width >= 2 && r.height >= 2 {
+      doc.pushUndoCheckpoint()
+      doc.annotations.append(.ellipse(EllipseAnnotation(rect: r, stroke: doc.stroke, fill: doc.fill)))
       doc.selectedID = doc.annotations.last?.id
     }
   }

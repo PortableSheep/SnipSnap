@@ -1032,6 +1032,13 @@ extension EditorView {
           ann = .rect(r)
         }
       }
+    case .ellipse:
+      doc.updateSelectedMaybeInSession { ann in
+        if case .ellipse(var e) = ann {
+          e.stroke = doc.stroke
+          ann = .ellipse(e)
+        }
+      }
     case .line:
       doc.updateSelectedMaybeInSession { ann in
         if case .line(var l) = ann {
@@ -1098,6 +1105,13 @@ extension EditorView {
         if case .rect(var r) = ann {
           r.fill = doc.fill
           ann = .rect(r)
+        }
+      }
+    case .ellipse:
+      doc.updateSelectedMaybeInSession { ann in
+        if case .ellipse(var e) = ann {
+          e.fill = doc.fill
+          ann = .ellipse(e)
         }
       }
     case .callout:

@@ -67,7 +67,7 @@ enum VisionImageRegistration {
       return nil
     }
 
-    let overlap = Int(frameHeight - shift)
+    let overlap = Int(round(frameHeight - shift))
 
     // Sanity: overlap must be positive and less than the full frame
     guard overlap > 0, overlap < Int(frameHeight) else {

@@ -426,6 +426,9 @@ final class AnnotationDocument: ObservableObject {
     case .rect(let r):
       stroke = r.stroke
       fill = r.fill
+    case .ellipse(let e):
+      stroke = e.stroke
+      fill = e.fill
     case .arrow(let ar):
       stroke = ar.stroke
       arrowHeadStyle = ar.headStyle

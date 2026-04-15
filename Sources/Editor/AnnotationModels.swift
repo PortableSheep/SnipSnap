@@ -25,6 +25,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
   case select
   case hand
   case rect
+  case ellipse
   case line
   case arrow
   case freehand
@@ -43,6 +44,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
     case .select: return "Select"
     case .hand: return "Hand"
     case .rect: return "Rectangle"
+    case .ellipse: return "Ellipse"
     case .line: return "Line"
     case .arrow: return "Arrow"
     case .freehand: return "Marker"
@@ -61,6 +63,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
     case .select: return "arrow.up.left.and.arrow.down.right"
     case .hand: return "hand.raised"
     case .rect: return "rectangle"
+    case .ellipse: return "circle"
     case .line: return "line.diagonal"
     case .arrow: return "arrow.up.right"
     case .freehand: return "pencil.tip"
@@ -79,6 +82,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
     case .select: return "V"
     case .hand: return "H"
     case .rect: return "R"
+    case .ellipse: return "O"
     case .line: return "L"
     case .arrow: return "A"
     case .freehand: return "M"
@@ -95,7 +99,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
   /// Whether this tool uses stroke settings (color, width)
   var usesStroke: Bool {
     switch self {
-    case .rect, .line, .arrow, .freehand, .callout, .measurement:
+    case .rect, .ellipse, .line, .arrow, .freehand, .callout, .measurement:
       return true
     default:
       return false
@@ -105,7 +109,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
   /// Whether this tool uses fill settings
   var usesFill: Bool {
     switch self {
-    case .rect, .callout:
+    case .rect, .ellipse, .callout:
       return true
     default:
       return false
@@ -185,6 +189,20 @@ struct FillStyleModel: Hashable {
 }
 
 struct RectAnnotation: Identifiable, Hashable {
+  let id: UUID
+  var rect: CGRect
+  var stroke: StrokeStyleModel
+  var fill: FillStyleModel
+
+  init(id: UUID = UUID(), rect: CGRect, stroke: StrokeStyleModel, fill: FillStyleModel) {
+    self.id = id
+    self.rect = rect
+    self.stroke = stroke
+    self.fill = fill
+  }
+}
+
+struct EllipseAnnotation: Identifiable, Hashable {
   let id: UUID
   var rect: CGRect
   var stroke: StrokeStyleModel
@@ -544,6 +562,7 @@ struct ImageLayerAnnotation: Identifiable, Hashable {
 
 enum Annotation: Identifiable, Hashable {
   case rect(RectAnnotation)
+  case ellipse(EllipseAnnotation)
   case line(LineAnnotation)
   case arrow(ArrowAnnotation)
   case freehand(FreehandAnnotation)
@@ -560,6 +579,7 @@ enum Annotation: Identifiable, Hashable {
   var id: UUID {
     switch self {
     case .rect(let a): return a.id
+    case .ellipse(let a): return a.id
     case .line(let a): return a.id
     case .arrow(let a): return a.id
     case .freehand(let a): return a.id

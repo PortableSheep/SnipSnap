@@ -5,7 +5,8 @@ import CoreGraphics
 enum ImageStitcher {
 
   /// Default blend height for seam transitions.
-  private static let defaultBlendHeight = 32
+  /// Keep small to minimize ghosting from sub-pixel overlap misalignment.
+  private static let defaultBlendHeight = 4
 
   /// Stitch images vertically (for scrolling down).
   /// - Parameters:

@@ -658,6 +658,8 @@ enum EditorRenderer {
     switch annotation {
     case .rect(let r):
       drawRect(r, in: ctx)
+    case .ellipse(let e):
+      drawEllipse(e, in: ctx)
     case .line(let l):
       drawLine(l, in: ctx)
     case .arrow(let a):
@@ -712,45 +714,61 @@ enum EditorRenderer {
     ctx.stroke(r.rect)
   }
 
+  private static func drawEllipse(_ e: EllipseAnnotation, in ctx: CGContext) {
+    if e.fill.enabled {
+      ctx.setFillColor(cgColor(e.fill.color))
+      ctx.fillEllipse(in: e.rect)
+    }
+
+    ctx.setStrokeColor(cgColor(e.stroke.color))
+    ctx.setLineWidth(e.stroke.lineWidth)
+    ctx.strokeEllipse(in: e.rect)
+  }
+
   private static func drawArrow(_ a: ArrowAnnotation, in ctx: CGContext) {
+    let lw = a.stroke.lineWidth
+    let dx = a.end.x - a.start.x
+    let dy = a.end.y - a.start.y
+    let len = max(0.0001, hypot(dx, dy))
+    let ux = dx / len
+    let uy = dy / len
+
+    // Arrowhead sizing (matches canvas preview exactly)
+    var headLen: CGFloat = max(12, lw * 4)
+    headLen = min(headLen, len * 0.55)
+    let headWidth: CGFloat = headLen * 0.6
+    let perpX = -uy
+    let perpY = ux
+
+    let base = CGPoint(x: a.end.x - ux * headLen, y: a.end.y - uy * headLen)
+    let left = CGPoint(x: base.x + perpX * headWidth, y: base.y + perpY * headWidth)
+    let right = CGPoint(x: base.x - perpX * headWidth, y: base.y - perpY * headWidth)
+
+    // Shaft stops at head base for cleaner joins
+    let shaftEnd = (a.headStyle == .none) ? a.end : base
+
     ctx.setStrokeColor(cgColor(a.stroke.color))
-    ctx.setLineWidth(a.stroke.lineWidth)
+    ctx.setLineWidth(lw)
     ctx.setLineCap(.round)
+    ctx.setLineJoin(.round)
 
     ctx.move(to: a.start)
-    ctx.addLine(to: a.end)
+    ctx.addLine(to: shaftEnd)
     ctx.strokePath()
-
-    // Arrow head
-    if a.headStyle == .none { return }
-
-    let angle = atan2(a.end.y - a.start.y, a.end.x - a.start.x)
-    let headLen: CGFloat = max(12, a.stroke.lineWidth * 3)
-    let headAngle: CGFloat = .pi / 8
-
-    let p1 = CGPoint(
-      x: a.end.x - headLen * cos(angle - headAngle),
-      y: a.end.y - headLen * sin(angle - headAngle)
-    )
-    let p2 = CGPoint(
-      x: a.end.x - headLen * cos(angle + headAngle),
-      y: a.end.y - headLen * sin(angle + headAngle)
-    )
-
-    ctx.setLineJoin(.round)
 
     switch a.headStyle {
     case .open:
-      ctx.move(to: p1)
+      ctx.setLineWidth(max(1, lw * 0.85))
+      ctx.move(to: left)
       ctx.addLine(to: a.end)
-      ctx.addLine(to: p2)
+      ctx.addLine(to: right)
       ctx.strokePath()
     case .filled:
       ctx.setFillColor(cgColor(a.stroke.color))
       ctx.beginPath()
       ctx.move(to: a.end)
-      ctx.addLine(to: p1)
-      ctx.addLine(to: p2)
+      ctx.addLine(to: left)
+      ctx.addLine(to: right)
       ctx.closePath()
       ctx.fillPath()
     case .none:

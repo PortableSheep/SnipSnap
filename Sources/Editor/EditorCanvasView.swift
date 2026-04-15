@@ -46,6 +46,10 @@ struct EditorCanvasView: View {
           }
         }
 
+        // Invisible overlay for scroll-wheel zoom and middle-click pan
+        ScrollZoomView(doc: doc, viewSize: geo.size)
+          .allowsHitTesting(false)
+
         overlayTextAnnotations(viewSize: geo.size)
 
         if doc.pendingTextInput != nil {
@@ -624,6 +628,18 @@ struct EditorCanvasView: View {
       }
       context.stroke(Path(vr), with: .color(r.stroke.color), lineWidth: r.stroke.lineWidth * scale)
 
+    case .ellipse(let e):
+      let vr = CGRect(
+        x: offset.x + e.rect.minX * scale,
+        y: offset.y + e.rect.minY * scale,
+        width: e.rect.width * scale,
+        height: e.rect.height * scale
+      )
+      if e.fill.enabled {
+        context.fill(Path(ellipseIn: vr), with: .color(e.fill.color))
+      }
+      context.stroke(Path(ellipseIn: vr), with: .color(e.stroke.color), lineWidth: e.stroke.lineWidth * scale)
+
     case .arrow(let a):
       let s = CGPoint(x: offset.x + a.start.x * scale, y: offset.y + a.start.y * scale)
       let e = CGPoint(x: offset.x + a.end.x * scale, y: offset.y + a.end.y * scale)
@@ -1009,6 +1025,11 @@ struct EditorCanvasView: View {
       context.stroke(Path(vr), with: .color(.blue.opacity(0.85)), style: stroke)
       drawRectHandles(rect: vr, context: &context)
 
+    case .ellipse(let e):
+      let vr = CGRect(x: offset.x + e.rect.minX * scale, y: offset.y + e.rect.minY * scale, width: e.rect.width * scale, height: e.rect.height * scale)
+      context.stroke(Path(ellipseIn: vr), with: .color(.blue.opacity(0.85)), style: stroke)
+      drawRectHandles(rect: vr, context: &context)
+
     case .callout(let c):
       let vr = CGRect(x: offset.x + c.rect.minX * scale, y: offset.y + c.rect.minY * scale, width: c.rect.width * scale, height: c.rect.height * scale)
       context.stroke(Path(roundedRect: vr, cornerRadius: 14), with: .color(.blue.opacity(0.85)), style: stroke)
@@ -1114,6 +1135,10 @@ struct EditorCanvasView: View {
       return hitRectHandle(point: point, rect: r.rect, hitRadiusImg: hitRadiusImg)
         .map { HandleHit(kind: .rect($0)) }
 
+    case .ellipse(let e):
+      return hitRectHandle(point: point, rect: e.rect, hitRadiusImg: hitRadiusImg)
+        .map { HandleHit(kind: .rect($0)) }
+
     case .callout(let c):
       return hitRectHandle(point: point, rect: c.rect, hitRadiusImg: hitRadiusImg)
         .map { HandleHit(kind: .rect($0)) }
@@ -1210,6 +1235,10 @@ struct EditorCanvasView: View {
       r.rect = clampRect(resizedRect(from: o.rect, handle: h, to: current, constrainSquare: isShiftDown))
       annotation = .rect(r)
 
+    case (.rect(let h), .ellipse(let o), .ellipse(var e)):
+      e.rect = clampRect(resizedRect(from: o.rect, handle: h, to: current, constrainSquare: isShiftDown))
+      annotation = .ellipse(e)
+
     case (.rect(let h), .callout(let o), .callout(var c)):
       c.rect = clampRect(resizedRect(from: o.rect, handle: h, to: current, constrainSquare: false))
       annotation = .callout(c)
@@ -1305,6 +1334,12 @@ struct EditorCanvasView: View {
       switch a {
       case .rect(let r):
         if r.rect.insetBy(dx: -8, dy: -8).contains(point) { return r.id }
+      case .ellipse(let e):
+        // Point-in-ellipse test using normalized coordinates
+        let cx = e.rect.midX, cy = e.rect.midY
+        let rx = (e.rect.width / 2) + 8, ry = (e.rect.height / 2) + 8
+        let dx = point.x - cx, dy = point.y - cy
+        if (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1 { return e.id }
       case .callout(let c):
         if c.rect.insetBy(dx: -8, dy: -8).contains(point) { return c.id }
       case .arrow(let ar):
@@ -1372,6 +1407,9 @@ struct EditorCanvasView: View {
     case .rect(var r):
       r.rect = r.rect.offsetBy(dx: delta.x, dy: delta.y)
       annotation = .rect(r)
+    case .ellipse(var e):
+      e.rect = e.rect.offsetBy(dx: delta.x, dy: delta.y)
+      annotation = .ellipse(e)
     case .callout(var c):
       c.rect = c.rect.offsetBy(dx: delta.x, dy: delta.y)
       annotation = .callout(c)
