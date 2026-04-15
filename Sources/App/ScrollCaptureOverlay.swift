@@ -9,17 +9,21 @@ final class ScrollCaptureOverlay {
   private var hostingView: NSHostingView<ScrollCaptureOverlayView>?
   private var frameCount: Int = 0
   private var statusText: String = ""
-  private var isAutoMode: Bool = true
   private var onDone: (() -> Void)?
   private var onCancel: (() -> Void)?
+  private var escMonitor: Any?
   
   /// Show the scroll capture overlay
-  func show(isAutoMode: Bool = true, onDone: @escaping () -> Void, onCancel: @escaping () -> Void) {
+  func show(
+    onDone: @escaping () -> Void,
+    onCancel: @escaping () -> Void
+  ) {
     self.onDone = onDone
     self.onCancel = onCancel
     self.frameCount = 0
-    self.isAutoMode = isAutoMode
-    self.statusText = isAutoMode ? "Auto-scrolling…" : "Scroll now — click Done when finished"
+    self.statusText = "Scroll now — click Done when finished"
+    
+    installEscMonitor()
     
     if let window = window, hostingView != nil {
       updateView()
@@ -37,7 +41,6 @@ final class ScrollCaptureOverlay {
     let view = ScrollCaptureOverlayView(
       frameCount: frameCount,
       statusText: statusText,
-      isAutoMode: isAutoMode,
       onDone: onDone,
       onCancel: onCancel
     )
@@ -101,15 +104,35 @@ final class ScrollCaptureOverlay {
     let updatedView = ScrollCaptureOverlayView(
       frameCount: frameCount,
       statusText: statusText,
-      isAutoMode: isAutoMode,
       onDone: onDone,
       onCancel: onCancel
     )
     hostingView.rootView = updatedView
   }
+
+  // MARK: - Esc Key Handling
+
+  /// Esc → finish capture (stitch and save).
+  private func installEscMonitor() {
+    removeEscMonitor()
+    escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+      guard let self, event.keyCode == 53 else { return event } // 53 = Esc
+      self.onDone?()
+      return nil // Consume the event
+    }
+  }
+
+  private func removeEscMonitor() {
+    if let monitor = escMonitor {
+      NSEvent.removeMonitor(monitor)
+      escMonitor = nil
+    }
+  }
   
   /// Dismiss the overlay
   func dismiss() {
+    removeEscMonitor()
+
     guard let window = window else {
       debugLog("ScrollCaptureOverlay: dismiss() called but window is nil")
       return
@@ -134,7 +157,6 @@ final class ScrollCaptureOverlay {
 private struct ScrollCaptureOverlayView: View {
   let frameCount: Int
   let statusText: String
-  let isAutoMode: Bool
   let onDone: () -> Void
   let onCancel: () -> Void
   
@@ -142,7 +164,7 @@ private struct ScrollCaptureOverlayView: View {
     HStack(spacing: 20) {
       // Icon and status
       HStack(spacing: 12) {
-        Image(systemName: isAutoMode ? "arrow.down.doc.fill" : "hand.draw.fill")
+        Image(systemName: "hand.draw.fill")
           .font(.system(size: 24))
           .foregroundColor(.white)
         
@@ -152,11 +174,6 @@ private struct ScrollCaptureOverlayView: View {
             .foregroundColor(.white)
           
           HStack(spacing: 6) {
-            if isAutoMode {
-              ProgressView()
-                .controlSize(.small)
-                .colorScheme(.dark)
-            }
             Image(systemName: "photo.stack")
               .font(.system(size: 11))
             Text(statusText.isEmpty ? "\(frameCount) frames" : statusText)
@@ -173,11 +190,11 @@ private struct ScrollCaptureOverlayView: View {
         Button("Cancel") {
           onCancel()
         }
-        .keyboardShortcut(.cancelAction)
+        // No .cancelAction — Esc is handled by the local event monitor
         .buttonStyle(.borderless)
         .foregroundColor(.white.opacity(0.9))
         
-        Button(isAutoMode ? "Stop" : "Done") {
+        Button("Done") {
           onDone()
         }
         .keyboardShortcut(.defaultAction)

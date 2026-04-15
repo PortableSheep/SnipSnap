@@ -2,22 +2,16 @@ import Foundation
 import AppKit
 import CoreGraphics
 
-/// Manages a scroll capture session with two modes:
-/// - **Auto-scroll**: Programmatic CGEvent-based scrolling with consistent overlap (recommended).
-/// - **Manual**: User scrolls manually; app polls for content changes (fallback).
+/// Manages a scroll capture session.
+/// The user scrolls manually; the app polls for content changes and captures frames.
 @MainActor
 final class ScrollCaptureSession {
 
   // MARK: - Types
 
-  enum Mode {
-    case auto
-    case manual
-  }
-
   enum State {
     case idle
-    case capturing    // Auto-scroll or manual monitoring in progress
+    case capturing
     case stitching
     case completed
     case cancelled
@@ -56,28 +50,24 @@ final class ScrollCaptureSession {
     }
   }
 
-  // MARK: - Configuration (manual mode)
+  // MARK: - Configuration
 
   private let pollInterval: TimeInterval = 0.05
   private let stabilizationDelay: TimeInterval = 0.25
   private let maxIntervalWithoutCapture: TimeInterval = 1.0
   private let blankVarianceThreshold: Double = 50
   private let maxConsecutiveBlankFrames: Int = 3
-  /// Minimum vertical shift (px) to treat a frame as new content in manual mode.
+  /// Minimum vertical shift (px) to treat a frame as new content.
   private let minimumNewContent: CGFloat = 20
 
   // MARK: - Session State
 
   private(set) var state: State = .idle
-  private(set) var mode: Mode = .auto
   private(set) var captures: [CaptureFrame] = []
   private var captureRegion: CGRect?
   private var onProgressUpdate: ((Int) -> Void)?
   private var onStatusUpdate: ((String) -> Void)?
   private var onCompletion: ((Result<CGImage, Swift.Error>) -> Void)?
-
-  // Auto-scroll engine
-  private var autoScrollEngine: AutoScrollEngine?
 
   // Manual mode state
   private var monitorTimer: Timer?
@@ -100,7 +90,6 @@ final class ScrollCaptureSession {
   /// Start a scroll capture session.
   func start(
     region: CGRect,
-    mode: Mode = .auto,
     onProgress: @escaping (Int) -> Void,
     onStatus: ((String) -> Void)? = nil,
     completion: @escaping (Result<CGImage, Swift.Error>) -> Void
@@ -111,7 +100,6 @@ final class ScrollCaptureSession {
     }
 
     self.captureRegion = region
-    self.mode = mode
     self.onProgressUpdate = onProgress
     self.onStatusUpdate = onStatus
     self.onCompletion = completion
@@ -119,30 +107,18 @@ final class ScrollCaptureSession {
     self.captures.removeAll()
     self.lastCapturedImage = nil
 
-    debugLog("ScrollCaptureSession: Starting \(mode) mode for region \(region)")
-
-    switch mode {
-    case .auto:
-      startAutoScroll(region: region)
-    case .manual:
-      startManualMonitoring(region: region)
-    }
+    debugLog("ScrollCaptureSession: Starting scroll capture for region \(region)")
+    startManualMonitoring(region: region)
   }
 
-  /// User signals they're done (manual mode) or wants to stop early (auto mode).
+  /// User signals they're done scrolling.
   func finish() {
     guard state == .capturing else { return }
 
     debugLog("ScrollCaptureSession: User signaled finish")
-
-    if mode == .auto {
-      autoScrollEngine?.stop()
-      // Auto-scroll completion handler will trigger stitching
-    } else {
-      monitorTimer?.invalidate()
-      monitorTimer = nil
-      performStitching()
-    }
+    monitorTimer?.invalidate()
+    monitorTimer = nil
+    performStitching()
   }
 
   /// Cancel the capture session.
@@ -151,8 +127,6 @@ final class ScrollCaptureSession {
 
     monitorTimer?.invalidate()
     monitorTimer = nil
-    autoScrollEngine?.stop()
-    autoScrollEngine = nil
     state = .cancelled
 
     captures.removeAll()
@@ -162,53 +136,6 @@ final class ScrollCaptureSession {
     debugLog("ScrollCaptureSession: Cancelled")
     onCompletion?(.failure(Error.cancelled))
     clearHandlers()
-  }
-
-  // MARK: - Auto-Scroll Mode
-
-  private func startAutoScroll(region: CGRect) {
-    let engine = AutoScrollEngine()
-    self.autoScrollEngine = engine
-
-    onStatusUpdate?("Auto-scrolling…")
-
-    engine.run(region: region, onFrame: { [weak self] frame in
-      guard let self, self.state == .capturing else { return false }
-
-      let capturedFrame = CaptureFrame(
-        image: frame.image,
-        timestamp: Date(),
-        overlapWithPrevious: frame.overlapWithPrevious
-      )
-      self.captures.append(capturedFrame)
-      self.onProgressUpdate?(self.captures.count)
-
-      let status = "Auto-scrolling… \(self.captures.count) frames"
-      self.onStatusUpdate?(status)
-
-      return true
-    }, onComplete: { [weak self] result in
-      guard let self else { return }
-      self.autoScrollEngine = nil
-
-      switch result {
-      case .success:
-        self.performStitching()
-      case .failure(let error):
-        if self.state == .cancelled { return }
-        if self.captures.count >= 2 {
-          // We have enough frames, stitch what we got
-          debugLog("ScrollCaptureSession: Auto-scroll ended with error but have \(self.captures.count) frames, stitching")
-          self.performStitching()
-        } else {
-          self.state = .idle
-          self.captures.removeAll()
-          self.captureRegion = nil
-          self.onCompletion?(.failure(error))
-          self.clearHandlers()
-        }
-      }
-    })
   }
 
   // MARK: - Manual Mode
@@ -351,15 +278,8 @@ final class ScrollCaptureSession {
 
     Task {
       do {
-        var images = captures.map { $0.image }
+        let images = captures.map { $0.image }
         let precomputedOverlaps = captures.map { $0.overlapWithPrevious }
-
-        // Detect and crop sticky headers/footers
-        let sticky = StickyElementDetector.detect(in: images)
-        if sticky.headerHeight > 0 || sticky.footerHeight > 0 {
-          debugLog("ScrollCaptureSession: Removing sticky header=\(sticky.headerHeight)px footer=\(sticky.footerHeight)px")
-          images = StickyElementDetector.cropStickyRegions(from: images, sticky: sticky)
-        }
 
         let stitched = try ImageStitcher.stitchVertical(images, precomputedOverlaps: precomputedOverlaps)
 

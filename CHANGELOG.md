@@ -4,6 +4,10 @@ All notable changes to SnipSnap will be documented here.
 
 ## [Unreleased]
 
+### 🔧 Changes
+
+- Remove auto-scroll from scroll capture; manual scroll is now the only mode (more reliable stitching)
+
 ### ✨ Features
 
 - Add auto hide to capture strip (`fa2bb22`)
