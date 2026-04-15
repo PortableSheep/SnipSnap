@@ -6,6 +6,29 @@
     <description>SnipSnap update feed</description>
     <language>en</language>
     <item>
+      <title>Version 1.1.13</title>
+      <sparkle:version>31</sparkle:version>
+      <sparkle:shortVersionString>1.1.13</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 1.1.13</h2>
+        <h3>🐛 Bug Fixes</h3>
+
+<ul>
+<li>Fix formatting by adding newline at end of file (<code>eb29549</code>)</li>
+</ul>
+
+<h3>📦 Other Changes</h3>
+
+<ul>
+<li>Various fixes to canvas editor. Fixes to zoom. Remove sticky element detector. Fix various annotation issues. (<code>c1c9236</code>)</li>
+<li>Remove auto-scroll from scroll capture (<code>2b698bb</code>)</li>
+</ul>
+      ]]></description>
+      <pubDate>Wed, 15 Apr 2026 03:35:43 GMT</pubDate>
+      <enclosure url="https://github.com/PortableSheep/SnipSnap/releases/download/v1.1.13/SnipSnap-1.1.13.zip" sparkle:edSignature="kbf+jk1mZcka80fFoKnuXme88/iGtw42RiJeUrPp7uQy1z7yH8gb2bfbGTRtFq5AAzUJHoshQ03WDnvgNyVWCQ==" length="2794717" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.1.12</title>
       <sparkle:version>30</sparkle:version>
       <sparkle:shortVersionString>1.1.12</sparkle:shortVersionString>
