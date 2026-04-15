@@ -435,14 +435,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Show the region decorator
     regionDecorator.show(region: subRegion)
     
-    // Default to auto-scroll mode
-    let scrollMode: ScrollCaptureSession.Mode = .auto
-    
     // Show the overlay UI first
     overlay.show(
-      isAutoMode: scrollMode == .auto,
       onDone: { [weak self] in
-        debugLog("AppDelegate: User clicked Done/Stop")
+        debugLog("AppDelegate: User clicked Done")
         Task { @MainActor in
           self?.scrollCaptureSession?.finish()
         }
@@ -458,10 +454,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Use a separate continuation approach
     do {
       let stitchedCGImage = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CGImage, Error>) in
-        // Start the capture session with region and mode
+        // Start the capture session with region
         session.start(
           region: subRegion,
-          mode: scrollMode,
           onProgress: { [weak self] frameCount in
             Task { @MainActor in
               self?.scrollCaptureOverlay?.updateFrameCount(frameCount)
