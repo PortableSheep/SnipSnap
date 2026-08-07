@@ -786,30 +786,38 @@ enum EditorRenderer {
     let attributed = NSAttributedString(string: t.text, attributes: attrs)
     let line = CTLineCreateWithAttributedString(attributed)
     let bounds = CTLineGetBoundsWithOptions(line, [])
+    let ascent = CTFontGetAscent(font)
+    let descent = CTFontGetDescent(font)
 
-    let padX: CGFloat = 10
+    let padX: CGFloat = 8
     let padY: CGFloat = 6
 
     if t.highlighted {
       let rect = CGRect(
-        x: t.position.x - padX,
-        y: t.position.y - bounds.height - padY,
+        x: t.position.x,
+        y: t.position.y,
         width: bounds.width + padX * 2,
-        height: bounds.height + padY * 2
+        height: (ascent + descent) + padY * 2
       )
       ctx.setFillColor(cgColor(t.highlightColor, alpha: t.highlightOpacity))
       let path = CGPath(roundedRect: rect, cornerWidth: 10, cornerHeight: 10, transform: nil)
       ctx.addPath(path)
       ctx.fillPath()
-    }
 
-    ctx.saveGState()
-    // CoreText baseline draw
-    ctx.textMatrix = .identity
-    ctx.translateBy(x: t.position.x, y: t.position.y)
-    ctx.scaleBy(x: 1, y: -1)
-    CTLineDraw(line, ctx)
-    ctx.restoreGState()
+      ctx.saveGState()
+      ctx.textMatrix = .identity
+      ctx.translateBy(x: t.position.x + padX, y: t.position.y + padY + ascent)
+      ctx.scaleBy(x: 1, y: -1)
+      CTLineDraw(line, ctx)
+      ctx.restoreGState()
+    } else {
+      ctx.saveGState()
+      ctx.textMatrix = .identity
+      ctx.translateBy(x: t.position.x, y: t.position.y + ascent)
+      ctx.scaleBy(x: 1, y: -1)
+      CTLineDraw(line, ctx)
+      ctx.restoreGState()
+    }
   }
 
   private static func drawCallout(_ c: CalloutAnnotation, in ctx: CGContext) {
@@ -837,11 +845,11 @@ enum EditorRenderer {
 
     let attributed = NSAttributedString(string: c.text, attributes: attrs)
     let line = CTLineCreateWithAttributedString(attributed)
-    let bounds = CTLineGetBoundsWithOptions(line, [])
+    let ascent = CTFontGetAscent(font)
 
     ctx.saveGState()
     ctx.textMatrix = .identity
-    ctx.translateBy(x: inset.minX, y: inset.minY + bounds.height)
+    ctx.translateBy(x: inset.minX, y: inset.minY + ascent)
     ctx.scaleBy(x: 1, y: -1)
     CTLineDraw(line, ctx)
     ctx.restoreGState()

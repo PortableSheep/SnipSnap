@@ -42,23 +42,21 @@ struct RedactionDetectorTests {
     }
 
     // MARK: - Credit Card
-    // Note: The current credit card regex has a known limitation — its \b\d pattern
-    // requires word boundaries before each digit in the repeated group, so it cannot
-    // match standard multi-digit credit card formats. These tests document actual behavior.
+    // The credit card regex correctly matches spaced, dashed, and contiguous card formats.
 
-    @Test func creditCardRegexDoesNotMatchSpacedFormat() {
+    @Test func creditCardRegexMatchesSpacedFormat() {
         let kinds = detectedKinds(in: "4111 1111 1111 1111")
-        #expect(!kinds.contains(.creditCard))
+        #expect(kinds.contains(.creditCard))
     }
 
-    @Test func creditCardRegexDoesNotMatchDashedFormat() {
+    @Test func creditCardRegexMatchesDashedFormat() {
         let kinds = detectedKinds(in: "4111-1111-1111-1111")
-        #expect(!kinds.contains(.creditCard))
+        #expect(kinds.contains(.creditCard))
     }
 
-    @Test func creditCardRegexDoesNotMatchContiguousFormat() {
+    @Test func creditCardRegexMatchesContiguousFormat() {
         let kinds = detectedKinds(in: "4111111111111111")
-        #expect(!kinds.contains(.creditCard))
+        #expect(kinds.contains(.creditCard))
     }
 
     @Test func rejectsInvalidLuhnCreditCard() {

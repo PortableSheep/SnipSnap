@@ -80,7 +80,7 @@ enum RedactionDetector {
     static let email = "[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}"
     
     // Credit cards (13-19 digits with optional spaces/dashes)
-    static let creditCard = "(?:\\b\\d[ -]*?){13,19}\\b"
+    static let creditCard = "\\b\\d(?:[ -]*?\\d){12,18}\\b"
     
     // Phone numbers (US/international formats)
     static let phoneNumber = "(?:\\+?1[-\\s.]?)?\\(?[0-9]{3}\\)?[-\\s.]?[0-9]{3}[-\\s.]?[0-9]{4}"

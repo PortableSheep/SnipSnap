@@ -212,7 +212,7 @@ struct EditorCanvasView: View {
   private func drawRedactionSuggestions(context: inout GraphicsContext, scale: CGFloat, offset: CGPoint) {
     guard !doc.suggestedRedactions.isEmpty else { return }
 
-    for suggestion in doc.suggestedRedactions where suggestion.isSelected {
+    for suggestion in doc.suggestedRedactions {
       let r = suggestion.rect
       let scaled = CGRect(
         x: offset.x + r.minX * scale,
@@ -221,18 +221,29 @@ struct EditorCanvasView: View {
         height: r.height * scale
       )
 
-      // Dashed orange border
-      context.stroke(
-        Path(roundedRect: scaled, cornerRadius: 4),
-        with: .color(.orange),
-        style: StrokeStyle(lineWidth: 2, dash: [6, 4])
-      )
-
-      // Semi-transparent orange fill
-      context.fill(
-        Path(roundedRect: scaled, cornerRadius: 4),
-        with: .color(.orange.opacity(0.1))
-      )
+      if suggestion.isSelected {
+        // Selected suggestion: bold dashed orange border and soft fill
+        context.stroke(
+          Path(roundedRect: scaled, cornerRadius: 4),
+          with: .color(.orange),
+          style: StrokeStyle(lineWidth: 2, dash: [6, 4])
+        )
+        context.fill(
+          Path(roundedRect: scaled, cornerRadius: 4),
+          with: .color(.orange.opacity(0.12))
+        )
+      } else {
+        // Unselected suggestion: subtle dotted orange border with light opacity
+        context.stroke(
+          Path(roundedRect: scaled, cornerRadius: 4),
+          with: .color(.orange.opacity(0.45)),
+          style: StrokeStyle(lineWidth: 1.5, dash: [3, 4])
+        )
+        context.fill(
+          Path(roundedRect: scaled, cornerRadius: 4),
+          with: .color(.orange.opacity(0.02))
+        )
+      }
     }
   }
 
@@ -354,8 +365,16 @@ struct EditorCanvasView: View {
         let imgPoint = viewToImage(point: value.location, viewSize: size)
 
         if dragStartImagePoint == nil {
-          // Double-click on text/callout opens an inline editor.
           let clickCount = NSApp.currentEvent?.clickCount ?? 1
+
+          // Interactive PII: Double-click to instantly redact/apply suggestion
+          if clickCount == 2,
+             let hitSuggestion = hitTestRedactionSuggestion(point: imgPoint) {
+            doc.acceptRedaction(hitSuggestion)
+            return
+          }
+
+          // Double-click on text/callout opens an inline editor.
           if clickCount == 2,
              let hitID = hitTest(point: imgPoint),
              let a = doc.annotations.first(where: { $0.id == hitID }) {
@@ -383,6 +402,13 @@ struct EditorCanvasView: View {
             default:
               break
             }
+          }
+
+          // Interactive PII: Single-click to toggle selection state
+          if clickCount == 1,
+             let hitSuggestion = hitTestRedactionSuggestion(point: imgPoint) {
+            doc.toggleRedactionSelection(hitSuggestion.id)
+            return
           }
 
           dragStartImagePoint = imgPoint
@@ -1345,8 +1371,12 @@ struct EditorCanvasView: View {
       case .arrow(let ar):
         if distancePointToSegment(p: point, a: ar.start, b: ar.end) <= 10 { return ar.id }
       case .text(let t):
-        let approx = CGRect(x: t.position.x, y: t.position.y - t.fontSize, width: max(20, CGFloat(t.text.count) * t.fontSize * 0.6), height: t.fontSize * 1.2)
-        if approx.insetBy(dx: -10, dy: -10).contains(point) { return t.id }
+        let padX: CGFloat = t.highlighted ? 8 : 0
+        let padY: CGFloat = t.highlighted ? 6 : 0
+        let approxWidth = CGFloat(t.text.count) * t.fontSize * 0.6 + padX * 2
+        let approxHeight = t.fontSize * 1.2 + padY * 2
+        let approx = CGRect(x: t.position.x, y: t.position.y, width: max(30, approxWidth), height: max(20, approxHeight))
+        if approx.insetBy(dx: -8, dy: -8).contains(point) { return t.id }
 
       case .blur(let b):
         if b.rect.insetBy(dx: -8, dy: -8).contains(point) { return b.id }
@@ -1389,6 +1419,11 @@ struct EditorCanvasView: View {
       }
     }
     return nil
+  }
+
+  private func hitTestRedactionSuggestion(point: CGPoint) -> RedactionSuggestion? {
+    let matches = doc.suggestedRedactions.filter { $0.rect.contains(point) }
+    return matches.sorted { $0.rect.width * $0.rect.height < $1.rect.width * $1.rect.height }.first
   }
 
   private func distancePointToSegment(p: CGPoint, a: CGPoint, b: CGPoint) -> CGFloat {

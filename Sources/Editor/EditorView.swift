@@ -68,145 +68,180 @@ struct EditorView: View {
   // MARK: - Top Bar (minimal)
 
   private var topBar: some View {
-    HStack(spacing: 12) {
-      // Undo/Redo
-      HStack(spacing: 4) {
-        Button {
+    HStack(spacing: 10) {
+      // Undo / Redo Group
+      HStack(spacing: 2) {
+        ToolbarIconButton(
+          icon: "arrow.uturn.backward",
+          helpText: "Undo (⌘Z)"
+        ) {
           doc.undo()
-        } label: {
-          Image(systemName: "arrow.uturn.backward")
         }
-        .buttonStyle(.borderless)
         .keyboardShortcut("z", modifiers: .command)
-        .help("Undo (⌘Z)")
 
-        Button {
+        ToolbarIconButton(
+          icon: "arrow.uturn.forward",
+          helpText: "Redo (⇧⌘Z)"
+        ) {
           doc.redo()
-        } label: {
-          Image(systemName: "arrow.uturn.forward")
         }
-        .buttonStyle(.borderless)
         .keyboardShortcut("z", modifiers: [.command, .shift])
-        .help("Redo (⇧⌘Z)")
       }
+      .padding(3)
+      .background(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(Color.primary.opacity(0.03))
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+      )
 
-      Divider().frame(height: 16)
-
-      // Delete
-      Button {
+      // Delete button
+      ToolbarIconButton(
+        icon: "trash",
+        isDisabled: doc.selectedID == nil,
+        helpText: "Delete selected (Delete)"
+      ) {
         doc.deleteSelected()
-      } label: {
-        Image(systemName: "trash")
       }
-      .buttonStyle(.borderless)
-      .disabled(doc.selectedID == nil)
-      .help("Delete selected")
 
       Spacer()
 
-      // Document title
-      Text(doc.sourceURL.lastPathComponent)
-        .font(.system(size: 12, weight: .medium))
-        .foregroundColor(.secondary)
-        .lineLimit(1)
+      // Document title pill
+      HStack(spacing: 6) {
+        Image(systemName: "photo")
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundColor(.secondary)
+        Text(doc.sourceURL.lastPathComponent)
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundColor(.primary.opacity(0.85))
+          .lineLimit(1)
+      }
+      .padding(.horizontal, 10)
+      .padding(.vertical, 4)
+      .background(
+        Capsule()
+          .fill(Color.primary.opacity(0.04))
+      )
+      .overlay(
+        Capsule()
+          .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+      )
 
       Spacer()
 
-      // Copy
-      Button {
-        EditorRenderer.copyToClipboard(doc: doc)
-      } label: {
-        Image(systemName: "doc.on.doc")
+      // Copy & Export
+      HStack(spacing: 6) {
+        ToolbarIconButton(
+          icon: "doc.on.doc",
+          helpText: "Copy to clipboard (⌘C)"
+        ) {
+          EditorRenderer.copyToClipboard(doc: doc)
+        }
+        .keyboardShortcut("c", modifiers: .command)
+
+        // Export Menu
+        Menu {
+          Button("Quick Export (PNG)") {
+            quickExport()
+          }
+          .keyboardShortcut("e", modifiers: .command)
+
+          Divider()
+
+          ForEach(EditorRenderer.ExportFormat.allCases) { format in
+            Button("Save as \(format.label)...") {
+              exportAs(format: format)
+            }
+          }
+
+          Divider()
+
+          Button("Share...") {
+            shareImage()
+          }
+          .keyboardShortcut("s", modifiers: [.command, .shift])
+
+          if let mailService = NSSharingService(named: .composeEmail) {
+            Button("Email...") {
+              shareTo(service: mailService)
+            }
+          }
+
+          if let messagesService = NSSharingService(named: .composeMessage) {
+            Button("Messages...") {
+              shareTo(service: messagesService)
+            }
+          }
+
+          if let airdropService = NSSharingService(named: .sendViaAirDrop) {
+            Button("AirDrop...") {
+              shareTo(service: airdropService)
+            }
+          }
+        } label: {
+          HStack(spacing: 4) {
+            Image(systemName: "square.and.arrow.up")
+              .font(.system(size: 12, weight: .semibold))
+            Text("Export")
+              .font(.system(size: 11, weight: .semibold))
+            Image(systemName: "chevron.down")
+              .font(.system(size: 8, weight: .bold))
+              .opacity(0.7)
+          }
+          .foregroundColor(.white)
+          .padding(.horizontal, 10)
+          .padding(.vertical, 5)
+          .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+              .fill(Color.accentColor)
+          )
+          .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .help("Export image options")
       }
-      .buttonStyle(.borderless)
-      .keyboardShortcut("c", modifiers: .command)
-      .help("Copy to clipboard (⌘C)")
-
-      // Export
-      Menu {
-        Button("Quick Export (PNG)") {
-          quickExport()
-        }
-        .keyboardShortcut("e", modifiers: .command)
-
-        Divider()
-
-        ForEach(EditorRenderer.ExportFormat.allCases) { format in
-          Button("Save as \(format.label)...") {
-            exportAs(format: format)
-          }
-        }
-
-        Divider()
-
-        Button("Share...") {
-          shareImage()
-        }
-        .keyboardShortcut("s", modifiers: [.command, .shift])
-
-        if let mailService = NSSharingService(named: .composeEmail) {
-          Button("Email...") {
-            shareTo(service: mailService)
-          }
-        }
-
-        if let messagesService = NSSharingService(named: .composeMessage) {
-          Button("Messages...") {
-            shareTo(service: messagesService)
-          }
-        }
-
-        if let airdropService = NSSharingService(named: .sendViaAirDrop) {
-          Button("AirDrop...") {
-            shareTo(service: airdropService)
-          }
-        }
-      } label: {
-        Image(systemName: "square.and.arrow.up")
-      }
-      .menuStyle(.borderlessButton)
-      .help("Export")
 
       Divider().frame(height: 16)
-      
-      // Zoom controls
-      HStack(spacing: 4) {
-        Button {
+
+      // Zoom Control Pill
+      HStack(spacing: 2) {
+        ToolbarIconButton(
+          icon: "minus.magnifyingglass",
+          helpText: "Zoom Out (⌘-)"
+        ) {
           doc.zoomLevel = max(0.1, doc.zoomLevel / 1.2)
-        } label: {
-          Image(systemName: "minus.magnifyingglass")
         }
-        .buttonStyle(.borderless)
         .keyboardShortcut("-", modifiers: .command)
-        .help("Zoom Out (⌘-)")
-        
+
         Menu {
           Button("Fit") {
             doc.fitMode = .fit
             doc.zoomLevel = 1.0
             doc.panOffset = .zero
           }
-          
+
           Button("Fit Width") {
             doc.fitMode = .fitWidth
             doc.zoomLevel = 1.0
             doc.panOffset = .zero
           }
-          
+
           Button("Fit Height") {
             doc.fitMode = .fitHeight
             doc.zoomLevel = 1.0
             doc.panOffset = .zero
           }
-          
+
           Button("Actual Size") {
             doc.fitMode = .actualSize
             doc.zoomLevel = 1.0
             doc.panOffset = .zero
           }
-          
+
           Divider()
-          
+
           ForEach([0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0], id: \.self) { zoom in
             Button("\(Int(zoom * 100))%") {
               doc.zoomLevel = zoom
@@ -214,53 +249,71 @@ struct EditorView: View {
           }
         } label: {
           Text("\(Int(doc.zoomLevel * 100))%")
-            .font(.system(size: 11, design: .monospaced))
-            .frame(minWidth: 40)
+            .font(.system(size: 11, weight: .medium, design: .monospaced))
+            .foregroundColor(.primary.opacity(0.85))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(
+              RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(Color.primary.opacity(0.04))
+            )
+            .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
-        .help("Zoom Level")
-        
-        Button {
+        .help("Zoom Level options")
+
+        ToolbarIconButton(
+          icon: "plus.magnifyingglass",
+          helpText: "Zoom In (⌘+)"
+        ) {
           doc.zoomLevel = min(10.0, doc.zoomLevel * 1.2)
-        } label: {
-          Image(systemName: "plus.magnifyingglass")
         }
-        .buttonStyle(.borderless)
         .keyboardShortcut("+", modifiers: .command)
-        .help("Zoom In (⌘+)")
       }
-      
-      // Pan hint for when image extends beyond viewport
+      .padding(3)
+      .background(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(Color.primary.opacity(0.03))
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+      )
+
       if needsPanHint {
-        Text("Press H for Hand tool to pan")
-          .font(.system(size: 10))
+        Text("Press H to Pan")
+          .font(.system(size: 10, weight: .medium))
           .foregroundColor(.secondary)
-          .padding(.leading, 8)
+          .padding(.horizontal, 6)
+          .padding(.vertical, 2)
+          .background(Capsule().fill(Color.secondary.opacity(0.1)))
       }
 
       Divider().frame(height: 16)
 
       // Toggle inspector
-      Button {
+      ToolbarIconButton(
+        icon: "sidebar.right",
+        isSelected: showInspector,
+        helpText: showInspector ? "Hide Inspector" : "Show Inspector"
+      ) {
         withAnimation(.easeInOut(duration: 0.2)) {
           showInspector.toggle()
         }
-      } label: {
-        Image(systemName: "sidebar.right")
       }
-      .buttonStyle(.borderless)
-      .help(showInspector ? "Hide Inspector" : "Show Inspector")
     }
   }
 
   // MARK: - Redaction Suggestions Banner
 
+  // MARK: - Redaction Suggestions Banner
+ 
   private var redactionSuggestionsBanner: some View {
     VStack(alignment: .leading, spacing: 8) {
       HStack(spacing: 12) {
         Image(systemName: "eye.trianglebadge.exclamationmark")
           .foregroundColor(.orange)
-          .font(.system(size: 14))
+          .font(.system(size: 14, weight: .medium))
 
         if doc.suggestedRedactions.isEmpty {
           Text("PII suggestions dismissed")
@@ -268,11 +321,13 @@ struct EditorView: View {
             .foregroundColor(.secondary)
         } else {
           Button {
-            piiListExpanded.toggle()
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+              piiListExpanded.toggle()
+            }
           } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
               Image(systemName: piiListExpanded ? "chevron.down" : "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 10, weight: .bold))
                 .foregroundColor(.secondary)
               Text("**\(doc.suggestedRedactions.count)** sensitive item\(doc.suggestedRedactions.count == 1 ? "" : "s") detected")
                 .font(.system(size: 12))
@@ -296,43 +351,56 @@ struct EditorView: View {
             }
             .labelsHidden()
             .frame(width: 100)
-            .font(.system(size: 12))
+            .font(.system(size: 11))
           }
         }
 
         // Actions
         Button {
-          doc.loadRedactionSuggestions()
+          withAnimation(.spring()) {
+            doc.loadRedactionSuggestions()
+          }
         } label: {
           Image(systemName: "arrow.clockwise")
         }
         .buttonStyle(.borderless)
-        .font(.system(size: 12))
+        .font(.system(size: 11))
         .foregroundColor(.secondary)
         .help("Reload PII suggestions")
         
         if !doc.suggestedRedactions.isEmpty {
           Button("Dismiss") {
-            doc.dismissAllRedactions()
-            piiListExpanded = false
+            withAnimation(.spring()) {
+              doc.dismissAllRedactions()
+              piiListExpanded = false
+            }
           }
           .buttonStyle(.borderless)
           .font(.system(size: 12))
           .foregroundColor(.secondary)
 
           Button {
-            doc.acceptAllRedactions()
+            withAnimation(.spring()) {
+              doc.acceptAllRedactions()
+            }
           } label: {
             HStack(spacing: 4) {
               Image(systemName: "eye.slash.fill")
               Text("Apply")
             }
-            .font(.system(size: 12, weight: .medium))
+            .font(.system(size: 11, weight: .semibold))
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(Color.orange)
+            .background(
+              LinearGradient(
+                colors: [.orange, .orange.opacity(0.85)],
+                startPoint: .top,
+                endPoint: .bottom
+              )
+            )
             .foregroundColor(.white)
-            .cornerRadius(4)
+            .cornerRadius(6)
+            .shadow(color: .orange.opacity(0.15), radius: 1.5, x: 0, y: 1)
           }
           .buttonStyle(.plain)
         }
@@ -340,49 +408,63 @@ struct EditorView: View {
       
       // Expandable list of suggestions with checkboxes
       if piiListExpanded && !doc.suggestedRedactions.isEmpty {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
           ForEach(doc.suggestedRedactions) { suggestion in
-            HStack(spacing: 8) {
-              Button {
+            Button {
+              withAnimation(.easeInOut(duration: 0.15)) {
                 doc.toggleRedactionSelection(suggestion.id)
-              } label: {
-                Image(systemName: suggestion.isSelected ? "checkmark.square.fill" : "square")
-                  .foregroundColor(suggestion.isSelected ? .orange : .secondary)
               }
-              .buttonStyle(.plain)
-              
-              HStack(spacing: 4) {
-                Image(systemName: suggestion.icon)
-                  .font(.system(size: 10))
-                  .foregroundColor(.secondary)
-                Text(suggestion.kind.rawValue)
-                  .font(.system(size: 11, weight: .medium))
-                  .foregroundColor(.secondary)
-                Text("•")
-                  .foregroundColor(.secondary.opacity(0.5))
-                Text(truncatedMatch(suggestion.matchedText))
-                  .font(.system(size: 11, design: .monospaced))
-                  .foregroundColor(.primary)
+            } label: {
+              HStack(spacing: 8) {
+                Image(systemName: suggestion.isSelected ? "checkmark.circle.fill" : "circle")
+                  .font(.system(size: 13, weight: .semibold))
+                  .foregroundColor(suggestion.isSelected ? .orange : .secondary.opacity(0.6))
+
+                HStack(spacing: 6) {
+                  Image(systemName: suggestion.icon)
+                    .font(.system(size: 10))
+                    .foregroundColor(suggestion.isSelected ? .orange : .secondary)
+                  Text(suggestion.kindLabel)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(suggestion.isSelected ? .primary : .secondary)
+                  Text("•")
+                    .foregroundColor(.secondary.opacity(0.3))
+                  Text(truncatedMatch(suggestion.matchedText))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(suggestion.isSelected ? .primary : .secondary)
+                }
+
+                Spacer()
               }
-              .padding(.horizontal, 6)
-              .padding(.vertical, 2)
-              .background(suggestion.isSelected ? Color.orange.opacity(0.15) : Color.clear)
-              .cornerRadius(4)
-              
-              Spacer()
+              .padding(.horizontal, 10)
+              .padding(.vertical, 5)
+              .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                  .fill(suggestion.isSelected ? Color.orange.opacity(0.08) : Color.primary.opacity(0.03))
+              )
+              .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                  .strokeBorder(suggestion.isSelected ? Color.orange.opacity(0.2) : Color.clear, lineWidth: 1)
+              )
+              .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
           }
           
           // Select/Deselect all controls
           HStack(spacing: 12) {
             Button("Select All") {
-              doc.selectAllRedactions()
+              withAnimation(.easeInOut(duration: 0.15)) {
+                doc.selectAllRedactions()
+              }
             }
             .buttonStyle(.link)
             .font(.system(size: 11))
             
             Button("Deselect All") {
-              doc.deselectAllRedactions()
+              withAnimation(.easeInOut(duration: 0.15)) {
+                doc.deselectAllRedactions()
+              }
             }
             .buttonStyle(.link)
             .font(.system(size: 11))
@@ -392,8 +474,15 @@ struct EditorView: View {
       }
     }
     .padding(.horizontal, 12)
-    .padding(.vertical, 6)
-    .background(Color.orange.opacity(0.1))
+    .padding(.vertical, 8)
+    .background(Color.orange.opacity(0.05))
+    .background(.ultraThinMaterial)
+    .overlay(
+      VStack {
+        Spacer()
+        Divider()
+      }
+    )
   }
 
   private func truncatedMatch(_ text: String) -> String {
@@ -409,33 +498,33 @@ struct EditorView: View {
 
   private var toolSidebar: some View {
     ScrollView(.vertical, showsIndicators: false) {
-      VStack(spacing: 4) {
+      VStack(spacing: 2) {
         // Selection
         sidebarToolButton(.select)
         sidebarToolButton(.hand)
 
-        Divider().padding(.vertical, 4)
+        Divider().padding(.vertical, 4).padding(.horizontal, 6)
 
         // Drawing tools
         ForEach([AnnotationTool.rect, .line, .arrow, .freehand], id: \.self) { tool in
           sidebarToolButton(tool)
         }
 
-        Divider().padding(.vertical, 4)
+        Divider().padding(.vertical, 4).padding(.horizontal, 6)
 
         // Text tools
         ForEach([AnnotationTool.text, .callout, .emoji], id: \.self) { tool in
           sidebarToolButton(tool)
         }
 
-        Divider().padding(.vertical, 4)
+        Divider().padding(.vertical, 4).padding(.horizontal, 6)
 
         // Pro tools
         ForEach([AnnotationTool.blur, .spotlight, .step], id: \.self) { tool in
           sidebarToolButton(tool)
         }
 
-        Divider().padding(.vertical, 4)
+        Divider().padding(.vertical, 4).padding(.horizontal, 6)
 
         // Measurement
         sidebarToolButton(.measurement)
@@ -443,6 +532,7 @@ struct EditorView: View {
         Spacer()
       }
       .padding(.vertical, 8)
+      .padding(.horizontal, 4)
     }
   }
 
@@ -450,27 +540,13 @@ struct EditorView: View {
     let isSelected = doc.tool == tool
     let shortcut = tool.shortcutKey ?? ""
 
-    return Button {
+    return SidebarToolButton(
+      tool: tool,
+      isSelected: isSelected,
+      shortcut: shortcut
+    ) {
       selectTool(tool)
-    } label: {
-      VStack(spacing: 2) {
-        Image(systemName: tool.icon)
-          .font(.system(size: 14))
-        Text(shortcut)
-          .font(.system(size: 8, weight: .medium, design: .rounded))
-          .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
-      }
-      .frame(width: 36, height: 36)
-      .background(
-        RoundedRectangle(cornerRadius: 6)
-          .fill(isSelected ? Color.accentColor : Color.clear)
-      )
-      .foregroundColor(isSelected ? .white : .primary)
     }
-    .buttonStyle(.plain)
-    .frame(maxWidth: .infinity, minHeight: 40)
-    .contentShape(Rectangle())
-    .help(shortcut.isEmpty ? tool.label : "\(tool.label) – Press \(shortcut)")
   }
 
   private func selectTool(_ tool: AnnotationTool) {
@@ -508,11 +584,23 @@ struct EditorView: View {
   private func inspectorSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
     VStack(alignment: .leading, spacing: 8) {
       Text(title)
-        .font(.system(size: 11, weight: .semibold))
+        .font(.system(size: 10, weight: .bold))
         .foregroundColor(.secondary)
         .textCase(.uppercase)
+        .padding(.leading, 2)
 
-      content()
+      VStack(alignment: .leading, spacing: 10) {
+        content()
+      }
+      .padding(10)
+      .background(
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+          .fill(Color(nsColor: .controlBackgroundColor).opacity(0.7))
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+          .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+      )
     }
   }
 
@@ -1215,36 +1303,119 @@ extension EditorView {
     }
   }
 }
-// MARK: - Tool Button Component
+// MARK: - Reusable Toolbar Controls
 
-private struct ToolButton: View {
-  let tool: AnnotationTool
-  let isSelected: Bool
-  let isPro: Bool
+private struct ToolbarIconButton: View {
+  let icon: String
+  var title: String? = nil
+  var isSelected: Bool = false
+  var isDisabled: Bool = false
+  var isAccent: Bool = false
+  let helpText: String
   let action: () -> Void
+
+  @State private var isHovered: Bool = false
 
   var body: some View {
     Button(action: action) {
-      ZStack(alignment: .topTrailing) {
-        Image(systemName: tool.icon)
-          .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
-          .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-          .frame(width: 28, height: 28)
-          .background(
-            RoundedRectangle(cornerRadius: 6)
-              .fill(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
-          )
-
-        if isPro {
-          Circle()
-            .fill(Color.orange)
-            .frame(width: 8, height: 8)
-            .offset(x: 2, y: -2)
+      HStack(spacing: 5) {
+        Image(systemName: icon)
+          .font(.system(size: 12, weight: .medium))
+        if let title {
+          Text(title)
+            .font(.system(size: 11, weight: .medium))
         }
       }
+      .foregroundColor(foregroundColor)
+      .padding(.horizontal, title != nil ? 9 : 7)
+      .padding(.vertical, 5)
+      .frame(minWidth: 28, minHeight: 28)
+      .background(
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+          .fill(backgroundColor)
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+          .strokeBorder(borderColor, lineWidth: 1)
+      )
+      .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
-    .help(isPro ? "\(tool.label) (Pro)" : tool.label)
+    .disabled(isDisabled)
+    .help(helpText)
+    .onHover { hover in
+      withAnimation(.easeInOut(duration: 0.12)) {
+        isHovered = hover
+      }
+    }
+  }
+
+  private var foregroundColor: Color {
+    if isDisabled { return .secondary.opacity(0.35) }
+    if isAccent { return .white }
+    if isSelected { return .accentColor }
+    return .primary.opacity(isHovered ? 0.95 : 0.75)
+  }
+
+  private var backgroundColor: Color {
+    if isDisabled { return .clear }
+    if isAccent {
+      return isHovered ? Color.accentColor.opacity(0.88) : Color.accentColor
+    }
+    if isSelected {
+      return Color.accentColor.opacity(0.14)
+    }
+    return isHovered ? Color.primary.opacity(0.09) : Color.primary.opacity(0.03)
+  }
+
+  private var borderColor: Color {
+    if isAccent { return .clear }
+    if isSelected { return Color.accentColor.opacity(0.3) }
+    return isHovered ? Color.primary.opacity(0.12) : Color.clear
+  }
+}
+
+private struct SidebarToolButton: View {
+  let tool: AnnotationTool
+  let isSelected: Bool
+  let shortcut: String
+  let action: () -> Void
+
+  @State private var isHovered: Bool = false
+
+  var body: some View {
+    Button(action: action) {
+      VStack(spacing: 2) {
+        Image(systemName: tool.icon)
+          .font(.system(size: 14, weight: isSelected ? .bold : .medium))
+        if !shortcut.isEmpty {
+          Text(shortcut)
+            .font(.system(size: 8, weight: .semibold, design: .rounded))
+            .foregroundColor(isSelected ? .white.opacity(0.85) : .secondary.opacity(0.75))
+        }
+      }
+      .frame(width: 38, height: 38)
+      .background(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(isSelected ? Color.accentColor : (isHovered ? Color.primary.opacity(0.08) : Color.clear))
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .strokeBorder(isSelected ? Color.accentColor.opacity(0.4) : (isHovered ? Color.primary.opacity(0.12) : Color.clear), lineWidth: 1)
+      )
+      .foregroundColor(isSelected ? .white : (isHovered ? .primary : .primary.opacity(0.8)))
+      .shadow(color: isSelected ? Color.accentColor.opacity(0.25) : .clear, radius: 3, x: 0, y: 1)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .frame(maxWidth: .infinity, minHeight: 42)
+    .contentShape(Rectangle())
+    .onHover { hovering in
+      withAnimation(.easeInOut(duration: 0.12)) {
+        isHovered = hovering
+      }
+    }
+    .help(shortcut.isEmpty ? tool.label : "\(tool.label) – Press \(shortcut)")
   }
 }
 

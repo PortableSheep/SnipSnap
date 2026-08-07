@@ -182,9 +182,17 @@ final class ScrollZoomNSView: NSView {
     let totalHeight = imageSize.height + (padding * 2)
     guard totalWidth > 0, totalHeight > 0 else { return .zero }
 
-    let scaleX = viewSize.width / totalWidth
-    let scaleY = viewSize.height / totalHeight
-    let baseScale = min(scaleX, scaleY)
+    let baseScale: CGFloat
+    switch doc?.fitMode ?? .fit {
+    case .fit:
+      baseScale = min(viewSize.width / totalWidth, viewSize.height / totalHeight)
+    case .fitWidth:
+      baseScale = viewSize.width / totalWidth
+    case .fitHeight:
+      baseScale = viewSize.height / totalHeight
+    case .actualSize:
+      baseScale = 1.0
+    }
     let scale = baseScale * zoom
 
     let w = imageSize.width * scale

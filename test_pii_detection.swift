@@ -81,7 +81,7 @@ let testCases: [(String, RedactionKind?)] = [
 ]
 
 print("🔍 Testing PII Detection Patterns\n")
-print("=" * 60)
+print(String(repeating: "=", count: 60))
 
 var passed = 0
 var failed = 0
@@ -89,7 +89,7 @@ var failed = 0
 for (text, expectedKind) in testCases {
   let patterns = [
     ("email", "[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}"),
-    ("creditCard", "(?:\\b\\d[ -]*?){13,19}\\b"),
+    ("creditCard", "\\b\\d(?:[ -]*?\\d){12,18}\\b"),
     ("phoneNumber", "(?:\\+?1[-\\s.]?)?\\(?[0-9]{3}\\)?[-\\s.]?[0-9]{3}[-\\s.]?[0-9]{4}"),
     ("ssn", "\\b\\d{3}[-\\s]?\\d{2}[-\\s]?\\d{4}\\b"),
     ("ipAddress", "\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b"),
@@ -97,27 +97,33 @@ for (text, expectedKind) in testCases {
     ("address", "\\b\\d{1,5}\\s+[A-Z][a-z]+(?:\\s+[A-Z][a-z]+)*\\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Circle|Cir)\\b"),
     ("dateOfBirth", "\\b(?:0?[1-9]|1[0-2])[/-](?:0?[1-9]|[12][0-9]|3[01])[/-](?:19|20)\\d{2}\\b"),
     ("accountNumber", "\\b\\d{8,17}\\b"),
+    ("token", "https?://[^\\s]+[?&](?:token|key|api_key|access_token|auth)=[A-Za-z0-9_\\-]+"),
+    ("token", "\\bAKIA[A-Z0-9]{16}\\b"),
     ("privateKey", "-----BEGIN(?:\\s+RSA)?\\s+PRIVATE\\s+KEY-----"),
   ]
   
-  var foundMatch = false
-  var matchedKind: String? = nil
+  var matchedKinds: Set<String> = []
   
   for (kind, pattern) in patterns {
     if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
       let range = NSRange(text.startIndex..<text.endIndex, in: text)
       if regex.firstMatch(in: text, options: [], range: range) != nil {
-        foundMatch = true
-        matchedKind = kind
-        break
+        matchedKinds.insert(kind)
       }
     }
   }
   
   let expected = expectedKind?.rawValue ?? "none"
-  let actual = matchedKind ?? "none"
+  let actual = matchedKinds.isEmpty ? "none" : matchedKinds.sorted().joined(separator: ", ")
   
-  if (foundMatch && expectedKind != nil) || (!foundMatch && expectedKind == nil) {
+  let success: Bool
+  if let expectedKind {
+    success = matchedKinds.contains(expectedKind.rawValue)
+  } else {
+    success = matchedKinds.isEmpty
+  }
+  
+  if success {
     print("✅ \"\(text)\"")
     print("   Expected: \(expected), Got: \(actual)")
     passed += 1
@@ -129,7 +135,7 @@ for (text, expectedKind) in testCases {
   print("")
 }
 
-print("=" * 60)
+print(String(repeating: "=", count: 60))
 print("\nResults: \(passed) passed, \(failed) failed")
 
 exit(failed > 0 ? 1 : 0)

@@ -252,7 +252,9 @@ final class AnnotationDocument: ObservableObject {
         stroke: StrokeStyleModel(color: .black, lineWidth: 0),
         fill: FillStyleModel(color: .black, enabled: true)
       )
-      annotations.append(.rect(rect))
+      let annotation = Annotation.rect(rect)
+      annotations.append(annotation)
+      piiRedactionAnnotationIDs.insert(annotation.id)
     } else {
       // For pixelate mode
       let blur = BlurAnnotation(
@@ -260,7 +262,9 @@ final class AnnotationDocument: ObservableObject {
         mode: redactionStyle,
         amount: 12
       )
-      annotations.append(.blur(blur))
+      let annotation = Annotation.blur(blur)
+      annotations.append(annotation)
+      piiRedactionAnnotationIDs.insert(annotation.id)
     }
 
     // Don't remove from suggestions - keep them visible for redo
