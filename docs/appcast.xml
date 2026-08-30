@@ -6,6 +6,22 @@
     <description>SnipSnap update feed</description>
     <language>en</language>
     <item>
+      <title>Version 1.1.15</title>
+      <sparkle:version>33</sparkle:version>
+      <sparkle:shortVersionString>1.1.15</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 1.1.15</h2>
+        <h3>🔧 Improvements</h3>
+
+<ul>
+<li>Improve strip and pinned image windows (<code>e445ec0</code>)</li>
+</ul>
+      ]]></description>
+      <pubDate>Sun, 30 Aug 2026 07:03:02 GMT</pubDate>
+      <enclosure url="https://github.com/PortableSheep/SnipSnap/releases/download/v1.1.15/SnipSnap-1.1.15.zip" sparkle:edSignature="2SxVINr1TT7lOqZ3f9fr9ktwQ+zE3J8Piyb7hlzsFE1drAh36T/9DY3XNRlV9SOvmRr/CllEMq/5WhGHJhqHDg==" length="2877418" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.1.14</title>
       <sparkle:version>32</sparkle:version>
       <sparkle:shortVersionString>1.1.14</sparkle:shortVersionString>
