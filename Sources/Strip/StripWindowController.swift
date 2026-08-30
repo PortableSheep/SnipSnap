@@ -14,6 +14,8 @@ final class StripWindowController: NSObject {
   private var cancellables = Set<AnyCancellable>()
   private var autoHideWorkItem: DispatchWorkItem?
   private var screenChangeWorkItem: DispatchWorkItem?
+  private var dockAnimationGeneration = 0
+  private var isApplyingDock = false
 
   let state: StripState
   let library: CaptureLibrary
@@ -259,7 +261,12 @@ final class StripWindowController: NSObject {
       let xBase = leftInset > 0.5 ? visible.minX : full.minX
       target = NSRect(
         x: xBase + margin,
-        y: visible.midY - verticalLength / 2,
+        y: dockedOrigin(
+          fraction: state.verticalDockFraction,
+          availableOrigin: visible.minY,
+          availableLength: visible.height,
+          windowLength: verticalLength
+        ),
         width: thickness,
         height: verticalLength
       )
@@ -267,30 +274,83 @@ final class StripWindowController: NSObject {
       let xBase = rightInset > 0.5 ? visible.maxX : full.maxX
       target = NSRect(
         x: xBase - thickness - margin,
-        y: visible.midY - verticalLength / 2,
+        y: dockedOrigin(
+          fraction: state.verticalDockFraction,
+          availableOrigin: visible.minY,
+          availableLength: visible.height,
+          windowLength: verticalLength
+        ),
         width: thickness,
         height: verticalLength
       )
     case .top:
       target = NSRect(
-        x: visible.midX - horizontalLength / 2,
+        x: dockedOrigin(
+          fraction: state.horizontalDockFraction,
+          availableOrigin: visible.minX,
+          availableLength: visible.width,
+          windowLength: horizontalLength
+        ),
         y: visible.maxY - thickness - margin,
         width: horizontalLength,
         height: thickness
       )
     case .bottom:
       target = NSRect(
-        x: visible.midX - horizontalLength / 2,
+        x: dockedOrigin(
+          fraction: state.horizontalDockFraction,
+          availableOrigin: visible.minX,
+          availableLength: visible.width,
+          windowLength: horizontalLength
+        ),
         y: visible.minY + margin,
         width: horizontalLength,
         height: thickness
       )
     }
 
-    if animate {
-      panel.animator().setFrame(target, display: true)
-    } else {
+    dockAnimationGeneration += 1
+    let generation = dockAnimationGeneration
+    isApplyingDock = true
+
+    guard animate else {
       panel.setFrame(target, display: true)
+      isApplyingDock = false
+      return
+    }
+
+    NSAnimationContext.runAnimationGroup { context in
+      context.duration = 0.22
+      context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+      panel.animator().setFrame(target, display: true)
+    } completionHandler: { [weak self] in
+      guard let self, self.dockAnimationGeneration == generation else { return }
+      self.isApplyingDock = false
+    }
+  }
+
+  private func dockedOrigin(
+    fraction: CGFloat,
+    availableOrigin: CGFloat,
+    availableLength: CGFloat,
+    windowLength: CGFloat
+  ) -> CGFloat {
+    let centeredOrigin = availableOrigin + availableLength * fraction - windowLength / 2
+    let maximumOrigin = max(availableOrigin, availableOrigin + availableLength - windowLength)
+    return centeredOrigin.clamped(to: availableOrigin...maximumOrigin)
+  }
+
+  private func rememberCurrentDockPosition(for position: StripDockPosition) {
+    guard let screen = panel.screen ?? NSScreen.main else { return }
+    let visible = screen.visibleFrame
+    let frame = panel.frame
+
+    if position.isVertical {
+      guard visible.height > 0 else { return }
+      state.verticalDockFraction = ((frame.midY - visible.minY) / visible.height).clamped(to: 0...1)
+    } else {
+      guard visible.width > 0 else { return }
+      state.horizontalDockFraction = ((frame.midX - visible.minX) / visible.width).clamped(to: 0...1)
     }
   }
 
@@ -389,13 +449,53 @@ final class StripWindowController: NSObject {
     let frame: NSRect
     switch state.dockPosition {
     case .left:
-      frame = NSRect(x: full.minX, y: visible.midY - tabH / 2, width: tabW, height: tabH)
+      frame = NSRect(
+        x: full.minX,
+        y: dockedOrigin(
+          fraction: state.verticalDockFraction,
+          availableOrigin: visible.minY,
+          availableLength: visible.height,
+          windowLength: tabH
+        ),
+        width: tabW,
+        height: tabH
+      )
     case .right:
-      frame = NSRect(x: full.maxX - tabW, y: visible.midY - tabH / 2, width: tabW, height: tabH)
+      frame = NSRect(
+        x: full.maxX - tabW,
+        y: dockedOrigin(
+          fraction: state.verticalDockFraction,
+          availableOrigin: visible.minY,
+          availableLength: visible.height,
+          windowLength: tabH
+        ),
+        width: tabW,
+        height: tabH
+      )
     case .top:
-      frame = NSRect(x: visible.midX - tabW / 2, y: visible.maxY - tabH, width: tabW, height: tabH)
+      frame = NSRect(
+        x: dockedOrigin(
+          fraction: state.horizontalDockFraction,
+          availableOrigin: visible.minX,
+          availableLength: visible.width,
+          windowLength: tabW
+        ),
+        y: visible.maxY - tabH,
+        width: tabW,
+        height: tabH
+      )
     case .bottom:
-      frame = NSRect(x: visible.midX - tabW / 2, y: visible.minY, width: tabW, height: tabH)
+      frame = NSRect(
+        x: dockedOrigin(
+          fraction: state.horizontalDockFraction,
+          availableOrigin: visible.minX,
+          availableLength: visible.width,
+          windowLength: tabW
+        ),
+        y: visible.minY,
+        width: tabW,
+        height: tabH
+      )
     }
     tabPanel.setFrame(frame, display: true)
   }
@@ -434,6 +534,7 @@ final class StripWindowController: NSObject {
       position = .bottom
     }
 
+    rememberCurrentDockPosition(for: position)
     state.dockPosition = position
     applyDock(position: position, animate: true)
   }
@@ -458,8 +559,10 @@ extension StripWindowController: NSWindowDelegate {
   }
 
   func windowDidMove(_ notification: Notification) {
+    guard !isApplyingDock else { return }
     // If the strip is moving, treat mouse-up as a drag gesture, not a click.
     state.suppressItemOpens(for: 0.45)
+    rememberCurrentDockPosition(for: state.dockPosition)
     cancelAutoHide()
     scheduleSnap()
   }
@@ -472,6 +575,12 @@ extension StripWindowController: NSWindowDelegate {
     // keep non-activating behavior
   }
 
+}
+
+private extension CGFloat {
+  func clamped(to range: ClosedRange<CGFloat>) -> CGFloat {
+    Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
+  }
 }
 
 // MARK: - Auto-Hide Tab View
