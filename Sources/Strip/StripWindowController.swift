@@ -4,16 +4,18 @@ import SwiftUI
 
 @MainActor
 final class StripWindowController: NSObject {
-  private let expandedThickness: CGFloat = 112
-  private let collapsedThickness: CGFloat = 76
-  private let maxLength: CGFloat = 560
-  private let margin: CGFloat = 18
   private let autoHideDelay: TimeInterval = 3.0
 
   private var isHovered: Bool = false
+  private var isUserDragging = false
+  private var isApplyingFrame = false
+  private var dockedScreenID: NSNumber?
+  private var dockedFrame: NSRect = .zero
+  private var hideAnimationGeneration = 0
   private var cancellables = Set<AnyCancellable>()
   private var autoHideWorkItem: DispatchWorkItem?
   private var screenChangeWorkItem: DispatchWorkItem?
+  private var screenObserver: NSObjectProtocol?
 
   let state: StripState
   let library: CaptureLibrary
@@ -35,7 +37,7 @@ final class StripWindowController: NSObject {
     self.state.startNewSession()
 
     let style: NSWindow.StyleMask = [.borderless, .nonactivatingPanel]
-    let initialThickness = expandedThickness
+    let initialThickness = StripLayout.thickness
     panel = NSPanel(
       contentRect: .init(x: 0, y: 0, width: initialThickness, height: initialThickness),
       styleMask: style,
@@ -88,7 +90,9 @@ final class StripWindowController: NSObject {
     }, onHoverChanged: { [weak self] hovering in
       self?.setHovered(hovering)
     })
-    panel.contentView = NSHostingView(rootView: root)
+    let stripHostingView = NSHostingView(rootView: root)
+    stripHostingView.sizingOptions = []
+    panel.contentView = stripHostingView
 
     // --- Tab panel setup ---
     tabPanel.isFloatingPanel = true
@@ -106,7 +110,9 @@ final class StripWindowController: NSObject {
     let tabView = AutoHideTabView(state: state) { [weak self] in
       self?.revealFromTab()
     }
-    tabPanel.contentView = NSHostingView(rootView: tabView)
+    let tabHostingView = NSHostingView(rootView: tabView)
+    tabHostingView.sizingOptions = []
+    tabPanel.contentView = tabHostingView
 
     // --- Initial layout ---
     applyDock(position: state.dockPosition, animate: false)
@@ -156,7 +162,7 @@ final class StripWindowController: NSObject {
       .store(in: &cancellables)
 
     // Re-dock the strip when the display configuration changes (e.g. external monitor disconnect).
-    NotificationCenter.default.addObserver(
+    screenObserver = NotificationCenter.default.addObserver(
       forName: NSApplication.didChangeScreenParametersNotification,
       object: NSApplication.shared,
       queue: .main
@@ -170,7 +176,19 @@ final class StripWindowController: NSObject {
     }
   }
 
+  deinit {
+    autoHideWorkItem?.cancel()
+    screenChangeWorkItem?.cancel()
+    snapWorkItem?.cancel()
+    if let screenObserver {
+      NotificationCenter.default.removeObserver(screenObserver)
+    }
+  }
+
   private func handleScreenParametersChanged() {
+    isUserDragging = false
+    snapWorkItem?.cancel()
+    cancelAutoHide()
     // Debounce: macOS may fire the notification before screen geometry is fully settled.
     screenChangeWorkItem?.cancel()
     let work = DispatchWorkItem { [weak self] in
@@ -178,6 +196,8 @@ final class StripWindowController: NSObject {
       self.applyDock(position: self.state.dockPosition, animate: false)
       if self.state.isAutoHidden {
         self.updateTabFrame()
+      } else if !self.isHovered {
+        self.scheduleAutoHide()
       }
     }
     screenChangeWorkItem = work
@@ -185,7 +205,7 @@ final class StripWindowController: NSObject {
   }
 
   var isVisible: Bool {
-    panel.isVisible
+    state.isVisible
   }
 
   func show() {
@@ -193,8 +213,12 @@ final class StripWindowController: NSObject {
       state.isVisible = true
     }
     cancelAutoHide()
+    snapWorkItem?.cancel()
+    isUserDragging = false
     hideTab()
+    hideAnimationGeneration += 1
     state.isAutoHidden = false
+    panel.ignoresMouseEvents = false
     panel.alphaValue = 1
     panel.orderFrontRegardless()
     applyDock(position: state.dockPosition, animate: false)
@@ -209,13 +233,17 @@ final class StripWindowController: NSObject {
       state.isVisible = false
     }
     cancelAutoHide()
+    snapWorkItem?.cancel()
+    isUserDragging = false
+    hideAnimationGeneration += 1
     hideTab()
+    isHovered = false
     state.isAutoHidden = false
     panel.orderOut(nil)
   }
 
   func toggle() {
-    if panel.isVisible {
+    if state.isVisible {
       hide()
     } else {
       show()
@@ -239,71 +267,38 @@ final class StripWindowController: NSObject {
   }
 
   private func applyDock(position: StripDockPosition, animate: Bool) {
-    guard let screen = panel.screen ?? NSScreen.main else { return }
-    let visible = screen.visibleFrame
-    let full = screen.frame
+    guard let screen = dockedScreen else { return }
+    dockedScreenID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+    dockedFrame = StripLayout.dockedFrame(position: position, visible: screen.visibleFrame)
+    setPanelFrame(state.isAutoHidden ? computeHiddenFrame() : dockedFrame,
+                  animate: animate && !state.isAutoHidden)
+  }
 
-    let thickness = expandedThickness
+  private var dockedScreen: NSScreen? {
+    // A hidden panel can report a neighboring or disconnected display.
+    NSScreen.screens.first {
+      ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber) == dockedScreenID
+    } ?? NSScreen.main ?? NSScreen.screens.first
+  }
 
-    // If the Dock occupies an edge, visibleFrame will be inset from full frame.
-    // This lets us “avoid Dock” without relying on private APIs.
-    let leftInset = max(0, visible.minX - full.minX)
-    let rightInset = max(0, full.maxX - visible.maxX)
-
-    let horizontalLength = max(260, min(maxLength, visible.width - margin * 2))
-    let verticalLength = max(260, min(maxLength, visible.height - margin * 2))
-
-    let target: NSRect
-    switch position {
-    case .left:
-      let xBase = leftInset > 0.5 ? visible.minX : full.minX
-      target = NSRect(
-        x: xBase + margin,
-        y: visible.midY - verticalLength / 2,
-        width: thickness,
-        height: verticalLength
-      )
-    case .right:
-      let xBase = rightInset > 0.5 ? visible.maxX : full.maxX
-      target = NSRect(
-        x: xBase - thickness - margin,
-        y: visible.midY - verticalLength / 2,
-        width: thickness,
-        height: verticalLength
-      )
-    case .top:
-      target = NSRect(
-        x: visible.midX - horizontalLength / 2,
-        y: visible.maxY - thickness - margin,
-        width: horizontalLength,
-        height: thickness
-      )
-    case .bottom:
-      target = NSRect(
-        x: visible.midX - horizontalLength / 2,
-        y: visible.minY + margin,
-        width: horizontalLength,
-        height: thickness
-      )
-    }
-
+  private func setPanelFrame(_ frame: NSRect, animate: Bool) {
+    isApplyingFrame = true
+    defer { isApplyingFrame = false }
     if animate {
-      panel.animator().setFrame(target, display: true)
+      panel.animator().setFrame(frame, display: true)
     } else {
-      panel.setFrame(target, display: true)
+      panel.setFrame(frame, display: true)
     }
   }
 
   private func setHovered(_ hovering: Bool) {
+    guard !state.isAutoHidden, state.isVisible else { return }
     guard hovering != isHovered else { return }
     isHovered = hovering
 
     guard state.autoHideEnabled else { return }
     if hovering {
       cancelAutoHide()
-      if state.isAutoHidden {
-        revealFromAutoHide(animate: true)
-      }
     } else {
       scheduleAutoHide()
     }
@@ -313,9 +308,9 @@ final class StripWindowController: NSObject {
 
   private func scheduleAutoHide() {
     cancelAutoHide()
-    guard state.autoHideEnabled, !state.isAutoHidden else { return }
+    guard state.isVisible, state.autoHideEnabled, !state.isAutoHidden, !isUserDragging else { return }
     let work = DispatchWorkItem { [weak self] in
-      DispatchQueue.main.async { self?.performAutoHide() }
+      self?.performAutoHide()
     }
     autoHideWorkItem = work
     DispatchQueue.main.asyncAfter(deadline: .now() + autoHideDelay, execute: work)
@@ -327,26 +322,35 @@ final class StripWindowController: NSObject {
   }
 
   private func performAutoHide() {
-    guard !state.isAutoHidden, state.autoHideEnabled, !isHovered else { return }
+    guard state.isVisible, !state.isAutoHidden, state.autoHideEnabled, !isHovered, !isUserDragging else { return }
     state.isAutoHidden = true
+    panel.ignoresMouseEvents = true
+    hideAnimationGeneration += 1
+    let generation = hideAnimationGeneration
 
     let hiddenFrame = computeHiddenFrame()
     NSAnimationContext.runAnimationGroup { ctx in
       ctx.duration = 0.3
       ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
-      panel.animator().setFrame(hiddenFrame, display: true)
+      setPanelFrame(hiddenFrame, animate: true)
       panel.animator().alphaValue = 0
     } completionHandler: { [weak self] in
-      self?.showTab()
+      guard let self, self.hideAnimationGeneration == generation,
+            self.state.isVisible, self.state.isAutoHidden else { return }
+      self.panel.orderOut(nil)
+      self.showTab()
     }
   }
 
   private func revealFromAutoHide(animate: Bool) {
     guard state.isAutoHidden else { return }
+    hideAnimationGeneration += 1
     state.isAutoHidden = false
     hideTab()
+    panel.ignoresMouseEvents = false
     panel.alphaValue = 1
     applyDock(position: state.dockPosition, animate: animate)
+    panel.orderFrontRegardless()
   }
 
   private func revealFromTab() {
@@ -356,12 +360,12 @@ final class StripWindowController: NSObject {
   }
 
   private func computeHiddenFrame() -> NSRect {
-    var frame = panel.frame
+    var frame = dockedFrame
     switch state.dockPosition {
-    case .left:   frame.origin.x -= frame.width + margin
-    case .right:  frame.origin.x += frame.width + margin
-    case .top:    frame.origin.y += frame.height + margin
-    case .bottom: frame.origin.y -= frame.height + margin
+    case .left:   frame.origin.x -= frame.width + StripLayout.margin
+    case .right:  frame.origin.x += frame.width + StripLayout.margin
+    case .top:    frame.origin.y += frame.height + StripLayout.margin
+    case .bottom: frame.origin.y -= frame.height + StripLayout.margin
     }
     return frame
   }
@@ -379,60 +383,22 @@ final class StripWindowController: NSObject {
   }
 
   private func updateTabFrame() {
-    guard let screen = panel.screen ?? NSScreen.main else { return }
-    let visible = screen.visibleFrame
-    let full = screen.frame
-    let isVertical = state.dockPosition.isVertical
-    let tabW: CGFloat = isVertical ? 14 : 44
-    let tabH: CGFloat = isVertical ? 44 : 14
-
-    let frame: NSRect
-    switch state.dockPosition {
-    case .left:
-      frame = NSRect(x: full.minX, y: visible.midY - tabH / 2, width: tabW, height: tabH)
-    case .right:
-      frame = NSRect(x: full.maxX - tabW, y: visible.midY - tabH / 2, width: tabW, height: tabH)
-    case .top:
-      frame = NSRect(x: visible.midX - tabW / 2, y: visible.maxY - tabH, width: tabW, height: tabH)
-    case .bottom:
-      frame = NSRect(x: visible.midX - tabW / 2, y: visible.minY, width: tabW, height: tabH)
-    }
+    guard let screen = dockedScreen else { return }
+    let frame = StripLayout.tabFrame(position: state.dockPosition, screen: screen.frame, visible: screen.visibleFrame)
     tabPanel.setFrame(frame, display: true)
   }
 
   private func snapToEdgeIfNeeded() {
-    guard let screen = panel.screen ?? NSScreen.main else { return }
-    let visible = screen.visibleFrame
-    let full = screen.frame
-    let f = panel.frame
-
-    let threshold: CGFloat = 44
-
-    // For left/right, prefer true screen edges so we can dock even if the macOS Dock is on that side.
-    // For top/bottom, use visibleFrame to avoid fighting the menu bar area.
-    let leftTargetX = full.minX + margin
-    let rightTargetX = full.maxX - margin
-    let bottomTargetY = visible.minY + margin
-    let topTargetY = visible.maxY - margin
-
-    let leftDist = abs(f.minX - leftTargetX)
-    let rightDist = abs(f.maxX - rightTargetX)
-    let bottomDist = abs(f.minY - bottomTargetY)
-    let topDist = abs(f.maxY - topTargetY)
-
-    let minDist = min(leftDist, rightDist, bottomDist, topDist)
-    guard minDist <= threshold else { return }
-
-    let position: StripDockPosition
-    if minDist == leftDist {
-      position = .left
-    } else if minDist == rightDist {
-      position = .right
-    } else if minDist == topDist {
-      position = .top
-    } else {
-      position = .bottom
+    guard isUserDragging else { return }
+    isUserDragging = false
+    defer {
+      if !isHovered { scheduleAutoHide() }
     }
+    guard let screen = panel.screen ?? NSScreen.main else { return }
+    dockedScreenID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+    dockedFrame = panel.frame
+    guard let position = StripLayout.nearestEdge(frame: panel.frame, screen: screen.frame,
+                                                 visible: screen.visibleFrame) else { return }
 
     state.dockPosition = position
     applyDock(position: position, animate: true)
@@ -442,8 +408,11 @@ final class StripWindowController: NSObject {
   private func scheduleSnap() {
     snapWorkItem?.cancel()
     let item = DispatchWorkItem { [weak self] in
-      DispatchQueue.main.async {
-        self?.snapToEdgeIfNeeded()
+      guard let self, self.isUserDragging else { return }
+      if NSEvent.pressedMouseButtons & 1 != 0 {
+        self.scheduleSnap()
+      } else {
+        self.snapToEdgeIfNeeded()
       }
     }
     snapWorkItem = item
@@ -453,19 +422,23 @@ final class StripWindowController: NSObject {
 }
 
 extension StripWindowController: NSWindowDelegate {
-  func windowDidEndLiveResize(_ notification: Notification) {
-    snapToEdgeIfNeeded()
-  }
-
-  func windowDidMove(_ notification: Notification) {
-    // If the strip is moving, treat mouse-up as a drag gesture, not a click.
-    state.suppressItemOpens(for: 0.45)
+  func windowWillMove(_ notification: Notification) {
+    guard !isApplyingFrame, !state.isAutoHidden, state.isVisible,
+          NSEvent.pressedMouseButtons & 1 != 0,
+          let event = NSApp.currentEvent,
+          event.window === panel,
+          event.type == .leftMouseDown || event.type == .leftMouseDragged else { return }
+    isUserDragging = true
     cancelAutoHide()
     scheduleSnap()
   }
 
-  func windowDidEndSheet(_ notification: Notification) {
-    snapToEdgeIfNeeded()
+  func windowDidMove(_ notification: Notification) {
+    guard isUserDragging, !isApplyingFrame else { return }
+    // If the strip is moving, treat mouse-up as a drag gesture, not a click.
+    state.suppressItemOpens(for: 0.45)
+    cancelAutoHide()
+    scheduleSnap()
   }
 
   func windowDidResignKey(_ notification: Notification) {

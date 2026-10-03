@@ -101,6 +101,11 @@ struct StripView: View {
         }
       }
       .animation(.spring(response: 0.22, dampingFraction: 0.9), value: isHovered)
+      .onChange(of: state.isAutoHidden) { hidden in
+        guard hidden else { return }
+        hoverDebounceTask?.cancel()
+        isHovered = false
+      }
     }
   }
 

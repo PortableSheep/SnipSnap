@@ -58,7 +58,7 @@ What makes it different:
 
 ### Organization
 
-- **Dockable strip** — Thumbnails snap to any screen edge (top/bottom/left/right)
+- **Dockable strip** — Thumbnails snap to any screen edge (top/bottom/left/right) and keep that edge when displays are connected or disconnected. Hover over the small edge tab to reveal the auto-hidden strip; right-click the strip to choose a docking edge.
 - **Session management** — Captures are grouped by session; clear them or keep them forever
 - **OCR indexing** — Full-text search across all your screenshots (runs locally, not in the cloud)
 - **iCloud sync** — Mirror captures to iCloud Drive as a backup (optional)
