@@ -7,6 +7,8 @@ final class StripState: ObservableObject {
     static let isVisible = "strip.isVisible"
     static let autoHideEnabled = "strip.autoHideEnabled"
     static let showOnStartup = "strip.showOnStartup"
+    static let verticalDockFraction = "strip.verticalDockFraction"
+    static let horizontalDockFraction = "strip.horizontalDockFraction"
   }
 
   @Published var dockPosition: StripDockPosition {
@@ -33,6 +35,18 @@ final class StripState: ObservableObject {
     }
   }
 
+  var verticalDockFraction: CGFloat {
+    didSet {
+      UserDefaults.standard.set(verticalDockFraction, forKey: Keys.verticalDockFraction)
+    }
+  }
+
+  var horizontalDockFraction: CGFloat {
+    didSet {
+      UserDefaults.standard.set(horizontalDockFraction, forKey: Keys.horizontalDockFraction)
+    }
+  }
+
   /// Runtime-only: whether the strip is currently slid off-screen.
   @Published var isAutoHidden: Bool = false
 
@@ -49,6 +63,8 @@ final class StripState: ObservableObject {
     isVisible = UserDefaults.standard.object(forKey: Keys.isVisible) as? Bool ?? true
     autoHideEnabled = UserDefaults.standard.object(forKey: Keys.autoHideEnabled) as? Bool ?? true
     showOnStartup = UserDefaults.standard.object(forKey: Keys.showOnStartup) as? Bool ?? true
+    verticalDockFraction = Self.loadDockFraction(forKey: Keys.verticalDockFraction)
+    horizontalDockFraction = Self.loadDockFraction(forKey: Keys.horizontalDockFraction)
   }
 
   func startNewSession() {
@@ -62,5 +78,16 @@ final class StripState: ObservableObject {
   var canOpenItemsNow: Bool {
     guard let until = suppressOpensUntil else { return true }
     return Date() >= until
+  }
+
+  private static func loadDockFraction(forKey key: String) -> CGFloat {
+    guard UserDefaults.standard.object(forKey: key) != nil else { return 0.5 }
+    return CGFloat(UserDefaults.standard.double(forKey: key)).clamped(to: 0...1)
+  }
+}
+
+private extension CGFloat {
+  func clamped(to range: ClosedRange<CGFloat>) -> CGFloat {
+    Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
   }
 }

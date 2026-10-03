@@ -269,7 +269,9 @@ final class StripWindowController: NSObject {
   private func applyDock(position: StripDockPosition, animate: Bool) {
     guard let screen = dockedScreen else { return }
     dockedScreenID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
-    dockedFrame = StripLayout.dockedFrame(position: position, visible: screen.visibleFrame)
+    dockedFrame = StripLayout.dockedFrame(position: position, visible: screen.visibleFrame,
+                                        verticalFraction: state.verticalDockFraction,
+                                        horizontalFraction: state.horizontalDockFraction)
     setPanelFrame(state.isAutoHidden ? computeHiddenFrame() : dockedFrame,
                   animate: animate && !state.isAutoHidden)
   }
@@ -288,6 +290,19 @@ final class StripWindowController: NSObject {
       panel.animator().setFrame(frame, display: true)
     } else {
       panel.setFrame(frame, display: true)
+    }
+  }
+
+  private func rememberCurrentDockPosition(for position: StripDockPosition) {
+    guard let screen = panel.screen ?? NSScreen.main else { return }
+    let visible = screen.visibleFrame
+    let frame = panel.frame
+    if position.isVertical {
+      guard visible.height > 0 else { return }
+      state.verticalDockFraction = ((frame.midY - visible.minY) / visible.height).clamped(to: 0...1)
+    } else {
+      guard visible.width > 0 else { return }
+      state.horizontalDockFraction = ((frame.midX - visible.minX) / visible.width).clamped(to: 0...1)
     }
   }
 
@@ -384,7 +399,9 @@ final class StripWindowController: NSObject {
 
   private func updateTabFrame() {
     guard let screen = dockedScreen else { return }
-    let frame = StripLayout.tabFrame(position: state.dockPosition, screen: screen.frame, visible: screen.visibleFrame)
+    let frame = StripLayout.tabFrame(position: state.dockPosition, screen: screen.frame, visible: screen.visibleFrame,
+                                    verticalFraction: state.verticalDockFraction,
+                                    horizontalFraction: state.horizontalDockFraction)
     tabPanel.setFrame(frame, display: true)
   }
 
@@ -398,8 +415,12 @@ final class StripWindowController: NSObject {
     dockedScreenID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
     dockedFrame = panel.frame
     guard let position = StripLayout.nearestEdge(frame: panel.frame, screen: screen.frame,
-                                                 visible: screen.visibleFrame) else { return }
+                                                 visible: screen.visibleFrame) else {
+      rememberCurrentDockPosition(for: state.dockPosition)
+      return
+    }
 
+    rememberCurrentDockPosition(for: position)
     state.dockPosition = position
     applyDock(position: position, animate: true)
   }
@@ -445,6 +466,12 @@ extension StripWindowController: NSWindowDelegate {
     // keep non-activating behavior
   }
 
+}
+
+private extension CGFloat {
+  func clamped(to range: ClosedRange<CGFloat>) -> CGFloat {
+    Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
+  }
 }
 
 // MARK: - Auto-Hide Tab View

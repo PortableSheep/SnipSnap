@@ -37,6 +37,50 @@ struct StripLayoutTests {
   }
 
   @Test
+  func preservesOffsetAlongChosenEdgeAcrossDisplays() {
+    for visible in [
+      CGRect(x: 0, y: 70, width: 1512, height: 880),
+      CGRect(x: -2560, y: 100, width: 2560, height: 1340)
+    ] {
+      for position in positions {
+        let frame = StripLayout.dockedFrame(position: position, visible: visible,
+                                            verticalFraction: 0.6, horizontalFraction: 0.6)
+        let tab = StripLayout.tabFrame(position: position, screen: visible, visible: visible,
+                                       verticalFraction: 0.6, horizontalFraction: 0.6)
+        #expect(visible.contains(frame))
+        #expect(visible.contains(tab))
+        if position.isVertical {
+          #expect(frame.midY == visible.minY + visible.height * 0.6)
+          #expect(tab.midY == frame.midY)
+        } else {
+          #expect(frame.midX == visible.minX + visible.width * 0.6)
+          #expect(tab.midX == frame.midX)
+        }
+      }
+    }
+  }
+
+  @Test
+  func clampsSavedOffsetsToAvailableDisplay() {
+    let visible = CGRect(x: -1920, y: 70, width: 1920, height: 985)
+    for fraction: CGFloat in [0, 1] {
+      for position in positions {
+        let frame = StripLayout.dockedFrame(position: position, visible: visible,
+                                            verticalFraction: fraction, horizontalFraction: fraction)
+        let tab = StripLayout.tabFrame(position: position, screen: visible, visible: visible,
+                                       verticalFraction: fraction, horizontalFraction: fraction)
+        #expect(visible.contains(frame))
+        #expect(visible.contains(tab))
+        if position.isVertical {
+          #expect(fraction == 0 ? frame.minY == visible.minY : frame.maxY == visible.maxY)
+        } else {
+          #expect(fraction == 0 ? frame.minX == visible.minX : frame.maxX == visible.maxX)
+        }
+      }
+    }
+  }
+
+  @Test
   func avoidsSideDock() {
     let screen = CGRect(x: -1920, y: 0, width: 1920, height: 1080)
     for visible in [

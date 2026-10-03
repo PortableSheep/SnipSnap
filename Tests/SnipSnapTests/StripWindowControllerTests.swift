@@ -8,7 +8,8 @@ struct StripWindowControllerTests {
   @Test @MainActor
   func displayChangesAndAutoHideDoNotRedockOrLeaveInvisibleHoverTargets() async throws {
     let defaults = UserDefaults.standard
-    let keys = ["strip.dockPosition", "strip.isVisible", "strip.autoHideEnabled", "strip.showOnStartup"]
+    let keys = ["strip.dockPosition", "strip.isVisible", "strip.autoHideEnabled", "strip.showOnStartup",
+                "strip.verticalDockFraction", "strip.horizontalDockFraction"]
     let saved = keys.map { defaults.object(forKey: $0) }
     defer {
       for (key, value) in zip(keys, saved) {
@@ -24,6 +25,8 @@ struct StripWindowControllerTests {
     state.isVisible = false
     state.autoHideEnabled = false
     state.dockPosition = .right
+    state.verticalDockFraction = 0.5
+    state.horizontalDockFraction = 0.5
     let previousWindows = Set(NSApplication.shared.windows.map(\.windowNumber))
     let controller = StripWindowController(
       state: state, library: CaptureLibrary(capturesDirURL: directory),
