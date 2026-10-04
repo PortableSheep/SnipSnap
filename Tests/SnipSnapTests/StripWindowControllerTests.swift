@@ -42,8 +42,14 @@ struct StripWindowControllerTests {
     }
     let content = try #require(panel.contentView as? NSHostingView<StripView>)
     controller.show()
-    try await Task.sleep(for: .milliseconds(400))
+    #expect(await eventually { panel.isVisible && panel.screen != nil })
     let screen = try #require(panel.screen)
+    func docked(_ position: StripDockPosition) -> NSRect {
+      StripLayout.dockedFrame(position: position, visible: screen.visibleFrame)
+    }
+    func tabFrame(_ position: StripDockPosition) -> NSRect {
+      StripLayout.tabFrame(position: position, screen: screen.frame, visible: screen.visibleFrame)
+    }
 
     // Simulate macOS relocating a window to the upper-right after a display disappears.
     panel.setFrameOrigin(CGPoint(x: screen.frame.maxX - panel.frame.width - StripLayout.margin,
@@ -53,35 +59,29 @@ struct StripWindowControllerTests {
     #expect(state.dockPosition == .right)
     #expect(state.suppressOpensUntil == nil)
     NotificationCenter.default.post(name: NSApplication.didChangeScreenParametersNotification, object: NSApp)
-    try await Task.sleep(for: .milliseconds(500))
-    #expect(panel.frame == StripLayout.dockedFrame(position: .right, visible: screen.visibleFrame))
+    #expect(await eventually { panel.frame == docked(.right) })
     #expect(state.dockPosition == .right)
 
     // Exercise orientation changes so hosting constraints cannot leave a huge tab.
     for position: StripDockPosition in [.top, .left, .bottom, .right] {
       state.dockPosition = position
-      try await Task.sleep(for: .milliseconds(500))
-      #expect(panel.frame == StripLayout.dockedFrame(position: position, visible: screen.visibleFrame))
+      #expect(await eventually { panel.frame == docked(position) })
     }
     state.autoHideEnabled = true
     content.rootView.onHoverChanged(false)
-    try await Task.sleep(for: .seconds(3.6))
-    #expect(state.isAutoHidden)
+    #expect(await eventually { state.isAutoHidden && !panel.isVisible && tab.isVisible })
     #expect(state.dockPosition == .right)
     #expect(panel.ignoresMouseEvents)
-    #expect(!panel.isVisible)
     #expect(controller.isVisible)
-    #expect(tab.isVisible)
-    #expect(tab.frame == StripLayout.tabFrame(position: .right, screen: screen.frame, visible: screen.visibleFrame))
+    #expect(tab.frame == tabFrame(.right))
     content.rootView.onHoverChanged(true)
     #expect(state.isAutoHidden)
 
     for position: StripDockPosition in [.top, .left, .bottom, .right] {
       state.dockPosition = position
-      try await Task.sleep(for: .milliseconds(300))
+      #expect(await eventually { tab.frame == tabFrame(position) })
       #expect(state.isAutoHidden)
       #expect(!panel.isVisible)
-      #expect(tab.frame == StripLayout.tabFrame(position: position, screen: screen.frame, visible: screen.visibleFrame))
     }
 
     NotificationCenter.default.post(name: NSApplication.didChangeScreenParametersNotification, object: NSApp)
@@ -92,16 +92,14 @@ struct StripWindowControllerTests {
     #expect(tab.frame.size == CGSize(width: 14, height: 44))
 
     controller.revealForCapture()
-    try await Task.sleep(for: .milliseconds(500))
+    #expect(await eventually { panel.frame == docked(.right) })
     #expect(!state.isAutoHidden)
     #expect(panel.isVisible)
     #expect(!panel.ignoresMouseEvents)
     #expect(!tab.isVisible)
-    #expect(panel.frame == StripLayout.dockedFrame(position: .right, visible: screen.visibleFrame))
 
     // Revealing during the hide animation must invalidate its late completion.
-    try await Task.sleep(for: .seconds(2.6))
-    #expect(state.isAutoHidden)
+    #expect(await eventually(timeout: 8, interval: 0.01) { state.isAutoHidden })
     controller.revealForCapture()
     try await Task.sleep(for: .milliseconds(500))
     #expect(!state.isAutoHidden)
@@ -109,9 +107,7 @@ struct StripWindowControllerTests {
     #expect(panel.alphaValue == 1)
     #expect(!tab.isVisible)
 
-    try await Task.sleep(for: .seconds(3.1))
-    #expect(state.isAutoHidden)
-    #expect(tab.isVisible)
+    #expect(await eventually { state.isAutoHidden && tab.isVisible })
     controller.toggle()
     #expect(!state.isVisible)
     #expect(!state.isAutoHidden)
@@ -126,4 +122,20 @@ struct StripWindowControllerTests {
     #expect(!state.isVisible)
     #expect(!panel.isVisible)
   }
+}
+
+/// Polls `condition` on the main actor until it holds or `timeout` elapses.
+/// Timer- and animation-driven UI can't be asserted with fixed sleeps without flaking under load.
+@MainActor
+private func eventually(
+  timeout: TimeInterval = 8,
+  interval: TimeInterval = 0.05,
+  _ condition: () -> Bool
+) async -> Bool {
+  let deadline = Date().addingTimeInterval(timeout)
+  while Date() < deadline {
+    if condition() { return true }
+    try? await Task.sleep(for: .seconds(interval))
+  }
+  return condition()
 }
