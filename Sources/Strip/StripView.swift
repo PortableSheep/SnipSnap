@@ -191,8 +191,12 @@ struct StripView: View {
         }
 
         if item.kind == .image {
-          Button("Pin Image") {
+          Button("Pin to Screen") {
             onPin(item)
+          }
+
+          Button("Send to Board") {
+            NotificationCenter.default.post(name: .sendToBoard, object: item.url)
           }
         }
         

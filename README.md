@@ -39,7 +39,7 @@ What makes it different:
 - **Video trimming** — Cut the beginning or end right from the strip context menu
 
 ### Screenshots
-- **Instant capture** — ⌘⇧4 for region, ⌘⇧5 for window (customizable)
+- **Instant capture** — ⌘⇧8 for region, ⌘⇧7 for window (customizable)
 - **Delayed capture** — 3, 5, or 10 second countdown for context menus and hover states
 - **Window detection** — Automatically finds and highlights windows as you hover
 
@@ -63,6 +63,18 @@ What makes it different:
 - **OCR indexing** — Full-text search across all your screenshots (runs locally, not in the cloud)
 - **iCloud sync** — Mirror captures to iCloud Drive as a backup (optional)
 - **Presentation mode** — Full-screen slideshow through your captures with arrow keys
+
+### Board
+
+A full-screen corkboard for the stuff you need to remember — screenshots, links, copied text, and quick notes — pinned as free-form cards.
+
+- **Reveal anywhere** — Press ⌘⇧B or (optionally) push the pointer into a hot corner (Preferences › Board)
+- **Quick add** — "Send to Board" from the strip, editor, or a pinned image; ⌥⌘⇧V turns the clipboard into a card; paste or drag & drop files, images, links, and text onto the board
+- **Context included** — Cards remember the source app and, optionally, the browser tab URL; links get titles, icons, and previews
+- **Todos & zones** — Any card can have a checkbox; drop labeled zones (e.g. Todo / Doing / Done) to group cards; Tidy Up arranges them
+- **Pin to Screen** — Pin any card as an always-on-top floating window; hide/show all pins at once with ⌥⌘⇧P
+- **Searchable** — On-device OCR makes text in screenshots searchable; Live Text works in the card inspector
+- **Private** — Stored locally in `~/Library/Application Support/SnipSnap/board/`
 
 ### Smart Features
 
@@ -99,7 +111,7 @@ Grant both and you're set. The app lives in your menu bar as a scissors icon.
 
 ### Basic Workflow
 
-1. Hit **⌘⇧4** to grab a region or **⌘⇧5** for a window
+1. Hit **⌘⇧8** to grab a region or **⌘⇧7** for a window
 2. Your capture appears in the strip (⌘⇧S to show/hide)
 3. Click a thumbnail to open the editor
 4. Annotate, export, or just leave it there for later
@@ -118,10 +130,13 @@ Grant both and you're set. The app lives in your menu bar as a scissors icon.
 | Action | Default Shortcut |
 |--------|----------|
 | Start/stop recording | ⌘⇧6 |
-| Capture region | ⌘⇧4 |
-| Capture window | ⌘⇧5 |
+| Capture region | ⌘⇧8 |
+| Capture window | ⌘⇧7 |
+| Quick capture (last mode) | ⌘⇧2 |
 | Show/hide strip | ⌘⇧S |
-| Present session | ⌘⇧P |
+| Show/hide Board | ⌘⇧B |
+| Add clipboard to Board | ⌥⌘⇧V |
+| Show/hide pins | ⌥⌘⇧P |
 
 ## Building from Source
 
@@ -183,6 +198,7 @@ Event forwarding is clever: the main app (which has Accessibility permission) ca
 ```
 Sources/
   App/              Main app, menu bar, coordination
+  Board/            Corkboard overlay, cards, pins, hot corner
   Editor/           Annotation canvas and tools
   Strip/            Thumbnail strip window
   Recording/        ScreenCaptureKit wrapper

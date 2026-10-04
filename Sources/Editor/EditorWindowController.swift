@@ -23,7 +23,7 @@ final class EditorWindowController {
       let hosting = NSHostingView(rootView: view)
 
       let win = NSWindow(
-        contentRect: NSRect(x: 0, y: 0, width: 1100, height: 760),
+        contentRect: NSRect(origin: .zero, size: Self.initialContentSize(for: doc.imageSize)),
         styleMask: [.titled, .closable, .miniaturizable, .resizable],
         backing: .buffered,
         defer: false
@@ -32,6 +32,8 @@ final class EditorWindowController {
       win.isReleasedWhenClosed = false
       win.contentView = hosting
       win.center()
+      // Remember the user's preferred editor size/position across sessions.
+      win.setFrameAutosaveName(Self.frameAutosaveName)
 
       let delegate = EditorWindowDelegate(doc: doc) { [weak self] in
         self?.removeMonitor(for: url)
@@ -59,6 +61,21 @@ final class EditorWindowController {
       // Local key handling: Cmd+Z, Shift+Cmd+Z, Delete, Escape, Tool shortcuts.
       let monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
         guard let self, let w = self.windows[url], NSApp.keyWindow === w else { return event }
+
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if mods == .command, event.charactersIgnoringModifiers?.lowercased() == "k" {
+          doc.isCropping ? doc.applyCrop() : doc.beginCrop()
+          return nil
+        }
+        if doc.isCropping {
+          switch event.keyCode {
+          case 36, 76: doc.applyCrop(); return nil
+          case 53: doc.cancelCrop(); return nil
+          default:
+            // Leave ⌘-shortcuts (undo, zoom, close…) working; swallow tool keys and Delete.
+            if !mods.contains(.command) { return nil }
+          }
+        }
 
         if event.modifierFlags.contains(.command) {
           // Cmd+Z / Shift+Cmd+Z
@@ -107,6 +124,7 @@ final class EditorWindowController {
                 "v": .select,
                 "h": .hand,
                 "r": .rect,
+                "o": .ellipse,
                 "l": .line,
                 "a": .arrow,
               "m": .freehand,  // marker
@@ -138,6 +156,18 @@ final class EditorWindowController {
       let alert = NSAlert(error: error)
       alert.runModal()
     }
+  }
+
+  private static let frameAutosaveName = "SnipSnapEditorWindow"
+
+  /// Default size when no saved frame exists: fit the image plus editor chrome on screen.
+  static func initialContentSize(for imageSize: CGSize, visible: CGSize? = nil) -> CGSize {
+    let screen = visible ?? NSScreen.main?.visibleFrame.size ?? CGSize(width: 1440, height: 900)
+    let chrome = CGSize(width: 52 + 220 + 48, height: 48 + 48)
+    let maxSize = CGSize(width: screen.width * 0.9, height: screen.height * 0.9)
+    let width = min(max(imageSize.width + chrome.width, 800), maxSize.width)
+    let height = min(max(imageSize.height + chrome.height, 550), maxSize.height)
+    return CGSize(width: width.rounded(), height: height.rounded())
   }
 
   private func close(url: URL) {

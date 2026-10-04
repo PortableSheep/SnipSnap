@@ -41,6 +41,7 @@ targets:
     platform: macOS
     sources:
       - path: Sources/App
+      - path: Sources/Board
       - path: Sources/Editor
       - path: Sources/Hotkeys
       - path: Sources/IPC
@@ -96,6 +97,7 @@ targets:
         NSHighResolutionCapable: true
         LSUIElement: true
         NSScreenCaptureUsageDescription: SnipSnap needs Screen Recording permission to capture your screen.
+        NSAppleEventsUsageDescription: SnipSnap reads the active browser tab's URL and title so Board cards remember where they came from. This is optional and can be turned off in Preferences › Board.
         SUFeedURL: https://portablesheep.github.io/SnipSnap/appcast.xml
         SUPublicEDKey: "F/ram4+XMkAhklEyc9TP5rCQn/h611jy3n6RdyRFl2Q="
         SUEnableAutomaticChecks: true

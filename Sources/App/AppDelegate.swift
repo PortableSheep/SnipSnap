@@ -1,4 +1,5 @@
 import Cocoa
+import Carbon
 import Combine
 import os.log
 import Sparkle
@@ -20,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private lazy var editor = EditorWindowController()
 
   private let pinnedImages = PinnedImageWindowController()
+  private var boardController: BoardController?
 
   private let hotkeys = HotKeyManager()
   private var recordingStartedAt: Date?
@@ -70,6 +72,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     pinnedImages.onEdit = { [weak self] url in
       self?.editor.openEditor(for: url)
     }
+
+    let board = BoardController(pinnedImages: pinnedImages)
+    board.openEditor = { [weak self] url in self?.editor.openEditor(for: url) }
+    board.showPreferences = { [weak self] in self?.onPreferences() }
+    board.onStateChange = { [weak self] in self?.refreshMenu() }
+    boardController = board
+    NotificationCenter.default.addObserver(forName: .sendToBoard, object: nil, queue: .main) { [weak self] note in
+      guard let url = note.object as? URL else { return }
+      let data = note.userInfo?[Notification.Name.sendToBoardImageDataKey] as? Data
+      Task { @MainActor in self?.boardController?.sendCaptureToBoard(url, renderedImage: data) }
+    }
+    NotificationCenter.default.addObserver(forName: .pinToScreen, object: nil, queue: .main) { [weak self] note in
+      guard let url = note.object as? URL else { return }
+      Task { @MainActor in self?.pinnedImages.pin(url: url) }
+    }
+    pinnedImages.restorePins()
+    board.start()
+
+    HotkeyPreferencesStore.shared.$bindings
+      .dropFirst()
+      .receive(on: RunLoop.main)
+      .sink { [weak self] _ in self?.refreshMenu() }
+      .store(in: &cancellables)
 
     // Global hotkeys via Carbon RegisterEventHotKey (no Accessibility permission needed).
     startHotkeys()
@@ -380,8 +405,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let wasVisible = stripController?.isVisible == true
     if wasVisible { stripController?.hide() }
     defer { if wasVisible { stripController?.show() } }
+    let context = beginSourceContextSnapshot()
     let url = try await captureService.captureRegionScreenshot()
     lastCaptureURL = url
+    recordSourceContext(context, for: url)
   }
 
   private func captureWindowScreenshot() async throws {
@@ -389,8 +416,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let wasVisible = stripController?.isVisible == true
     if wasVisible { stripController?.hide() }
     defer { if wasVisible { stripController?.show() } }
+    let context = beginSourceContextSnapshot()
     let url = try await captureService.captureWindowScreenshot()
     lastCaptureURL = url
+    recordSourceContext(context, for: url)
   }
 
   private func captureFullScreenScreenshot() async throws {
@@ -398,8 +427,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let wasVisible = stripController?.isVisible == true
     if wasVisible { stripController?.hide() }
     defer { if wasVisible { stripController?.show() } }
+    let context = beginSourceContextSnapshot()
     let url = try await captureService.captureFullScreenScreenshot()
     lastCaptureURL = url
+    recordSourceContext(context, for: url)
   }
 
   private func captureScrollingWindow() async throws {
@@ -573,6 +604,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
+  /// Snapshots the frontmost app now (before SnipSnap UI appears) and the browser tab asynchronously.
+  private func beginSourceContextSnapshot() -> Task<SourceContext, Never> {
+    let app = SourceContextProvider.snapshotFrontmostApp()
+    let includeTab = BoardPreferencesStore.shared.captureBrowserContext
+    return Task { @MainActor in
+      guard includeTab, let bundleID = app.bundleID, BrowserTabReader.isSupported(bundleID) else { return app }
+      var ctx = app
+      if let tab = await BrowserTabReader.activeTab(bundleID: bundleID) {
+        ctx.pageURL = tab.url
+        ctx.pageTitle = tab.title
+      }
+      return ctx
+    }
+  }
+
+  private func recordSourceContext(_ task: Task<SourceContext, Never>, for url: URL) {
+    Task { @MainActor [weak self] in
+      let context = await task.value
+      self?.boardController?.recordCaptureContext(context, for: url)
+    }
+  }
+
   private func startHotkeys() {
     hotkeys.onAction = { [weak self] action in
       guard let self else { return }
@@ -587,6 +640,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.onCaptureWindowScreenshot()
       case .quickCapture:
         self.onQuickCapture()
+      case .toggleBoard:
+        self.onToggleBoard()
+      case .clipboardToBoard:
+        self.onClipboardToBoard()
+      case .togglePins:
+        self.onTogglePins()
       }
     }
     hotkeys.start()
@@ -595,81 +654,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private func refreshMenu() {
     let menu = NSMenu()
 
-    let prefs = NSMenuItem(title: "Preferences…", action: #selector(onPreferences), keyEquivalent: "")
-    prefs.target = self
-    menu.addItem(prefs)
+    func item(_ title: String, _ action: Selector, symbol: String? = nil, hotkey: HotkeyAction? = nil) -> NSMenuItem {
+      let mi = NSMenuItem(title: title, action: action, keyEquivalent: "")
+      mi.target = self
+      if let symbol { mi.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
+      if let hotkey { applyHotkey(hotkey, to: mi) }
+      menu.addItem(mi)
+      return mi
+    }
 
-    let setupPerms = NSMenuItem(title: "Setup Permissions…", action: #selector(onSetupPermissions), keyEquivalent: "")
-    setupPerms.target = self
-    menu.addItem(setupPerms)
+    // Capture
+    if isRecording {
+      let dur = formattedElapsed()
+      _ = item(dur.isEmpty ? "Stop Recording" : "Stop Recording (\(dur))", #selector(onToggleRecording),
+               symbol: "stop.circle.fill", hotkey: .toggleRecording)
+    } else {
+      _ = item("Capture Region", #selector(onCaptureRegionScreenshot), symbol: "rectangle.dashed", hotkey: .captureRegion)
+      _ = item("Capture Window", #selector(onCaptureWindowScreenshot), symbol: "macwindow", hotkey: .captureWindow)
+      _ = item("Capture with Options…", #selector(onCapture), symbol: "camera.viewfinder")
+      _ = item("Start Recording…", #selector(onToggleRecording), symbol: "record.circle", hotkey: .toggleRecording)
+      let open = item("Open Image…", #selector(onOpenImage), symbol: "photo")
+      open.keyEquivalent = "o"
+      open.keyEquivalentModifierMask = [.command]
+    }
 
-    let donate = NSMenuItem(title: "Support Development", action: #selector(onDonate), keyEquivalent: "")
-    donate.target = self
-    donate.image = NSImage(systemSymbolName: "gift.fill", accessibilityDescription: "Donate")
-    menu.addItem(donate)
+    menu.addItem(.separator())
 
-    let checkUpdates = NSMenuItem(title: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
-    checkUpdates.target = updaterController
-    menu.addItem(checkUpdates)
+    // Library
+    _ = item(stripState.isVisible ? "Hide Strip" : "Show Strip", #selector(onToggleStrip),
+             symbol: "rectangle.split.3x1", hotkey: .toggleStrip)
+    _ = item("Show Board", #selector(onToggleBoard), symbol: HotkeyAction.toggleBoard.icon, hotkey: .toggleBoard)
+    _ = item("Add Clipboard to Board", #selector(onClipboardToBoard), symbol: "doc.on.clipboard", hotkey: .clipboardToBoard)
+    let pinsHidden = boardController?.pinsHidden ?? false
+    _ = item(pinsHidden ? "Show Pins" : "Hide Pins", #selector(onTogglePins),
+             symbol: pinsHidden ? "pin" : "pin.slash", hotkey: .togglePins)
 
-    // Presentation Mode submenu
     let presMenu = NSMenu()
-    
-    let presSession = NSMenuItem(title: "Present Session", action: #selector(onPresentSession), keyEquivalent: "p")
-    presSession.keyEquivalentModifierMask = [.command, .shift]
+    let presSession = NSMenuItem(title: "Present Session", action: #selector(onPresentSession), keyEquivalent: "")
     presSession.target = self
     presMenu.addItem(presSession)
-    
     let presAll = NSMenuItem(title: "Present All Captures", action: #selector(onPresentAll), keyEquivalent: "")
     presAll.target = self
     presMenu.addItem(presAll)
-    
     let presItem = NSMenuItem(title: "Presentation Mode", action: nil, keyEquivalent: "")
+    presItem.image = NSImage(systemSymbolName: "play.rectangle", accessibilityDescription: nil)
     presItem.submenu = presMenu
     menu.addItem(presItem)
 
     menu.addItem(.separator())
 
-    let toggleStrip = NSMenuItem(title: stripState.isVisible ? "Hide Strip" : "Show Strip", action: #selector(onToggleStrip), keyEquivalent: "s")
-    toggleStrip.keyEquivalentModifierMask = [.command, .shift]
-    toggleStrip.target = self
-    menu.addItem(toggleStrip)
+    // App
+    let prefs = item("Preferences…", #selector(onPreferences), symbol: "gearshape")
+    prefs.keyEquivalent = ","
+    prefs.keyEquivalentModifierMask = [.command]
+    _ = item("Setup Permissions…", #selector(onSetupPermissions), symbol: "lock.shield")
+    let checkUpdates = NSMenuItem(title: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+    checkUpdates.target = updaterController
+    checkUpdates.image = NSImage(systemSymbolName: "arrow.triangle.2.circlepath", accessibilityDescription: nil)
+    menu.addItem(checkUpdates)
+    _ = item("Support Development", #selector(onDonate), symbol: "heart")
 
     menu.addItem(.separator())
 
-    if isRecording {
-      let dur = formattedElapsed()
-      let stop = NSMenuItem(title: dur.isEmpty ? "Stop Recording" : "Stop Recording (\(dur))", action: #selector(onToggleRecording), keyEquivalent: "6")
-      stop.keyEquivalentModifierMask = [.command, .shift]
-      stop.target = self
-      menu.addItem(stop)
-    } else {
-      let start = NSMenuItem(title: "Start Recording…", action: #selector(onToggleRecording), keyEquivalent: "6")
-      start.keyEquivalentModifierMask = [.command, .shift]
-      start.target = self
-      menu.addItem(start)
-
-      menu.addItem(.separator())
-
-      let capture = NSMenuItem(title: "Capture…", action: #selector(onCapture), keyEquivalent: "2")
-      capture.keyEquivalentModifierMask = [.command, .shift]
-      capture.target = self
-      menu.addItem(capture)
-      
-      menu.addItem(.separator())
-      
-      let openImage = NSMenuItem(title: "Open Image…", action: #selector(onOpenImage), keyEquivalent: "o")
-      openImage.keyEquivalentModifierMask = [.command]
-      openImage.target = self
-      menu.addItem(openImage)
-    }
-
-    menu.addItem(.separator())
-
-    let quit = NSMenuItem(title: "Quit SnipSnap", action: #selector(onQuit), keyEquivalent: "q")
+    let quit = item("Quit SnipSnap", #selector(onQuit))
+    quit.keyEquivalent = "q"
     quit.keyEquivalentModifierMask = [.command]
-    quit.target = self
-    menu.addItem(quit)
 
     statusItem?.menu = menu
 
@@ -693,6 +742,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
+  /// Shows the user's current global hotkey next to a menu item (display only; Carbon handles the hotkey).
+  private func applyHotkey(_ action: HotkeyAction, to item: NSMenuItem) {
+    let binding = HotkeyPreferencesStore.shared.binding(for: action)
+    guard let key = HotkeyBinding.menuKeyEquivalent(for: binding.keyCode) else { return }
+    item.keyEquivalent = key
+    var mask: NSEvent.ModifierFlags = []
+    if binding.modifiers & UInt32(cmdKey) != 0 { mask.insert(.command) }
+    if binding.modifiers & UInt32(shiftKey) != 0 { mask.insert(.shift) }
+    if binding.modifiers & UInt32(optionKey) != 0 { mask.insert(.option) }
+    if binding.modifiers & UInt32(controlKey) != 0 { mask.insert(.control) }
+    item.keyEquivalentModifierMask = mask
+  }
+
   @objc private func onDonate() {
     DonationWindowController.shared.show()
   }
@@ -712,6 +774,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   @objc private func onSetupPermissions() {
     OnboardingWindowController.shared.show(markComplete: false)
+  }
+
+  @objc private func onToggleBoard() {
+    boardController?.toggleBoard()
+  }
+
+  @objc private func onClipboardToBoard() {
+    boardController?.clipboardToBoard()
+  }
+
+  @objc private func onTogglePins() {
+    boardController?.togglePinsHidden()
   }
 
   @objc private func onToggleStrip() {

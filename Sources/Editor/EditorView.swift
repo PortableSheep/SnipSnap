@@ -10,6 +10,8 @@ struct EditorView: View {
   @State private var hostWindow: NSWindow? = nil
   @State private var showInspector: Bool = true
   @State private var piiListExpanded: Bool = false
+  @State private var toast: String? = nil
+  @State private var toastWork: DispatchWorkItem? = nil
   
   // Helper to determine if pan hint should be shown
   private var needsPanHint: Bool {
@@ -42,20 +44,34 @@ struct EditorView: View {
         // Left tool sidebar
         toolSidebar
           .frame(width: 52)
-          .background(Color(nsColor: .controlBackgroundColor))
+          .background(.ultraThinMaterial)
 
         Divider()
 
         // Canvas area
         EditorCanvasView(doc: doc)
-          .background(Color(nsColor: .windowBackgroundColor))
+          .background(Color(nsColor: .underPageBackgroundColor))
+          .overlay(alignment: .bottom) {
+            if let toast {
+              Label(toast, systemImage: "checkmark.circle.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(.regularMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.1)))
+                .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
+                .padding(.bottom, 20)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .allowsHitTesting(false)
+            }
+          }
 
         // Right inspector panel
         if showInspector {
           Divider()
           inspectorPanel
             .frame(width: 220)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(.ultraThinMaterial)
         }
       }
     }
@@ -138,6 +154,7 @@ struct EditorView: View {
           helpText: "Copy to clipboard (⌘C)"
         ) {
           EditorRenderer.copyToClipboard(doc: doc)
+          showToast("Copied to Clipboard")
         }
         .keyboardShortcut("c", modifiers: .command)
 
@@ -157,6 +174,25 @@ struct EditorView: View {
           }
 
           Divider()
+
+          Button("Send to Board") {
+            do {
+              let data = try EditorRenderer.export(doc: doc, format: .png)
+              NotificationCenter.default.post(
+                name: .sendToBoard,
+                object: doc.sourceURL,
+                userInfo: [Notification.Name.sendToBoardImageDataKey: data]
+              )
+              showToast("Sent to Board")
+            } catch {
+              NSAlert(error: error).runModal()
+            }
+          }
+
+          Button("Pin to Screen") {
+            pinToScreen()
+          }
+          .keyboardShortcut("p", modifiers: [.command, .shift])
 
           Button("Share...") {
             shareImage()
@@ -506,7 +542,7 @@ struct EditorView: View {
         Divider().padding(.vertical, 4).padding(.horizontal, 6)
 
         // Drawing tools
-        ForEach([AnnotationTool.rect, .line, .arrow, .freehand], id: \.self) { tool in
+        ForEach([AnnotationTool.rect, .ellipse, .line, .arrow, .freehand], id: \.self) { tool in
           sidebarToolButton(tool)
         }
 
@@ -529,6 +565,22 @@ struct EditorView: View {
         // Measurement
         sidebarToolButton(.measurement)
 
+        Divider().padding(.vertical, 4).padding(.horizontal, 6)
+
+        SidebarToolButton(
+          icon: "crop",
+          label: doc.cropRect == nil ? "Crop" : "Adjust Crop",
+          isSelected: doc.isCropping,
+          shortcut: "⌘K"
+        ) {
+          doc.isCropping ? doc.applyCrop() : doc.beginCrop()
+        }
+        .contextMenu {
+          if doc.cropRect != nil {
+            Button("Remove Crop") { doc.clearCrop() }
+          }
+        }
+
         Spacer()
       }
       .padding(.vertical, 8)
@@ -541,7 +593,8 @@ struct EditorView: View {
     let shortcut = tool.shortcutKey ?? ""
 
     return SidebarToolButton(
-      tool: tool,
+      icon: tool.icon,
+      label: tool.label,
       isSelected: isSelected,
       shortcut: shortcut
     ) {
@@ -550,6 +603,7 @@ struct EditorView: View {
   }
 
   private func selectTool(_ tool: AnnotationTool) {
+    if doc.isCropping { doc.applyCrop() }
     doc.tool = tool
   }
 
@@ -1077,10 +1131,35 @@ struct EditorView: View {
       let url = try EditorRenderer.exportPNGNextToSource(doc: doc)
       NotificationCenter.default.post(name: .editorDidSave, object: doc.sourceURL)
       NSWorkspace.shared.activateFileViewerSelecting([url])
+      showToast("Exported \(url.lastPathComponent)")
     } catch {
       let alert = NSAlert(error: error)
       alert.runModal()
     }
+  }
+
+  /// Pins the image as it currently looks (annotations included) always-on-top.
+  private func pinToScreen() {
+    do {
+      if !doc.annotations.isEmpty {
+        _ = try EditorRenderer.exportPNGNextToSource(doc: doc)
+        NotificationCenter.default.post(name: .editorDidSave, object: doc.sourceURL)
+      }
+      NotificationCenter.default.post(name: .pinToScreen, object: doc.sourceURL)
+      showToast("Pinned to Screen")
+    } catch {
+      NSAlert(error: error).runModal()
+    }
+  }
+
+  private func showToast(_ message: String) {
+    toastWork?.cancel()
+    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { toast = message }
+    let work = DispatchWorkItem {
+      withAnimation(.easeIn(duration: 0.2)) { toast = nil }
+    }
+    toastWork = work
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.6, execute: work)
   }
 
   private func exportAs(format: EditorRenderer.ExportFormat) {
@@ -1376,7 +1455,8 @@ private struct ToolbarIconButton: View {
 }
 
 private struct SidebarToolButton: View {
-  let tool: AnnotationTool
+  let icon: String
+  let label: String
   let isSelected: Bool
   let shortcut: String
   let action: () -> Void
@@ -1386,7 +1466,7 @@ private struct SidebarToolButton: View {
   var body: some View {
     Button(action: action) {
       VStack(spacing: 2) {
-        Image(systemName: tool.icon)
+        Image(systemName: icon)
           .font(.system(size: 14, weight: isSelected ? .bold : .medium))
         if !shortcut.isEmpty {
           Text(shortcut)
@@ -1415,7 +1495,8 @@ private struct SidebarToolButton: View {
         isHovered = hovering
       }
     }
-    .help(shortcut.isEmpty ? tool.label : "\(tool.label) – Press \(shortcut)")
+    .help(shortcut.isEmpty ? label : "\(label) – Press \(shortcut)")
+    .accessibilityLabel(label)
   }
 }
 

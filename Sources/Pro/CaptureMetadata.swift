@@ -14,6 +14,14 @@ struct CaptureMetadata: Codable, Hashable {
 
   /// Smart-redaction suggestions derived from OCR blocks.
   var redactionCandidates: [RedactionCandidate]?
+
+  /// App that was frontmost when the capture was taken (best-effort).
+  var sourceAppName: String?
+  var sourceBundleID: String?
+
+  /// Active browser tab at capture time (only when browser context capture is enabled).
+  var sourceURL: URL?
+  var sourcePageTitle: String?
 }
 
 struct OCRBlock: Codable, Hashable {

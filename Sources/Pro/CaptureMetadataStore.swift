@@ -26,6 +26,17 @@ final class CaptureMetadataStore: Sendable {
     try data.write(to: url, options: [.atomic])
   }
 
+  private static let updateLock = NSLock()
+
+  /// Serialized read-modify-write so concurrent writers (OCR, source context) don't drop each other's fields.
+  func update(for captureURL: URL, default makeDefault: () -> CaptureMetadata, _ mutate: (inout CaptureMetadata) -> Void) throws {
+    Self.updateLock.lock()
+    defer { Self.updateLock.unlock() }
+    var meta = load(for: captureURL) ?? makeDefault()
+    mutate(&meta)
+    try save(meta, for: captureURL)
+  }
+
   func isIndexed(for captureURL: URL) -> Bool {
     if let meta = load(for: captureURL), let text = meta.ocrText {
       return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

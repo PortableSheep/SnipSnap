@@ -25,9 +25,18 @@ struct EditorCanvasView: View {
         Color.black.opacity(0.02)
 
         Canvas { context, size in
+          let appliedCrop = doc.isCropping ? nil : doc.cropRect.map { cropViewRect($0, size: size) }
+          if let appliedCrop, doc.backgroundStyle == .none {
+            context.clip(to: Path(appliedCrop))
+          }
           drawBaseImage(context: &context, size: size)
           drawAnnotations(context: &context, size: size)
           drawInProgress(context: &context, size: size)
+          if let appliedCrop, doc.backgroundStyle != .none {
+            var outside = Path(fitRect(imageSize: doc.imageSize, in: size))
+            outside.addRect(appliedCrop)
+            context.fill(outside, with: .color(.black.opacity(0.6)), style: FillStyle(eoFill: true))
+          }
         }
         .gesture(dragGesture(in: geo.size))
         .simultaneousGesture(tapGesture(in: geo.size))
@@ -51,6 +60,10 @@ struct EditorCanvasView: View {
           .allowsHitTesting(false)
 
         overlayTextAnnotations(viewSize: geo.size)
+
+        if doc.isCropping {
+          CropOverlayView(doc: doc, imageRect: fitRect(imageSize: doc.imageSize, in: geo.size))
+        }
 
         if doc.pendingTextInput != nil {
           Color.black.opacity(0.28)
@@ -623,6 +636,12 @@ struct EditorCanvasView: View {
     let y = (viewSize.height - h) / 2 + doc.panOffset.height
     
     return CGRect(x: x, y: y, width: w, height: h)
+  }
+
+  private func cropViewRect(_ r: CGRect, size: CGSize) -> CGRect {
+    let rect = fitRect(imageSize: doc.imageSize, in: size)
+    let scale = rect.width / doc.imageSize.width
+    return CGRect(x: rect.minX + r.minX * scale, y: rect.minY + r.minY * scale, width: r.width * scale, height: r.height * scale)
   }
 
   private func viewToImage(point: CGPoint, viewSize: CGSize) -> CGPoint {
