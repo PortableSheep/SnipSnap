@@ -131,6 +131,9 @@ extension HotkeyAction {
     case .captureRegion: return 3
     case .captureWindow: return 4
     case .quickCapture: return 5
+    case .toggleBoard: return 6
+    case .clipboardToBoard: return 7
+    case .togglePins: return 8
     }
   }
 }

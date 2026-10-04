@@ -10,6 +10,8 @@ All notable changes to SnipSnap will be documented here.
 
 ### ✨ Features
 
+- Add Board: a full-screen corkboard of screenshot, link, text, and note cards with todos, zones, search/OCR, pop-out always-on-top pins, hotkeys (⌘⇧B, ⌥⌘⇧V, ⌥⌘⇧P), optional hot corner, and Send to Board from the strip, editor, and pinned images
+- Record source app (and optionally browser tab) in capture metadata
 - Add auto hide to capture strip (`fa2bb22`)
 - Add updater (`1904b56`)
 - Add corner rounding. (`a358219`)

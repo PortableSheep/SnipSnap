@@ -74,6 +74,8 @@ struct PreferencesRootView: View {
         GeneralPreferencesView(proPrefs: proPrefs, stripState: stripState)
       case .overlays:
         OverlaysPreferencesView(prefs: prefs)
+      case .board:
+        BoardPreferencesView(prefs: BoardPreferencesStore.shared)
       case .shortcuts:
         ShortcutsPreferencesView(hotkeyPrefs: hotkeyPrefs)
       case .about:
@@ -81,6 +83,76 @@ struct PreferencesRootView: View {
       }
     }
     .padding(24)
+  }
+}
+
+// MARK: - Board Preferences
+
+private struct BoardPreferencesView: View {
+  @ObservedObject var prefs: BoardPreferencesStore
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 24) {
+      PreferenceHeader(title: "Board", subtitle: "A corkboard for screenshots, links, and notes you need to remember")
+
+      PreferenceSection("Appearance") {
+        PreferenceRow(icon: "paintpalette", title: "Theme", subtitle: "Background style of the board") {
+          Picker("", selection: $prefs.theme) {
+            ForEach(BoardTheme.allCases) { Text($0.label).tag($0) }
+          }
+          .labelsHidden()
+          .frame(width: 140)
+        }
+        PreferenceRow(icon: "rotate.right", title: "Tilt cards", subtitle: "Give new cards a slight, hand-pinned angle") {
+          Toggle("", isOn: $prefs.tiltCards).toggleStyle(.switch).controlSize(.small)
+        }
+        PreferenceRow(icon: "cursorarrow.click", title: "Click background to close", subtitle: "Close the board by clicking empty space") {
+          Toggle("", isOn: $prefs.clickBackgroundToClose).toggleStyle(.switch).controlSize(.small)
+        }
+      }
+
+      PreferenceSection("Hot Corner") {
+        PreferenceRow(icon: "rectangle.inset.topleft.filled", title: "Reveal board from corner", subtitle: "Move the pointer into a screen corner to open the board") {
+          Picker("", selection: $prefs.hotCorner) {
+            ForEach(HotCorner.allCases) { Text($0.label).tag($0) }
+          }
+          .labelsHidden()
+          .frame(width: 140)
+        }
+        if prefs.hotCorner != .none {
+          PreferenceRow(icon: "timer", title: "Delay", subtitle: "How long to rest in the corner before opening") {
+            HStack {
+              Slider(value: $prefs.hotCornerDelay, in: 0...1, step: 0.05).frame(width: 110)
+              Text(String(format: "%.2fs", prefs.hotCornerDelay))
+                .font(.system(size: 11).monospacedDigit())
+                .foregroundColor(.secondary)
+                .frame(width: 40, alignment: .trailing)
+            }
+          }
+          if prefs.systemHotCornerConflict(for: prefs.hotCorner) {
+            Label("macOS already has a Hot Corner action on this corner (System Settings › Desktop & Dock › Hot Corners). Both will trigger.", systemImage: "exclamationmark.triangle.fill")
+              .font(.system(size: 11))
+              .foregroundColor(.orange)
+          }
+        }
+      }
+
+      PreferenceSection("Context & Privacy") {
+        PreferenceRow(icon: "link", title: "Fetch link previews", subtitle: "Download page titles, icons, and preview images for links") {
+          Toggle("", isOn: $prefs.fetchLinkPreviews).toggleStyle(.switch).controlSize(.small)
+        }
+        PreferenceRow(icon: "safari", title: "Remember browser tab", subtitle: "Record the active tab's URL with captures and clipboard cards. macOS will ask for Automation permission per browser.") {
+          Toggle("", isOn: $prefs.captureBrowserContext).toggleStyle(.switch).controlSize(.small)
+        }
+        PreferenceRow(icon: "text.viewfinder", title: "Recognize text in cards", subtitle: "Run on-device OCR so screenshots are searchable") {
+          Toggle("", isOn: $prefs.ocrBoardCards).toggleStyle(.switch).controlSize(.small)
+        }
+      }
+
+      Text("Board data is stored locally in ~/Library/Application Support/SnipSnap/board/. Keyboard shortcuts for the Board are in Shortcuts.")
+        .font(.system(size: 11))
+        .foregroundColor(.secondary)
+    }
   }
 }
 

@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private lazy var editor = EditorWindowController()
 
   private let pinnedImages = PinnedImageWindowController()
+  private var boardController: BoardController?
 
   private let hotkeys = HotKeyManager()
   private var recordingStartedAt: Date?
@@ -70,6 +71,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     pinnedImages.onEdit = { [weak self] url in
       self?.editor.openEditor(for: url)
     }
+
+    let board = BoardController(pinnedImages: pinnedImages)
+    board.openEditor = { [weak self] url in self?.editor.openEditor(for: url) }
+    board.showPreferences = { [weak self] in self?.onPreferences() }
+    board.onStateChange = { [weak self] in self?.refreshMenu() }
+    boardController = board
+    NotificationCenter.default.addObserver(forName: .sendToBoard, object: nil, queue: .main) { [weak self] note in
+      guard let url = note.object as? URL else { return }
+      let data = note.userInfo?[Notification.Name.sendToBoardImageDataKey] as? Data
+      Task { @MainActor in self?.boardController?.sendCaptureToBoard(url, renderedImage: data) }
+    }
+    board.start()
 
     // Global hotkeys via Carbon RegisterEventHotKey (no Accessibility permission needed).
     startHotkeys()
@@ -380,8 +393,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let wasVisible = stripController?.isVisible == true
     if wasVisible { stripController?.hide() }
     defer { if wasVisible { stripController?.show() } }
+    let context = beginSourceContextSnapshot()
     let url = try await captureService.captureRegionScreenshot()
     lastCaptureURL = url
+    recordSourceContext(context, for: url)
   }
 
   private func captureWindowScreenshot() async throws {
@@ -389,8 +404,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let wasVisible = stripController?.isVisible == true
     if wasVisible { stripController?.hide() }
     defer { if wasVisible { stripController?.show() } }
+    let context = beginSourceContextSnapshot()
     let url = try await captureService.captureWindowScreenshot()
     lastCaptureURL = url
+    recordSourceContext(context, for: url)
   }
 
   private func captureFullScreenScreenshot() async throws {
@@ -398,8 +415,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let wasVisible = stripController?.isVisible == true
     if wasVisible { stripController?.hide() }
     defer { if wasVisible { stripController?.show() } }
+    let context = beginSourceContextSnapshot()
     let url = try await captureService.captureFullScreenScreenshot()
     lastCaptureURL = url
+    recordSourceContext(context, for: url)
   }
 
   private func captureScrollingWindow() async throws {
@@ -573,6 +592,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
+  /// Snapshots the frontmost app now (before SnipSnap UI appears) and the browser tab asynchronously.
+  private func beginSourceContextSnapshot() -> Task<SourceContext, Never> {
+    let app = SourceContextProvider.snapshotFrontmostApp()
+    let includeTab = BoardPreferencesStore.shared.captureBrowserContext
+    return Task { @MainActor in
+      guard includeTab, let bundleID = app.bundleID, BrowserTabReader.isSupported(bundleID) else { return app }
+      var ctx = app
+      if let tab = await BrowserTabReader.activeTab(bundleID: bundleID) {
+        ctx.pageURL = tab.url
+        ctx.pageTitle = tab.title
+      }
+      return ctx
+    }
+  }
+
+  private func recordSourceContext(_ task: Task<SourceContext, Never>, for url: URL) {
+    Task { @MainActor [weak self] in
+      let context = await task.value
+      self?.boardController?.recordCaptureContext(context, for: url)
+    }
+  }
+
   private func startHotkeys() {
     hotkeys.onAction = { [weak self] action in
       guard let self else { return }
@@ -587,6 +628,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.onCaptureWindowScreenshot()
       case .quickCapture:
         self.onQuickCapture()
+      case .toggleBoard:
+        self.onToggleBoard()
+      case .clipboardToBoard:
+        self.onClipboardToBoard()
+      case .togglePins:
+        self.onTogglePins()
       }
     }
     hotkeys.start()
@@ -634,6 +681,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     toggleStrip.keyEquivalentModifierMask = [.command, .shift]
     toggleStrip.target = self
     menu.addItem(toggleStrip)
+
+    let showBoard = NSMenuItem(title: "Show Board", action: #selector(onToggleBoard), keyEquivalent: "b")
+    showBoard.keyEquivalentModifierMask = [.command, .shift]
+    showBoard.target = self
+    menu.addItem(showBoard)
+
+    let clipToBoard = NSMenuItem(title: "Add Clipboard to Board", action: #selector(onClipboardToBoard), keyEquivalent: "v")
+    clipToBoard.keyEquivalentModifierMask = [.command, .option, .shift]
+    clipToBoard.target = self
+    menu.addItem(clipToBoard)
+
+    let pinsHidden = boardController?.pinsHidden ?? false
+    let togglePins = NSMenuItem(title: pinsHidden ? "Show Pins" : "Hide Pins", action: #selector(onTogglePins), keyEquivalent: "p")
+    togglePins.keyEquivalentModifierMask = [.command, .option, .shift]
+    togglePins.target = self
+    menu.addItem(togglePins)
 
     menu.addItem(.separator())
 
@@ -712,6 +775,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   @objc private func onSetupPermissions() {
     OnboardingWindowController.shared.show(markComplete: false)
+  }
+
+  @objc private func onToggleBoard() {
+    boardController?.toggleBoard()
+  }
+
+  @objc private func onClipboardToBoard() {
+    boardController?.clipboardToBoard()
+  }
+
+  @objc private func onTogglePins() {
+    boardController?.togglePinsHidden()
   }
 
   @objc private func onToggleStrip() {

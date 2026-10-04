@@ -13,7 +13,11 @@ final class PinnedImageWindowController {
   private var delegates: [URL: PinnedPanelDelegate] = [:]
   private var resizeStartFrames: [URL: NSRect] = [:]
   private var saveObserver: NSObjectProtocol?
+  private var allHidden = false
   var onEdit: ((URL) -> Void)?
+  var onSendToBoard: ((URL) -> Void)?
+  /// Called when a new pin is created while pins are globally hidden, so the owner can un-hide them.
+  var onPinWhileHidden: (() -> Void)?
 
   init() {
     saveObserver = NotificationCenter.default.addObserver(
@@ -80,8 +84,27 @@ final class PinnedImageWindowController {
 
     windows[url] = panel
     panel.center()
-    panel.makeKeyAndOrderFront(nil)
+    if allHidden {
+      onPinWhileHidden?()
+    }
+    if !allHidden {
+      panel.makeKeyAndOrderFront(nil)
+    }
   }
+
+  /// Temporarily hides (or re-shows) every pinned image without unpinning it.
+  func setAllHidden(_ hidden: Bool) {
+    allHidden = hidden
+    for panel in windows.values {
+      if hidden {
+        panel.orderOut(nil)
+      } else {
+        panel.orderFrontRegardless()
+      }
+    }
+  }
+
+  var hasPins: Bool { !windows.isEmpty }
 
   func unpin(url: URL) {
     windows[url]?.close()
@@ -142,6 +165,7 @@ final class PinnedImageWindowController {
       onResizeEnded: { [weak self] in self?.resizeStartFrames[url] = nil },
       onEdit: { [weak self] in self?.editPinnedImage(url: url) },
       onCopy: { [weak self] in self?.copyPinnedImage(url: url) },
+      onSendToBoard: onSendToBoard == nil ? nil : { [weak self] in self?.onSendToBoard?(url) },
       onClose: { [weak self] in self?.unpin(url: url) }
     ))
     hostingView.wantsLayer = true
@@ -222,6 +246,7 @@ private struct PinnedImageView: View {
   let onResizeEnded: () -> Void
   let onEdit: () -> Void
   let onCopy: () -> Void
+  let onSendToBoard: (() -> Void)?
   let onClose: () -> Void
   @State private var isHovered = false
   @State private var isResizing = false
@@ -232,6 +257,7 @@ private struct PinnedImageView: View {
     onResizeEnded: @escaping () -> Void,
     onEdit: @escaping () -> Void,
     onCopy: @escaping () -> Void,
+    onSendToBoard: (() -> Void)?,
     onClose: @escaping () -> Void
   ) {
     self.image = image
@@ -239,6 +265,7 @@ private struct PinnedImageView: View {
     self.onResizeEnded = onResizeEnded
     self.onEdit = onEdit
     self.onCopy = onCopy
+    self.onSendToBoard = onSendToBoard
     self.onClose = onClose
   }
 
@@ -299,6 +326,12 @@ private struct PinnedImageView: View {
         onCopy()
       }
 
+      if let onSendToBoard {
+        Button("Send to Board") {
+          onSendToBoard()
+        }
+      }
+
       Divider()
 
       Button("Unpin") {
@@ -324,7 +357,7 @@ private struct PinnedImageView: View {
   }
 }
 
-private struct ResizeDragSurface: NSViewRepresentable {
+struct ResizeDragSurface: NSViewRepresentable {
   let onResize: (CGSize) -> Void
   let onResizeEnded: () -> Void
   let onDraggingChanged: (Bool) -> Void
@@ -344,7 +377,7 @@ private struct ResizeDragSurface: NSViewRepresentable {
   }
 }
 
-private final class ResizeTrackingView: NSView {
+final class ResizeTrackingView: NSView {
   var onResize: (CGSize) -> Void
   var onResizeEnded: () -> Void
   var onDraggingChanged: (Bool) -> Void
@@ -395,7 +428,7 @@ private final class ResizeTrackingView: NSView {
   }
 }
 
-private struct ResizeCorner: View {
+struct ResizeCorner: View {
   var body: some View {
     ResizeCornerShape()
       .stroke(

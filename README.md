@@ -64,6 +64,18 @@ What makes it different:
 - **iCloud sync** — Mirror captures to iCloud Drive as a backup (optional)
 - **Presentation mode** — Full-screen slideshow through your captures with arrow keys
 
+### Board
+
+A full-screen corkboard for the stuff you need to remember — screenshots, links, copied text, and quick notes — pinned as free-form cards.
+
+- **Reveal anywhere** — Press ⌘⇧B or (optionally) push the pointer into a hot corner (Preferences › Board)
+- **Quick add** — "Send to Board" from the strip, editor, or a pinned image; ⌥⌘⇧V turns the clipboard into a card; paste or drag & drop files, images, links, and text onto the board
+- **Context included** — Cards remember the source app and, optionally, the browser tab URL; links get titles, icons, and previews
+- **Todos & zones** — Any card can have a checkbox; drop labeled zones (e.g. Todo / Doing / Done) to group cards; Tidy Up arranges them
+- **Pop-out pins** — Pin any card as an always-on-top floating window; hide/show all pins at once with ⌥⌘⇧P
+- **Searchable** — On-device OCR makes text in screenshots searchable; Live Text works in the card inspector
+- **Private** — Stored locally in `~/Library/Application Support/SnipSnap/board/`
+
 ### Smart Features
 
 - **Smart redaction** — Automatically detects 10+ types of PII (emails, phone numbers, SSNs, credit cards with Luhn validation, API keys, AWS keys, IP addresses, street addresses, dates of birth, account numbers, private keys) and suggests blur overlays. You can accept/dismiss individual suggestions or batch process. See [PII_REDACTION.md](docs/PII_REDACTION.md) for details.
@@ -122,6 +134,9 @@ Grant both and you're set. The app lives in your menu bar as a scissors icon.
 | Capture window | ⌘⇧5 |
 | Show/hide strip | ⌘⇧S |
 | Present session | ⌘⇧P |
+| Show/hide Board | ⌘⇧B |
+| Add clipboard to Board | ⌥⌘⇧V |
+| Show/hide pins | ⌥⌘⇧P |
 
 ## Building from Source
 
@@ -183,6 +198,7 @@ Event forwarding is clever: the main app (which has Accessibility permission) ca
 ```
 Sources/
   App/              Main app, menu bar, coordination
+  Board/            Corkboard overlay, cards, pins, hot corner
   Editor/           Annotation canvas and tools
   Strip/            Thumbnail strip window
   Recording/        ScreenCaptureKit wrapper

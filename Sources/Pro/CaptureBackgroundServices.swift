@@ -40,11 +40,11 @@ final class CaptureBackgroundServices {
         let result = try await ocr.indexImage(at: url)
         let redactions = shouldDetectRedactions ? RedactionDetector.detect(in: result.blocks) : nil
 
-        var meta = metadataStore.load(for: url) ?? CaptureMetadata(createdAt: createdAt)
-        meta.ocrText = result.fullText
-        meta.ocrBlocks = result.blocks
-        meta.redactionCandidates = redactions
-        try metadataStore.save(meta, for: url)
+        try metadataStore.update(for: url, default: { CaptureMetadata(createdAt: createdAt) }) { meta in
+          meta.ocrText = result.fullText
+          meta.ocrBlocks = result.blocks
+          meta.redactionCandidates = redactions
+        }
       } catch {
         // Best-effort; OCR failures shouldn't surface to the user.
       }

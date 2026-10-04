@@ -24,6 +24,8 @@
 	<string>public.app-category.productivity</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>SnipSnap reads the active browser tab's URL and title so Board cards remember where they came from. This is optional and can be turned off in Preferences › Board.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>

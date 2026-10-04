@@ -158,6 +158,19 @@ struct EditorView: View {
 
           Divider()
 
+          Button("Send to Board") {
+            do {
+              let data = try EditorRenderer.export(doc: doc, format: .png)
+              NotificationCenter.default.post(
+                name: .sendToBoard,
+                object: doc.sourceURL,
+                userInfo: [Notification.Name.sendToBoardImageDataKey: data]
+              )
+            } catch {
+              NSAlert(error: error).runModal()
+            }
+          }
+
           Button("Share...") {
             shareImage()
           }

@@ -10,6 +10,9 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
   case captureRegion
   case captureWindow
   case quickCapture = "showCaptureOptions"
+  case toggleBoard
+  case clipboardToBoard
+  case togglePins
 
   var id: String { rawValue }
 
@@ -20,6 +23,9 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
     case .captureRegion: return "Capture Region"
     case .captureWindow: return "Capture Window"
     case .quickCapture: return "Quick Capture"
+    case .toggleBoard: return "Show/Hide Board"
+    case .clipboardToBoard: return "Add Clipboard to Board"
+    case .togglePins: return "Show/Hide Pins"
     }
   }
 
@@ -30,6 +36,9 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
     case .captureRegion: return "rectangle.dashed"
     case .captureWindow: return "macwindow"
     case .quickCapture: return "camera.metering.center.weighted"
+    case .toggleBoard: return "square.grid.3x3.topleft.filled"
+    case .clipboardToBoard: return "doc.on.clipboard"
+    case .togglePins: return "pin"
     }
   }
 }
@@ -127,6 +136,9 @@ struct HotkeyBinding: Codable, Equatable {
     .captureRegion: HotkeyBinding(keyCode: UInt32(kVK_ANSI_8), modifiers: UInt32(cmdKey | shiftKey)),
     .captureWindow: HotkeyBinding(keyCode: UInt32(kVK_ANSI_7), modifiers: UInt32(cmdKey | shiftKey)),
     .quickCapture: HotkeyBinding(keyCode: UInt32(kVK_ANSI_2), modifiers: UInt32(cmdKey | shiftKey)),
+    .toggleBoard: HotkeyBinding(keyCode: UInt32(kVK_ANSI_B), modifiers: UInt32(cmdKey | shiftKey)),
+    .clipboardToBoard: HotkeyBinding(keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(cmdKey | optionKey | shiftKey)),
+    .togglePins: HotkeyBinding(keyCode: UInt32(kVK_ANSI_P), modifiers: UInt32(cmdKey | optionKey | shiftKey)),
   ]
 }
 

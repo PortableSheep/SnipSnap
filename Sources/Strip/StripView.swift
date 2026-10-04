@@ -194,6 +194,10 @@ struct StripView: View {
           Button("Pin Image") {
             onPin(item)
           }
+
+          Button("Send to Board") {
+            NotificationCenter.default.post(name: .sendToBoard, object: item.url)
+          }
         }
         
         Divider()
