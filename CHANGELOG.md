@@ -9,6 +9,8 @@ All notable changes to SnipSnap will be documented here.
 - Remove auto-scroll from scroll capture; manual scroll is now the only mode (more reliable stitching)
 - Pinned images open near the cursor, remember their position and size across relaunches, can be resized much smaller, and show Copy / Edit / Send to Board / Unpin on hover (double-click edits, Esc or ⌘W unpins, ⌘C copies) with a "Copied" confirmation
 - Editor: Ellipse tool in the sidebar, "Pin to Screen" (⌘⇧P) in the Export menu, and confirmation toasts for copy, quick export, and Send to Board
+- Editor: non-destructive Crop tool (⌘K; Return applies, Esc cancels, undoable) applied to every export/copy/share, Ellipse shortcut (O), remembered window size/position with an image-fitted default, and material sidebars matching the toolbar
+- Pinned images: opacity presets (100/75/50/30%) and click-through mode (hold ⌥ over the pin to interact again), both remembered across relaunches
 - Board toolbar moves clear of the display notch
 
 ### ✨ Features

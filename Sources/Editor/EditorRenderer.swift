@@ -63,7 +63,10 @@ enum EditorRenderer {
 
   /// Renders the final export image with device frame and background
   static func renderFinalExport(doc: AnnotationDocument) -> CGImage? {
-    guard let annotatedImage = renderAnnotatedCGImage(doc: doc) else { return nil }
+    guard var annotatedImage = renderAnnotatedCGImage(doc: doc) else { return nil }
+    if let crop = doc.cropRect, let cropped = annotatedImage.cropping(to: crop) {
+      annotatedImage = cropped
+    }
 
     // If no background and no corner radius, return simple annotated image
     if doc.backgroundStyle == .none && doc.backgroundCornerRadius <= 0 {

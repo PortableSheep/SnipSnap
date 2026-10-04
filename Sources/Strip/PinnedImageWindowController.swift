@@ -18,11 +18,14 @@ final class PinnedImageWindowController {
   private struct SavedPin: Codable {
     var path: String
     var frame: CodableRect?
+    var opacity: Double?
+    var clickThrough: Bool?
   }
 
   private var windows: [URL: PinnedImagePanel] = [:]
   private var delegates: [URL: PinnedPanelDelegate] = [:]
-  private var feedback: [URL: PinFeedback] = [:]
+  private var states: [URL: ScreenPinState] = [:]
+  private var clickThroughTimer: Timer?
   private var order: [URL] = []
   private var resizeStartFrames: [URL: NSRect] = [:]
   private var saveObserver: NSObjectProtocol?
@@ -60,6 +63,10 @@ final class PinnedImageWindowController {
       let url = URL(fileURLWithPath: entry.path)
       guard FileManager.default.fileExists(atPath: url.path) else { continue }
       pin(url: url, savedFrame: entry.frame?.cgRect, activate: false)
+      if let state = states[url] {
+        state.opacity = min(max(entry.opacity ?? 1, ScreenPinState.minOpacity), 1)
+        if entry.clickThrough == true { setClickThrough(true, url: url) }
+      }
     }
     persist()
   }
@@ -102,7 +109,9 @@ final class PinnedImageWindowController {
     panel.onCopy = { [weak self] in self?.copyPinnedImage(url: url) }
     panel.onEdit = { [weak self] in self?.editPinnedImage(url: url) }
 
-    feedback[url] = PinFeedback()
+    let state = ScreenPinState()
+    state.onChange = { [weak self] in self?.persist() }
+    states[url] = state
     panel.contentView = makeContentView(image: image, url: url, panel: panel)
     panel.setFrame(initialFrame(for: panel, imageSize: image.size, saved: savedFrame), display: false)
 
@@ -179,16 +188,59 @@ final class PinnedImageWindowController {
     flash(url, "Sent to Board")
   }
 
+  // MARK: - Click-through
+
+  /// Click-through pins ignore the mouse so you can work "through" them. Holding ⌥ while
+  /// the pointer is over one makes it interactive again (polled; needs no extra permission).
+  func setClickThrough(_ enabled: Bool, url: URL) {
+    guard let panel = windows[url], let state = states[url] else { return }
+    state.clickThrough = enabled
+    panel.ignoresMouseEvents = enabled
+    if enabled { flash(url, "Click-through · hold ⌥ to interact") }
+    updateClickThroughTimer()
+    persist()
+  }
+
+  private func updateClickThroughTimer() {
+    let needed = states.values.contains { $0.clickThrough }
+    if needed, clickThroughTimer == nil {
+      let timer = Timer(timeInterval: 0.12, repeats: true) { [weak self] _ in
+        Task { @MainActor in self?.pollClickThrough() }
+      }
+      RunLoop.main.add(timer, forMode: .common)
+      clickThroughTimer = timer
+    } else if !needed {
+      clickThroughTimer?.invalidate()
+      clickThroughTimer = nil
+    }
+  }
+
+  private func pollClickThrough() {
+    let optionDown = NSEvent.modifierFlags.contains(.option)
+    let mouse = NSEvent.mouseLocation
+    for (url, panel) in windows {
+      guard let state = states[url], state.clickThrough else { continue }
+      let interactive = optionDown && NSMouseInRect(mouse, panel.frame, false)
+      if panel.ignoresMouseEvents == interactive {
+        panel.ignoresMouseEvents = !interactive
+      }
+      if state.isTemporarilyInteractive != interactive {
+        state.isTemporarilyInteractive = interactive
+      }
+    }
+  }
+
   private func flash(_ url: URL, _ message: String) {
-    feedback[url]?.show(message)
+    states[url]?.show(message)
   }
 
   private func cleanupWindow(url: URL) {
     windows[url] = nil
     delegates[url] = nil
-    feedback[url] = nil
+    states[url] = nil
     resizeStartFrames[url] = nil
     order.removeAll { $0 == url }
+    updateClickThroughTimer()
     persist()
   }
 
@@ -199,7 +251,7 @@ final class PinnedImageWindowController {
 
     let hostingView = NSHostingView(rootView: PinnedImageView(
       image: image,
-      feedback: feedback[url] ?? PinFeedback(),
+      feedback: states[url] ?? ScreenPinState(),
       onResize: { [weak self, weak panel] translation in
         guard let panel else { return }
         self?.resize(
@@ -218,6 +270,10 @@ final class PinnedImageWindowController {
       onEdit: { [weak self] in self?.editPinnedImage(url: url) },
       onCopy: { [weak self] in self?.copyPinnedImage(url: url) },
       onSendToBoard: onSendToBoard == nil ? nil : { [weak self] in self?.sendToBoard(url: url) },
+      onToggleClickThrough: { [weak self] in
+        guard let self, let state = self.states[url] else { return }
+        self.setClickThrough(!state.clickThrough, url: url)
+      },
       onClose: { [weak self] in self?.unpin(url: url) }
     ))
     hostingView.wantsLayer = true
@@ -322,7 +378,13 @@ final class PinnedImageWindowController {
   private func persist() {
     let pins = order.compactMap { url -> SavedPin? in
       guard let panel = windows[url] else { return nil }
-      return SavedPin(path: url.path, frame: CodableRect(panel.frame))
+      let state = states[url]
+      return SavedPin(
+        path: url.path,
+        frame: CodableRect(panel.frame),
+        opacity: state.map { Double($0.opacity) },
+        clickThrough: state?.clickThrough
+      )
     }
     if let data = try? JSONEncoder().encode(pins) {
       defaults.set(data, forKey: Self.defaultsKey)
@@ -366,10 +428,17 @@ private final class PinnedImagePanel: NSPanel {
   }
 }
 
-/// Transient overlay message ("Copied") shown on a pin.
+/// Per-pin UI state: transient message ("Copied"), opacity, and click-through.
 @MainActor
-final class PinFeedback: ObservableObject {
+final class ScreenPinState: ObservableObject {
+  static let minOpacity: Double = 0.2
+  static let opacityPresets: [Double] = [1, 0.75, 0.5, 0.3]
+
   @Published private(set) var message: String?
+  @Published var opacity: Double = 1 { didSet { if oldValue != opacity { onChange?() } } }
+  @Published var clickThrough = false
+  @Published var isTemporarilyInteractive = false
+  var onChange: (() -> Void)?
   private var work: DispatchWorkItem?
 
   func show(_ text: String) {
@@ -408,12 +477,13 @@ private final class PinnedPanelDelegate: NSObject, NSWindowDelegate {
 
 private struct PinnedImageView: View {
   let image: NSImage
-  @ObservedObject var feedback: PinFeedback
+  @ObservedObject var feedback: ScreenPinState
   let onResize: (CGSize) -> Void
   let onResizeEnded: () -> Void
   let onEdit: () -> Void
   let onCopy: () -> Void
   let onSendToBoard: (() -> Void)?
+  let onToggleClickThrough: () -> Void
   let onClose: () -> Void
   @State private var isHovered = false
   @State private var isResizing = false
@@ -425,6 +495,7 @@ private struct PinnedImageView: View {
       Image(nsImage: image)
         .resizable()
         .aspectRatio(contentMode: .fill)
+        .opacity(controlsVisible ? max(feedback.opacity, 0.9) : feedback.opacity)
 
       VStack {
         HStack(spacing: 4) {
@@ -434,6 +505,19 @@ private struct PinnedImageView: View {
           if let onSendToBoard {
             CardIconButton(systemName: "square.grid.2x2", help: "Send to Board", action: onSendToBoard)
           }
+          Menu {
+            opacityMenuItems
+          } label: {
+            Image(systemName: "circle.lefthalf.filled")
+              .font(.system(size: 11, weight: .bold))
+              .foregroundStyle(.white)
+              .frame(width: 24, height: 24)
+              .background(.black.opacity(0.55), in: Circle())
+          }
+          .menuStyle(.borderlessButton)
+          .menuIndicator(.hidden)
+          .fixedSize()
+          .help("Opacity & click-through")
           CardIconButton(systemName: "pin.slash", help: "Unpin (Esc)", action: onClose)
         }
         Spacer()
@@ -490,7 +574,28 @@ private struct PinnedImageView: View {
         Button("Send to Board") { onSendToBoard() }
       }
       Divider()
+      Menu("Opacity") { opacityMenuItems }
+      Divider()
       Button("Unpin") { onClose() }
+    }
+  }
+
+  @ViewBuilder
+  private var opacityMenuItems: some View {
+    ForEach(ScreenPinState.opacityPresets, id: \.self) { value in
+      Button {
+        feedback.opacity = value
+      } label: {
+        if abs(feedback.opacity - value) < 0.01 {
+          Label("\(Int(value * 100))%", systemImage: "checkmark")
+        } else {
+          Text("\(Int(value * 100))%")
+        }
+      }
+    }
+    Divider()
+    Button(feedback.clickThrough ? "Turn Off Click-Through" : "Click-Through (hold ⌥ to interact)") {
+      onToggleClickThrough()
     }
   }
 }

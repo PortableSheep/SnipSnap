@@ -58,10 +58,18 @@ final class AnnotationDocument: ObservableObject {
 
   @Published var tool: AnnotationTool = .select
   @Published var annotations: [Annotation] = [] {
-    didSet {
-      hasUnsavedChanges = annotationsHash(annotations) != savedAnnotationsHash
-    }
+    didSet { recomputeUnsavedChanges() }
   }
+
+  /// Non-destructive crop in image coordinates (top-left origin). Applied at export.
+  @Published var cropRect: CGRect? = nil {
+    didSet { recomputeUnsavedChanges() }
+  }
+  /// True while the user is adjusting the crop box.
+  @Published private(set) var isCropping = false
+  /// Crop box being edited (image coordinates).
+  @Published var pendingCrop: CGRect = .zero
+  private var savedCropRect: CGRect? = nil
   @Published var selectedID: UUID? = nil
 
   @Published private(set) var hasUnsavedChanges: Bool = false
@@ -167,8 +175,13 @@ final class AnnotationDocument: ObservableObject {
   @Published var pendingTextInput: PendingTextInput? = nil
 
   // Undo/redo
-  private var undoStack: [[Annotation]] = []
-  private var redoStack: [[Annotation]] = []
+  private struct Snapshot {
+    var annotations: [Annotation]
+    var cropRect: CGRect?
+  }
+  private var undoStack: [Snapshot] = []
+  private var redoStack: [Snapshot] = []
+  private var currentSnapshot: Snapshot { Snapshot(annotations: annotations, cropRect: cropRect) }
 
   private var isEditSessionActive: Bool = false
 
@@ -338,7 +351,53 @@ final class AnnotationDocument: ObservableObject {
 
   func markSaved() {
     savedAnnotationsHash = annotationsHash(annotations)
+    savedCropRect = cropRect
     hasUnsavedChanges = false
+  }
+
+  private func recomputeUnsavedChanges() {
+    hasUnsavedChanges = annotationsHash(annotations) != savedAnnotationsHash || cropRect != savedCropRect
+  }
+
+  // MARK: - Crop
+
+  var fullImageRect: CGRect { CGRect(origin: .zero, size: imageSize) }
+
+  func beginCrop() {
+    if pendingTextInput != nil { commitPendingTextInput() }
+    selectedID = nil
+    pendingCrop = cropRect ?? fullImageRect
+    isCropping = true
+  }
+
+  func cancelCrop() {
+    isCropping = false
+  }
+
+  func applyCrop() {
+    guard isCropping else { return }
+    isCropping = false
+    let r = Self.normalizedCrop(pendingCrop, in: imageSize)
+    guard r != cropRect else { return }
+    pushUndoCheckpoint()
+    cropRect = r
+  }
+
+  func clearCrop() {
+    isCropping = false
+    guard cropRect != nil else { return }
+    pushUndoCheckpoint()
+    cropRect = nil
+  }
+
+  /// Snaps a crop box to whole pixels inside the image. Returns nil for "no crop"
+  /// (the full image) or a box too small to be useful.
+  static func normalizedCrop(_ rect: CGRect, in imageSize: CGSize) -> CGRect? {
+    let bounds = CGRect(origin: .zero, size: imageSize)
+    let r = rect.standardized.intersection(bounds).integral.intersection(bounds)
+    guard !r.isNull, r.width >= 4, r.height >= 4 else { return nil }
+    if r.size == imageSize { return nil }
+    return r
   }
 
   func cancelPendingTextInput() {
@@ -534,7 +593,7 @@ final class AnnotationDocument: ObservableObject {
   }
 
   func pushUndoCheckpoint() {
-    undoStack.append(annotations)
+    undoStack.append(currentSnapshot)
     if undoStack.count > 100 { undoStack.removeFirst(undoStack.count - 100) }
     redoStack.removeAll(keepingCapacity: false)
   }
@@ -551,8 +610,9 @@ final class AnnotationDocument: ObservableObject {
 
   func undo() {
     guard let prev = undoStack.popLast() else { return }
-    redoStack.append(annotations)
-    annotations = prev
+    redoStack.append(currentSnapshot)
+    annotations = prev.annotations
+    cropRect = prev.cropRect
     if let sel = selectedID, !annotations.contains(where: { $0.id == sel }) {
       selectedID = nil
     }
@@ -560,8 +620,9 @@ final class AnnotationDocument: ObservableObject {
 
   func redo() {
     guard let next = redoStack.popLast() else { return }
-    undoStack.append(annotations)
-    annotations = next
+    undoStack.append(currentSnapshot)
+    annotations = next.annotations
+    cropRect = next.cropRect
   }
 
   func deleteSelected() {

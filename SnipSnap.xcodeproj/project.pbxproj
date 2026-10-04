@@ -80,6 +80,7 @@
 		86D415967BF395CC6EACA0BB /* CaptureBackgroundServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A1A6CB47E82AB62EA20D1C8 /* CaptureBackgroundServices.swift */; };
 		8815660E1E51FF537EA0BFD4 /* FeatureMatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED364C95A79AD70B690ACB0D /* FeatureMatcherTests.swift */; };
 		88331C566ABBBC3D4654C746 /* EditorToolProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 253C4680468BEA377635C0E3 /* EditorToolProtocol.swift */; };
+		8BDB48EBB4D4A8B7AEC61A28 /* CropOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C693DA4115C01A26E1C6FF6F /* CropOverlayView.swift */; };
 		8F5CD49D2499F0FCF6A743CD /* CaptureServiceClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FD71107E5577A19F69363D8 /* CaptureServiceClient.swift */; };
 		8FB949FC2585F21E4E8BA9FD /* AnnotationTemplateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD92A38499E581425687F83C /* AnnotationTemplateStore.swift */; };
 		90CF5A7C510BC8F1052BDB50 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE1EF1A74598DC5A850D66E /* AppDelegate.swift */; };
@@ -272,6 +273,7 @@
 		BF40DB68ABE37CA30B45254C /* ImageFilters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFilters.swift; sourceTree = "<group>"; };
 		C0928040C2B7F29161EC7618 /* MeasurementTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasurementTool.swift; sourceTree = "<group>"; };
 		C202EFE98A7009AFD92B6B4C /* VideoTrimPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimPresenter.swift; sourceTree = "<group>"; };
+		C693DA4115C01A26E1C6FF6F /* CropOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CropOverlayView.swift; sourceTree = "<group>"; };
 		C845CE7BE774D738E05DFCA9 /* ScrollZoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollZoomView.swift; sourceTree = "<group>"; };
 		CDB1E8C7D6CBB3228F59B7FA /* GIFExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GIFExporter.swift; sourceTree = "<group>"; };
 		CEBF1EA896B39D793CCDE728 /* StripWindowControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripWindowControllerTests.swift; sourceTree = "<group>"; };
@@ -469,6 +471,7 @@
 			children = (
 				4F09D13C25E263B36FAF251E /* AnnotationDocument.swift */,
 				0D4434FB089D5FA1E8CC9F74 /* AnnotationModels.swift */,
+				C693DA4115C01A26E1C6FF6F /* CropOverlayView.swift */,
 				3DA25602B3368B0721CE3964 /* EditorCanvasView.swift */,
 				F5D9C62E886D167D428186CD /* EditorRenderer.swift */,
 				D8F52D232066519EA4CD4EC2 /* EditorView.swift */,
@@ -855,6 +858,7 @@
 				747CB7D5E9F4F899DB2BAE05 /* CardFactory.swift in Sources */,
 				9D0234D0A40D71019C44D2C2 /* CloudSyncManager.swift in Sources */,
 				E49208B3432CF383F612B180 /* ColorCodables.swift in Sources */,
+				8BDB48EBB4D4A8B7AEC61A28 /* CropOverlayView.swift in Sources */,
 				24CA4102C65C534A3410410A /* DebugLog in Sources */,
 				4221FFD06CECF30A12DDF9E2 /* DelayedCaptureCountdown.swift in Sources */,
 				CC5D2AEC41A002D45E1F0790 /* DirectoryWatcher.swift in Sources */,

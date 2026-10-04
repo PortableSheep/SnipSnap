@@ -44,13 +44,13 @@ struct EditorView: View {
         // Left tool sidebar
         toolSidebar
           .frame(width: 52)
-          .background(Color(nsColor: .controlBackgroundColor))
+          .background(.ultraThinMaterial)
 
         Divider()
 
         // Canvas area
         EditorCanvasView(doc: doc)
-          .background(Color(nsColor: .windowBackgroundColor))
+          .background(Color(nsColor: .underPageBackgroundColor))
           .overlay(alignment: .bottom) {
             if let toast {
               Label(toast, systemImage: "checkmark.circle.fill")
@@ -71,7 +71,7 @@ struct EditorView: View {
           Divider()
           inspectorPanel
             .frame(width: 220)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(.ultraThinMaterial)
         }
       }
     }
@@ -565,6 +565,22 @@ struct EditorView: View {
         // Measurement
         sidebarToolButton(.measurement)
 
+        Divider().padding(.vertical, 4).padding(.horizontal, 6)
+
+        SidebarToolButton(
+          icon: "crop",
+          label: doc.cropRect == nil ? "Crop" : "Adjust Crop",
+          isSelected: doc.isCropping,
+          shortcut: "⌘K"
+        ) {
+          doc.isCropping ? doc.applyCrop() : doc.beginCrop()
+        }
+        .contextMenu {
+          if doc.cropRect != nil {
+            Button("Remove Crop") { doc.clearCrop() }
+          }
+        }
+
         Spacer()
       }
       .padding(.vertical, 8)
@@ -577,7 +593,8 @@ struct EditorView: View {
     let shortcut = tool.shortcutKey ?? ""
 
     return SidebarToolButton(
-      tool: tool,
+      icon: tool.icon,
+      label: tool.label,
       isSelected: isSelected,
       shortcut: shortcut
     ) {
@@ -586,6 +603,7 @@ struct EditorView: View {
   }
 
   private func selectTool(_ tool: AnnotationTool) {
+    if doc.isCropping { doc.applyCrop() }
     doc.tool = tool
   }
 
@@ -1437,7 +1455,8 @@ private struct ToolbarIconButton: View {
 }
 
 private struct SidebarToolButton: View {
-  let tool: AnnotationTool
+  let icon: String
+  let label: String
   let isSelected: Bool
   let shortcut: String
   let action: () -> Void
@@ -1447,7 +1466,7 @@ private struct SidebarToolButton: View {
   var body: some View {
     Button(action: action) {
       VStack(spacing: 2) {
-        Image(systemName: tool.icon)
+        Image(systemName: icon)
           .font(.system(size: 14, weight: isSelected ? .bold : .medium))
         if !shortcut.isEmpty {
           Text(shortcut)
@@ -1476,7 +1495,8 @@ private struct SidebarToolButton: View {
         isHovered = hovering
       }
     }
-    .help(shortcut.isEmpty ? tool.label : "\(tool.label) – Press \(shortcut)")
+    .help(shortcut.isEmpty ? label : "\(label) – Press \(shortcut)")
+    .accessibilityLabel(label)
   }
 }
 

@@ -292,3 +292,24 @@ struct PinnedImagePlacementTests {
     #expect(big.width == 1000 && big.minX == 0)
   }
 }
+
+@Suite("Editor crop & sizing")
+struct EditorCropTests {
+  @Test func normalizedCropClampsAndRejectsDegenerate() {
+    let size = CGSize(width: 400, height: 300)
+    #expect(AnnotationDocument.normalizedCrop(CGRect(x: 0, y: 0, width: 400, height: 300), in: size) == nil)
+    #expect(AnnotationDocument.normalizedCrop(CGRect(x: 10, y: 10, width: 2, height: 50), in: size) == nil)
+    #expect(AnnotationDocument.normalizedCrop(CGRect(x: 300, y: 200, width: -100, height: -50), in: size)
+            == CGRect(x: 200, y: 150, width: 100, height: 50))
+    #expect(AnnotationDocument.normalizedCrop(CGRect(x: 350, y: -20, width: 100, height: 100), in: size)
+            == CGRect(x: 350, y: 0, width: 50, height: 80))
+  }
+
+  @MainActor @Test func initialEditorSizeFitsScreen() {
+    let screen = CGSize(width: 1440, height: 900)
+    let small = EditorWindowController.initialContentSize(for: CGSize(width: 200, height: 100), visible: screen)
+    #expect(small == CGSize(width: 800, height: 550))
+    let huge = EditorWindowController.initialContentSize(for: CGSize(width: 5000, height: 3000), visible: screen)
+    #expect(huge == CGSize(width: 1296, height: 810))
+  }
+}
