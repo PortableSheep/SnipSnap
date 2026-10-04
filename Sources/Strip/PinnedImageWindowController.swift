@@ -110,7 +110,14 @@ final class PinnedImageWindowController {
     panel.onEdit = { [weak self] in self?.editPinnedImage(url: url) }
 
     let state = ScreenPinState()
-    state.onChange = { [weak self] in self?.persist() }
+    state.onChange = { [weak self, weak panel, weak state] in
+      // A full-strength shadow behind a translucent pin reads as a dark smudge.
+      if let panel, let state {
+        panel.hasShadow = state.opacity >= 0.99
+        panel.invalidateShadow()
+      }
+      self?.persist()
+    }
     states[url] = state
     panel.contentView = makeContentView(image: image, url: url, panel: panel)
     panel.setFrame(initialFrame(for: panel, imageSize: image.size, saved: savedFrame), display: false)
@@ -439,6 +446,13 @@ final class ScreenPinState: ObservableObject {
   @Published var clickThrough = false
   @Published var isTemporarilyInteractive = false
   var onChange: (() -> Void)?
+
+  func cycleOpacity() {
+    let presets = Self.opacityPresets
+    let index = presets.firstIndex { abs($0 - opacity) < 0.01 } ?? 0
+    opacity = presets[(index + 1) % presets.count]
+    show("Opacity \(Int((opacity * 100).rounded()))%")
+  }
   private var work: DispatchWorkItem?
 
   func show(_ text: String) {
@@ -495,7 +509,7 @@ private struct PinnedImageView: View {
       Image(nsImage: image)
         .resizable()
         .aspectRatio(contentMode: .fill)
-        .opacity(controlsVisible ? max(feedback.opacity, 0.9) : feedback.opacity)
+        .opacity(feedback.opacity)
 
       VStack {
         HStack(spacing: 4) {
@@ -505,19 +519,12 @@ private struct PinnedImageView: View {
           if let onSendToBoard {
             CardIconButton(systemName: "square.grid.2x2", help: "Send to Board", action: onSendToBoard)
           }
-          Menu {
-            opacityMenuItems
-          } label: {
-            Image(systemName: "circle.lefthalf.filled")
-              .font(.system(size: 11, weight: .bold))
-              .foregroundStyle(.white)
-              .frame(width: 24, height: 24)
-              .background(.black.opacity(0.55), in: Circle())
+          CardIconButton(
+            systemName: "circle.lefthalf.filled",
+            help: "Opacity \(Int((feedback.opacity * 100).rounded()))% – click to cycle; right-click for click-through"
+          ) {
+            feedback.cycleOpacity()
           }
-          .menuStyle(.borderlessButton)
-          .menuIndicator(.hidden)
-          .fixedSize()
-          .help("Opacity & click-through")
           CardIconButton(systemName: "pin.slash", help: "Unpin (Esc)", action: onClose)
         }
         Spacer()
