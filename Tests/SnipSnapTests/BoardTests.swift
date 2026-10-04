@@ -279,3 +279,16 @@ struct BoardChromeLayoutTests {
     #expect(p.y >= notch.height)
   }
 }
+
+@MainActor
+@Suite("PinnedImage placement")
+struct PinnedImagePlacementTests {
+  @Test("Frames are clamped fully onto the visible area")
+  func clamp() {
+    let visible = NSRect(x: 0, y: 0, width: 1000, height: 800)
+    let f = PinnedImageWindowController.clamp(NSRect(x: 900, y: -50, width: 300, height: 200), into: visible)
+    #expect(f == NSRect(x: 700, y: 0, width: 300, height: 200))
+    let big = PinnedImageWindowController.clamp(NSRect(x: -10, y: 0, width: 2000, height: 100), into: visible)
+    #expect(big.width == 1000 && big.minX == 0)
+  }
+}

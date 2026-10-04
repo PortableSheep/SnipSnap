@@ -83,6 +83,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       let data = note.userInfo?[Notification.Name.sendToBoardImageDataKey] as? Data
       Task { @MainActor in self?.boardController?.sendCaptureToBoard(url, renderedImage: data) }
     }
+    NotificationCenter.default.addObserver(forName: .pinToScreen, object: nil, queue: .main) { [weak self] note in
+      guard let url = note.object as? URL else { return }
+      Task { @MainActor in self?.pinnedImages.pin(url: url) }
+    }
+    pinnedImages.restorePins()
     board.start()
 
     HotkeyPreferencesStore.shared.$bindings
