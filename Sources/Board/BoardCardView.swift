@@ -399,8 +399,8 @@ struct BoardCardView: View {
         .environment(\.colorScheme, .dark)
       VStack(spacing: 8) {
         Image(systemName: "pin.fill").font(.system(size: 18, weight: .semibold))
-        Text("Popped out").font(.system(size: 12, weight: .semibold))
-        Button("Return to Board") { vm.actions.returnPin(card.id) }
+        Text("Pinned to screen").font(.system(size: 12, weight: .semibold))
+        Button("Unpin") { vm.actions.returnPin(card.id) }
           .buttonStyle(.borderedProminent)
           .controlSize(.small)
       }
@@ -410,7 +410,7 @@ struct BoardCardView: View {
 
   private var hoverControls: some View {
     HStack(spacing: 4) {
-      CardIconButton(systemName: "pin", help: "Pop out (always on top)") { vm.actions.popOut(card.id) }
+      CardIconButton(systemName: "pin", help: "Pin to Screen") { vm.actions.popOut(card.id) }
       if card.kind == .capture {
         CardIconButton(systemName: "arrow.up.left.and.arrow.down.right", help: "Open details") { vm.detailCardID = card.id }
       }
@@ -473,9 +473,9 @@ struct BoardCardMenu: View {
 
   var body: some View {
     if card.pin == nil {
-      Button("Pop Out (Always on Top)") { vm.actions.popOut(card.id) }
+      Button("Pin to Screen") { vm.actions.popOut(card.id) }
     } else {
-      Button("Return to Board") { vm.actions.returnPin(card.id) }
+      Button("Unpin") { vm.actions.returnPin(card.id) }
     }
 
     switch card.kind {

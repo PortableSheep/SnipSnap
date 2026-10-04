@@ -158,7 +158,7 @@ final class BoardPinController {
       onCopy: { [weak self] in self?.copy(id) }
     ))
     hosting.wantsLayer = true
-    hosting.layer?.cornerRadius = 12
+    hosting.layer?.cornerRadius = PinStyle.cornerRadius
     hosting.layer?.cornerCurve = .continuous
     hosting.layer?.masksToBounds = true
     return hosting
@@ -259,7 +259,7 @@ private struct CardPinView: View {
           Spacer()
           HStack(spacing: 4) {
             CardIconButton(systemName: "doc.on.doc", help: "Copy", action: onCopy)
-            CardIconButton(systemName: "rectangle.on.rectangle.angled", help: "Return to Board", action: onReturn)
+            CardIconButton(systemName: "pin.slash", help: "Unpin (return to Board)", action: onReturn)
           }
           .opacity(controls ? 1 : 0)
         }
@@ -280,7 +280,8 @@ private struct CardPinView: View {
       }
       .padding(6)
     }
-    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white.opacity(0.14)))
+    .clipShape(RoundedRectangle(cornerRadius: PinStyle.cornerRadius, style: .continuous))
+    .overlay(RoundedRectangle(cornerRadius: PinStyle.cornerRadius, style: .continuous).strokeBorder(.white.opacity(PinStyle.borderOpacity)))
     .contentShape(Rectangle())
     .onHover { h in withAnimation(.easeOut(duration: 0.12)) { hovering = h } }
     .onTapGesture(count: 2) {
@@ -301,7 +302,7 @@ private struct CardPinView: View {
         Button(card.todo == .done ? "Mark Not Done" : "Mark Done", action: onToggleTodo)
       }
       Divider()
-      Button("Return to Board", action: onReturn)
+      Button("Unpin", action: onReturn)
     }
   }
 }

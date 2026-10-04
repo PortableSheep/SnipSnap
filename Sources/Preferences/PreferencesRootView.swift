@@ -544,6 +544,7 @@ private struct AboutPreferencesView: View {
         FeatureRow(icon: "film", text: "GIF Export & Video Trimming")
         FeatureRow(icon: "text.viewfinder", text: "OCR Indexing & Smart Redaction")
         FeatureRow(icon: "play.rectangle.fill", text: "Presentation Mode")
+        FeatureRow(icon: HotkeyAction.toggleBoard.icon, text: "Board & Always-on-Top Pins")
       }
 
       Spacer()

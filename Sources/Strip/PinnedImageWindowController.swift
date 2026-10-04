@@ -169,7 +169,7 @@ final class PinnedImageWindowController {
       onClose: { [weak self] in self?.unpin(url: url) }
     ))
     hostingView.wantsLayer = true
-    hostingView.layer?.cornerRadius = 14
+    hostingView.layer?.cornerRadius = PinStyle.cornerRadius
     hostingView.layer?.cornerCurve = .continuous
     hostingView.layer?.masksToBounds = true
     return hostingView
@@ -280,7 +280,7 @@ private struct PinnedImageView: View {
       VStack {
         HStack {
           Spacer()
-          hoverButton(systemName: "pin.fill", help: "Unpin", action: onClose)
+          CardIconButton(systemName: "pin.slash", help: "Unpin", action: onClose)
         }
         Spacer()
       }
@@ -308,17 +308,17 @@ private struct PinnedImageView: View {
       .padding(.bottom, 1)
       .opacity(controlsVisible ? 1 : 0)
     }
-    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    .clipShape(RoundedRectangle(cornerRadius: PinStyle.cornerRadius, style: .continuous))
     .overlay {
-      RoundedRectangle(cornerRadius: 14, style: .continuous)
-        .stroke(.white.opacity(0.12), lineWidth: 1)
+      RoundedRectangle(cornerRadius: PinStyle.cornerRadius, style: .continuous)
+        .strokeBorder(.white.opacity(PinStyle.borderOpacity))
     }
     .contentShape(Rectangle())
     .onHover { hovering in
       isHovered = hovering
     }
     .contextMenu {
-      Button("Edit") {
+      Button("Edit in Editor") {
         onEdit()
       }
 
@@ -340,21 +340,12 @@ private struct PinnedImageView: View {
     }
   }
 
-  private func hoverButton(
-    systemName: String,
-    help: String,
-    action: @escaping () -> Void
-  ) -> some View {
-    Button(action: action) {
-      Image(systemName: systemName)
-        .font(.system(size: 11, weight: .bold))
-        .foregroundStyle(.white)
-        .frame(width: 26, height: 26)
-        .background(.black.opacity(0.58), in: Circle())
-    }
-    .buttonStyle(.plain)
-    .help(help)
-  }
+}
+
+/// Shared look for always-on-top pin windows (pinned images and board cards).
+enum PinStyle {
+  static let cornerRadius: CGFloat = 12
+  static let borderOpacity: Double = 0.14
 }
 
 struct ResizeDragSurface: NSViewRepresentable {

@@ -129,6 +129,37 @@ struct HotkeyBinding: Codable, Equatable {
     }
   }
 
+  /// `NSMenuItem.keyEquivalent` string for a Carbon key code, if representable.
+  static func menuKeyEquivalent(for keyCode: UInt32) -> String? {
+    func fn(_ c: Int) -> String { String(Character(UnicodeScalar(c)!)) }
+    switch Int(keyCode) {
+    case kVK_Space: return " "
+    case kVK_Return: return "\r"
+    case kVK_Tab: return "\t"
+    case kVK_Escape: return "\u{1b}"
+    case kVK_Delete: return "\u{8}"
+    case kVK_LeftArrow: return fn(NSLeftArrowFunctionKey)
+    case kVK_RightArrow: return fn(NSRightArrowFunctionKey)
+    case kVK_UpArrow: return fn(NSUpArrowFunctionKey)
+    case kVK_DownArrow: return fn(NSDownArrowFunctionKey)
+    case kVK_F1: return fn(NSF1FunctionKey)
+    case kVK_F2: return fn(NSF2FunctionKey)
+    case kVK_F3: return fn(NSF3FunctionKey)
+    case kVK_F4: return fn(NSF4FunctionKey)
+    case kVK_F5: return fn(NSF5FunctionKey)
+    case kVK_F6: return fn(NSF6FunctionKey)
+    case kVK_F7: return fn(NSF7FunctionKey)
+    case kVK_F8: return fn(NSF8FunctionKey)
+    case kVK_F9: return fn(NSF9FunctionKey)
+    case kVK_F10: return fn(NSF10FunctionKey)
+    case kVK_F11: return fn(NSF11FunctionKey)
+    case kVK_F12: return fn(NSF12FunctionKey)
+    default:
+      guard let name = keyName(for: keyCode), name.count == 1 else { return nil }
+      return name.lowercased()
+    }
+  }
+
   /// Default bindings
   static let defaults: [HotkeyAction: HotkeyBinding] = [
     .toggleRecording: HotkeyBinding(keyCode: UInt32(kVK_ANSI_6), modifiers: UInt32(cmdKey | shiftKey)),

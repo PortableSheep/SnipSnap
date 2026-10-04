@@ -161,7 +161,7 @@ struct CardDetailView: View {
         Divider()
 
         VStack(alignment: .leading, spacing: 8) {
-          actionButton("Pop Out (Always on Top)", "pin") { commit(); vm.actions.popOut(card.id) }
+          actionButton("Pin to Screen", "pin") { commit(); vm.actions.popOut(card.id) }
           if card.kind == .capture {
             actionButton("Edit in Editor", "pencil.tip.crop.circle") { commit(); vm.actions.openInEditor(card.id) }
           }

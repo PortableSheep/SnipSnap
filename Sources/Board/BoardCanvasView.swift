@@ -246,7 +246,7 @@ private struct BoardToolbar: View {
 
       ToolbarButton(
         systemName: prefs.pinsHidden ? "pin.slash" : "pin",
-        help: prefs.pinsHidden ? "Show popped-out pins" : "Hide popped-out pins"
+        help: prefs.pinsHidden ? "Show pinned cards and images" : "Hide pinned cards and images"
       ) { vm.actions.togglePinsHidden() }
       Menu {
         Picker("Theme", selection: $prefs.theme) {
