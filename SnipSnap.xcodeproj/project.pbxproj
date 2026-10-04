@@ -86,6 +86,7 @@
 		95330E53F5DBE107264E9279 /* InputMonitoringPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = E32B619C918C6428827B9CC2 /* InputMonitoringPermission.swift */; };
 		9688AEA4C15E31F3E94344D6 /* StripDockPosition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280F6D62D43D430072499AF7 /* StripDockPosition.swift */; };
 		97A9F4F7BA803023E9EA7B28 /* FinderReveal.swift in Sources */ = {isa = PBXBuildFile; fileRef = F44CF99CC5982BA35D35ECEB /* FinderReveal.swift */; };
+		9960B83192116844CCC920C8 /* BoardChromeLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20EEDE19A148EEFB16A47055 /* BoardChromeLayout.swift */; };
 		998F85489833E4D6E2C10481 /* SystemScreencaptureRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6642F183214D07B38A4989EE /* SystemScreencaptureRecorder.swift */; };
 		9AA30D932E131EC10978E0D4 /* CapturePreflight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EEFD5FF0BD14DCCDF1E71A8 /* CapturePreflight.swift */; };
 		9AC015CAD750536ECC7ED225 /* CardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83C0C879933BE4AB5CA6B683 /* CardDetailView.swift */; };
@@ -196,6 +197,7 @@
 		1416F232B6464AEC06AE7E67 /* BoardModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardModels.swift; sourceTree = "<group>"; };
 		155CF09078EF6D68E03CF524 /* VideoTrimExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimExporter.swift; sourceTree = "<group>"; };
 		177633113AADF0C9E923E8C9 /* SharePresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePresenter.swift; sourceTree = "<group>"; };
+		20EEDE19A148EEFB16A47055 /* BoardChromeLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardChromeLayout.swift; sourceTree = "<group>"; };
 		222710FD5409E6C30A730A3C /* CaptureLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureLibrary.swift; sourceTree = "<group>"; };
 		22C47B81FAC96C637E71ED66 /* HotkeyPreferencesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyPreferencesStore.swift; sourceTree = "<group>"; };
 		23E42E2807C053C228299A4D /* CaptureLibraryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureLibraryTests.swift; sourceTree = "<group>"; };
@@ -387,6 +389,7 @@
 			children = (
 				1239F91D97AC2A16C5E8E8D7 /* BoardCanvasView.swift */,
 				D4725FE2012748367D7D7131 /* BoardCardView.swift */,
+				20EEDE19A148EEFB16A47055 /* BoardChromeLayout.swift */,
 				409DAB16947C1AC7E1F9398C /* BoardController.swift */,
 				0F0F18F969812A48312CAADF /* BoardEnrichmentService.swift */,
 				1416F232B6464AEC06AE7E67 /* BoardModels.swift */,
@@ -828,6 +831,7 @@
 				90CF5A7C510BC8F1052BDB50 /* AppDelegate.swift in Sources */,
 				79ED493D36136FF4E7D3BD55 /* BoardCanvasView.swift in Sources */,
 				757FD6787B6E901E7149A90A /* BoardCardView.swift in Sources */,
+				9960B83192116844CCC920C8 /* BoardChromeLayout.swift in Sources */,
 				5F31E3E7BC8A33157CC87776 /* BoardController.swift in Sources */,
 				B8CBC6DCF74929DCE3E7EC53 /* BoardEnrichmentService.swift in Sources */,
 				2482B0485976C29FEA7D6B7D /* BoardModels.swift in Sources */,

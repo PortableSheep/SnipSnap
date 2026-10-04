@@ -12,6 +12,7 @@ struct BoardCanvasView: View {
   @State private var marqueeBase: Set<UUID> = []
   @State private var marqueeExtend = false
   @State private var appeared = false
+  @State private var toolbarSize: CGSize = .zero
 
   init(vm: BoardViewModel) {
     self.vm = vm
@@ -38,9 +39,23 @@ struct BoardCanvasView: View {
           .allowsHitTesting(false)
           .transition(.opacity)
       }
+      BoardToolbar(vm: vm, store: store, prefs: prefs, style: style)
+        .fixedSize()
+        .background(
+          GeometryReader { geo in
+            Color.clear
+              .onAppear { toolbarSize = geo.size }
+              .onChange(of: geo.size) { toolbarSize = $0 }
+          }
+        )
+        .position(
+          BoardChromeLayout.toolbarCenter(
+            canvasWidth: vm.canvasSize.width,
+            toolbarSize: toolbarSize,
+            notch: vm.notch
+          )
+        )
       VStack {
-        BoardToolbar(vm: vm, store: store, prefs: prefs, style: style)
-          .padding(.top, 18)
         Spacer()
         if let toast = vm.toast {
           BoardToastView(toast: toast)

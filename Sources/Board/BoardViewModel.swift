@@ -28,6 +28,8 @@ final class BoardViewModel: ObservableObject {
   @Published var scale: CGFloat
   @Published var offset: CGSize
   @Published var canvasSize: CGSize = .zero
+  /// Notch on the screen currently hosting the overlay, if any.
+  @Published var notch: BoardNotch?
 
   @Published var selection: Set<UUID> = []
   @Published var dragTranslation: CGSize = .zero

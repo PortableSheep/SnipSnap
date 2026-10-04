@@ -242,3 +242,40 @@ struct HotCornerMonitorTests {
     #expect(HotCornerMonitor.cornerRect(.none, in: frame, size: 2) == .zero)
   }
 }
+
+@Suite("BoardChromeLayout")
+struct BoardChromeLayoutTests {
+  private let toolbar = CGSize(width: 600, height: 42)
+
+  @Test("No notch keeps the toolbar top-centered")
+  func noNotch() {
+    let p = BoardChromeLayout.toolbarCenter(canvasWidth: 1512, toolbarSize: toolbar, notch: nil)
+    #expect(p == CGPoint(x: 756, y: BoardChromeLayout.defaultTopMargin + 21))
+  }
+
+  @Test("Tall toolbar moves below the notch")
+  func belowNotch() {
+    let notch = BoardNotch(height: 38, leftWidth: 650, rightWidth: 650)
+    let p = BoardChromeLayout.toolbarCenter(canvasWidth: 1512, toolbarSize: toolbar, notch: notch)
+    #expect(p.x == 756)
+    #expect(p.y - toolbar.height / 2 >= notch.height)
+  }
+
+  @Test("Toolbar that fits goes left of the notch, else right")
+  func besideNotch() {
+    let small = CGSize(width: 300, height: 28)
+    let left = BoardChromeLayout.toolbarCenter(
+      canvasWidth: 1512, toolbarSize: small, notch: BoardNotch(height: 38, leftWidth: 650, rightWidth: 650))
+    #expect(left == CGPoint(x: 325, y: 19))
+    let right = BoardChromeLayout.toolbarCenter(
+      canvasWidth: 1512, toolbarSize: small, notch: BoardNotch(height: 38, leftWidth: 200, rightWidth: 650))
+    #expect(right == CGPoint(x: 1512 - 325, y: 19))
+  }
+
+  @Test("Unmeasured toolbar is placed below the notch")
+  func unmeasured() {
+    let notch = BoardNotch(height: 38, leftWidth: 650, rightWidth: 650)
+    let p = BoardChromeLayout.toolbarCenter(canvasWidth: 1512, toolbarSize: .zero, notch: notch)
+    #expect(p.y >= notch.height)
+  }
+}

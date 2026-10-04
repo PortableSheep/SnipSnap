@@ -76,6 +76,7 @@ final class BoardOverlayController {
     let panel = self.panel ?? makePanel()
     self.panel = panel
     panel.setFrame(screen.frame, display: false)
+    vm.notch = BoardNotch(screen: screen)
 
     if !isVisible {
       // Recreate the root view so appear animations replay and state is fresh.
