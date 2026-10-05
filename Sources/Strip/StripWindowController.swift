@@ -89,6 +89,10 @@ final class StripWindowController: NSObject {
       }
     }, onHoverChanged: { [weak self] hovering in
       self?.setHovered(hovering)
+    }, onResetPosition: { [weak self] in
+      self?.resetPosition()
+    }, onShowDiagnostics: { [weak self] in
+      self?.showDiagnostics()
     })
     let stripHostingView = NSHostingView(rootView: root)
     stripHostingView.sizingOptions = []
@@ -304,6 +308,93 @@ final class StripWindowController: NSObject {
       guard visible.width > 0 else { return }
       state.horizontalDockFraction = ((frame.midX - visible.minX) / visible.width).clamped(to: 0...1)
     }
+  }
+
+  // MARK: - Reset & Diagnostics
+
+  func resetPosition() {
+    isUserDragging = false
+    snapWorkItem?.cancel()
+    state.verticalDockFraction = 0.5
+    state.horizontalDockFraction = 0.5
+    let target = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }
+      ?? NSScreen.main ?? NSScreen.screens.first
+    dockedScreenID = target.flatMap(Self.screenID)
+    applyDock(position: state.dockPosition, animate: true)
+    if state.isAutoHidden {
+      updateTabFrame()
+    }
+  }
+
+  func diagnosticsReport() -> String {
+    func r(_ rect: NSRect) -> String {
+      String(format: "x=%.0f y=%.0f w=%.0f h=%.0f", rect.minX, rect.minY, rect.width, rect.height)
+    }
+    func name(_ screen: NSScreen?) -> String {
+      guard let screen else { return "nil" }
+      return "\(screen.localizedName) [id \(Self.screenID(screen)?.stringValue ?? "?")]"
+    }
+
+    var lines: [String] = []
+    let info = Bundle.main.infoDictionary
+    lines.append("SnipSnap \(info?["CFBundleShortVersionString"] as? String ?? "?") (\(info?["CFBundleVersion"] as? String ?? "?"))")
+    lines.append("macOS \(ProcessInfo.processInfo.operatingSystemVersionString)")
+    lines.append("")
+    lines.append("Screens (\(NSScreen.screens.count)):")
+    for (index, screen) in NSScreen.screens.enumerated() {
+      lines.append("  #\(index) \(name(screen)) scale=\(screen.backingScaleFactor)")
+      lines.append("     frame   \(r(screen.frame))")
+      lines.append("     visible \(r(screen.visibleFrame))")
+    }
+    lines.append("NSScreen.main: \(name(NSScreen.main))")
+    lines.append("Docked screen: \(name(dockedScreen)) (saved id \(dockedScreenID?.stringValue ?? "nil"))")
+    lines.append("")
+    lines.append("Dock position: \(state.dockPosition.rawValue)")
+    lines.append(String(format: "Fractions: vertical=%.3f horizontal=%.3f",
+                        state.verticalDockFraction, state.horizontalDockFraction))
+    lines.append("Expected frame: \(r(dockedFrame))")
+    lines.append("Panel frame:    \(r(panel.frame))")
+    lines.append("Panel screen:   \(name(panel.screen))")
+    lines.append("Panel visible=\(panel.isVisible) alpha=\(panel.alphaValue) ignoresMouse=\(panel.ignoresMouseEvents) movable=\(panel.isMovable)/\(panel.isMovableByWindowBackground)")
+    lines.append("State visible=\(state.isVisible) autoHide=\(state.autoHideEnabled) autoHidden=\(state.isAutoHidden) hovered=\(isHovered) dragging=\(isUserDragging) applying=\(isApplyingFrame)")
+    lines.append("Mouse: \(String(format: "x=%.0f y=%.0f", NSEvent.mouseLocation.x, NSEvent.mouseLocation.y))")
+    return lines.joined(separator: "\n")
+  }
+
+  func showDiagnostics() {
+    let report = diagnosticsReport()
+
+    let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 560, height: 320))
+    textView.string = report
+    textView.isEditable = false
+    textView.isSelectable = true
+    textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+    let scroll = NSScrollView(frame: textView.frame)
+    scroll.hasVerticalScroller = true
+    scroll.documentView = textView
+
+    let alert = NSAlert()
+    alert.messageText = "Strip Diagnostics"
+    alert.informativeText = "Window and display geometry as seen by SnipSnap."
+    alert.accessoryView = scroll
+    alert.addButton(withTitle: "Close")
+    alert.addButton(withTitle: "Copy")
+    alert.addButton(withTitle: "Reset Strip Position")
+
+    NSApp.activate(ignoringOtherApps: true)
+    switch alert.runModal() {
+    case .alertSecondButtonReturn:
+      NSPasteboard.general.clearContents()
+      NSPasteboard.general.setString(report, forType: .string)
+    case .alertThirdButtonReturn:
+      resetPosition()
+    default:
+      break
+    }
+  }
+
+  private static func screenID(_ screen: NSScreen) -> NSNumber? {
+    screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
   }
 
   private func setHovered(_ hovering: Bool) {

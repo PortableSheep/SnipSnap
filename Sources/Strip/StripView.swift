@@ -10,6 +10,8 @@ struct StripView: View {
   let onPin: ThumbAction
   let onPresent: (CaptureItem) -> Void
   let onHoverChanged: (Bool) -> Void
+  var onResetPosition: () -> Void = {}
+  var onShowDiagnostics: () -> Void = {}
 
   @State private var isHovered: Bool = false
   @State private var hoverDebounceTask: Task<Void, Never>? = nil
@@ -69,6 +71,8 @@ struct StripView: View {
         Button("Dock Right") { state.dockPosition = .right }
         Button("Dock Top") { state.dockPosition = .top }
         Button("Dock Bottom") { state.dockPosition = .bottom }
+        Button("Reset Strip Position") { onResetPosition() }
+        Button("Strip Diagnostics…") { onShowDiagnostics() }
 
         Divider()
 
