@@ -313,3 +313,13 @@ struct EditorCropTests {
     #expect(huge == CGSize(width: 1296, height: 810))
   }
 }
+
+@MainActor
+struct BoardPinFrameTests {
+  @Test func smallWideCaptureKeepsAspectRatio() {
+    let card = BoardCard(kind: .capture, frame: CodableRect(x: 0, y: 0, width: 200, height: 20))
+    let frame = BoardPinController.validatedFrame(nil, card: card)
+    #expect(frame.height >= BoardPinController.minSize.height)
+    #expect(abs(frame.width / frame.height - 10) < 0.01)
+  }
+}

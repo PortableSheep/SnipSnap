@@ -21,7 +21,8 @@ struct CardDetailView: View {
 
       HStack(spacing: 0) {
         preview
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+          .clipped()
           .background(Color.black.opacity(0.35))
         sidebar
           .frame(width: 320)
@@ -225,6 +226,11 @@ struct LiveTextImageView: NSViewRepresentable {
   func updateNSView(_ nsView: LiveTextContainer, context: Context) {
     nsView.setImage(image)
   }
+
+  // Fill whatever space SwiftUI offers instead of demanding the image's full size.
+  func sizeThatFits(_ proposal: ProposedViewSize, nsView: LiveTextContainer, context: Context) -> CGSize? {
+    CGSize(width: proposal.width ?? 0, height: proposal.height ?? 0)
+  }
 }
 
 final class LiveTextContainer: NSView {
@@ -237,6 +243,10 @@ final class LiveTextContainer: NSView {
     super.init(frame: frameRect)
     imageView.imageScaling = .scaleProportionallyUpOrDown
     imageView.translatesAutoresizingMaskIntoConstraints = false
+    for orientation in [NSLayoutConstraint.Orientation.horizontal, .vertical] {
+      imageView.setContentCompressionResistancePriority(.init(1), for: orientation)
+      imageView.setContentHuggingPriority(.init(1), for: orientation)
+    }
     addSubview(imageView)
     NSLayoutConstraint.activate([
       imageView.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -253,6 +263,10 @@ final class LiveTextContainer: NSView {
 
   @available(*, unavailable)
   required init?(coder: NSCoder) { fatalError() }
+
+  override var intrinsicContentSize: NSSize {
+    NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
+  }
 
   deinit { analysisTask?.cancel() }
 

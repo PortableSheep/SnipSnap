@@ -157,6 +157,8 @@ final class BoardPinController {
       onToggleTodo: { [weak self] in self?.onToggleTodo?(id) },
       onCopy: { [weak self] in self?.copy(id) }
     ))
+    // Don't let SwiftUI's ideal size (the thumbnail) constrain the window; the pin's frame is user-controlled.
+    hosting.sizingOptions = []
     hosting.wantsLayer = true
     hosting.layer?.cornerRadius = PinStyle.cornerRadius
     hosting.layer?.cornerCurve = .continuous
@@ -200,6 +202,12 @@ final class BoardPinController {
     var size = rect?.size ?? card.frame.cgRect.size
     // Images are pinned a bit larger than their board thumbnail by default.
     if rect == nil, card.kind == .capture { size = CGSize(width: size.width * 1.5, height: size.height * 1.5) }
+    if card.kind == .capture, size.width > 0, size.height > 0 {
+      // Scale uniformly so small/wide screenshots keep their aspect ratio.
+      let grow = max(1, minSize.width / size.width, minSize.height / size.height)
+      let shrink = min(1, visible.width * 0.8 / (size.width * grow), visible.height * 0.8 / (size.height * grow))
+      size = CGSize(width: size.width * grow * shrink, height: size.height * grow * shrink)
+    }
     size.width = min(max(size.width, minSize.width), visible.width * 0.8)
     size.height = min(max(size.height, minSize.height), visible.height * 0.8)
 
