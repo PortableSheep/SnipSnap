@@ -68,6 +68,11 @@ final class CaptureLibrary: ObservableObject {
       try? fm.removeItem(at: sidecar)
     }
 
+    let editorProject = EditorProjectStore.projectURL(for: item.url)
+    if fm.fileExists(atPath: editorProject.path) {
+      try fm.removeItem(at: editorProject)
+    }
+
     // Drop cached thumbnail.
     thumbCache.removeAllObjects()
 

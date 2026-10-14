@@ -36,6 +36,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
   case step
   case emoji
   case measurement
+  case loupe
 
   var id: String { rawValue }
 
@@ -55,6 +56,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
     case .step: return "Steps"
     case .emoji: return "Emoji"
     case .measurement: return "Measure"
+    case .loupe: return "Loupe"
     }
   }
 
@@ -74,6 +76,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
     case .step: return "list.number"
     case .emoji: return "face.smiling"
     case .measurement: return "ruler"
+    case .loupe: return "magnifyingglass"
     }
   }
 
@@ -93,6 +96,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
     case .step: return "N"  // N for Numbered steps
     case .emoji: return "E"
     case .measurement: return "D"
+    case .loupe: return nil
     }
   }
 
@@ -117,7 +121,7 @@ enum AnnotationTool: String, CaseIterable, Identifiable {
   }
 }
 
-enum BlurMode: String, CaseIterable, Identifiable {
+enum BlurMode: String, CaseIterable, Identifiable, Codable {
   case pixelate
   case redact
 
@@ -131,7 +135,7 @@ enum BlurMode: String, CaseIterable, Identifiable {
   }
 }
 
-enum ArrowHeadStyle: String, CaseIterable, Identifiable {
+enum ArrowHeadStyle: String, CaseIterable, Identifiable, Codable {
   case filled
   case open
   case none
@@ -147,7 +151,7 @@ enum ArrowHeadStyle: String, CaseIterable, Identifiable {
   }
 }
 
-enum CounterMode: String, CaseIterable, Identifiable {
+enum CounterMode: String, CaseIterable, Identifiable, Codable {
   case numbers
   case letters
   case custom
@@ -222,13 +226,40 @@ struct ArrowAnnotation: Identifiable, Hashable {
   var end: CGPoint
   var stroke: StrokeStyleModel
   var headStyle: ArrowHeadStyle
+  var bendPoint: CGPoint?
 
-  init(id: UUID = UUID(), start: CGPoint, end: CGPoint, stroke: StrokeStyleModel, headStyle: ArrowHeadStyle) {
+  init(id: UUID = UUID(), start: CGPoint, end: CGPoint, stroke: StrokeStyleModel, headStyle: ArrowHeadStyle, bendPoint: CGPoint? = nil) {
     self.id = id
     self.start = start
     self.end = end
     self.stroke = stroke
     self.headStyle = headStyle
+    self.bendPoint = bendPoint
+  }
+
+  var midpoint: CGPoint {
+    bendPoint ?? CGPoint(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2)
+  }
+
+  mutating func moveEndpoint(start newStart: CGPoint, end newEnd: CGPoint) {
+    if let bend = bendPoint {
+      bendPoint = CGPoint(
+        x: bend.x + (newStart.x + newEnd.x - start.x - end.x) / 2,
+        y: bend.y + (newStart.y + newEnd.y - start.y - end.y) / 2
+      )
+    }
+    start = newStart
+    end = newEnd
+  }
+
+  mutating func translate(by delta: CGPoint) {
+    start.x += delta.x
+    start.y += delta.y
+    end.x += delta.x
+    end.y += delta.y
+    if let bend = bendPoint {
+      bendPoint = CGPoint(x: bend.x + delta.x, y: bend.y + delta.y)
+    }
   }
 }
 
@@ -271,6 +302,7 @@ struct CalloutAnnotation: Identifiable, Hashable {
   var fill: FillStyleModel
   var textColor: Color
   var fontSize: CGFloat
+  var tailTip: CGPoint?
 
   init(
     id: UUID = UUID(),
@@ -279,7 +311,8 @@ struct CalloutAnnotation: Identifiable, Hashable {
     stroke: StrokeStyleModel,
     fill: FillStyleModel,
     textColor: Color,
-    fontSize: CGFloat
+    fontSize: CGFloat,
+    tailTip: CGPoint? = nil
   ) {
     self.id = id
     self.rect = rect
@@ -288,6 +321,7 @@ struct CalloutAnnotation: Identifiable, Hashable {
     self.fill = fill
     self.textColor = textColor
     self.fontSize = fontSize
+    self.tailTip = tailTip
   }
 }
 
@@ -441,24 +475,37 @@ struct LineAnnotation: Identifiable, Hashable {
   }
 }
 
+enum RecognizedFreehandShape: String, Codable, CaseIterable, Hashable {
+  case line
+  case rectangle
+  case ellipse
+
+  var label: String {
+    switch self {
+    case .line: return "Line"
+    case .rectangle: return "Rectangle"
+    case .ellipse: return "Ellipse"
+    }
+  }
+}
+
 // MARK: - Freehand/Marker Annotation
 struct FreehandAnnotation: Identifiable, Hashable {
   let id: UUID
   var points: [CGPoint]
   var stroke: StrokeStyleModel
   var isHighlighter: Bool  // If true, uses lower opacity and wider stroke
+  var recognizedShape: RecognizedFreehandShape?
 
-  init(id: UUID = UUID(), points: [CGPoint], stroke: StrokeStyleModel, isHighlighter: Bool = false) {
+  init(
+    id: UUID = UUID(), points: [CGPoint], stroke: StrokeStyleModel,
+    isHighlighter: Bool = false, recognizedShape: RecognizedFreehandShape? = nil
+  ) {
     self.id = id
     self.points = points
     self.stroke = stroke
     self.isHighlighter = isHighlighter
-  }
-
-  // Smooth the path using Catmull-Rom interpolation for better drawing
-  var smoothedPath: [CGPoint] {
-    guard points.count > 2 else { return points }
-    return points  // Can add Catmull-Rom smoothing later
+    self.recognizedShape = recognizedShape
   }
 }
 
@@ -485,7 +532,7 @@ struct SpotlightAnnotation: Identifiable, Hashable {
   }
 }
 
-enum SpotlightShape: String, CaseIterable, Identifiable, Hashable {
+enum SpotlightShape: String, CaseIterable, Identifiable, Hashable, Codable {
   case rectangle
   case roundedRect
   case ellipse
@@ -560,6 +607,24 @@ struct ImageLayerAnnotation: Identifiable, Hashable {
   }
 }
 
+struct LoupeAnnotation: Identifiable, Hashable {
+  let id: UUID
+  var center: CGPoint
+  var radius: CGFloat
+  var magnification: CGFloat
+
+  init(id: UUID = UUID(), center: CGPoint, radius: CGFloat, magnification: CGFloat = 2.5) {
+    self.id = id
+    self.center = center
+    self.radius = max(12, radius)
+    self.magnification = min(5, max(1.25, magnification))
+  }
+
+  var bounds: CGRect {
+    CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+  }
+}
+
 enum Annotation: Identifiable, Hashable {
   case rect(RectAnnotation)
   case ellipse(EllipseAnnotation)
@@ -575,6 +640,106 @@ enum Annotation: Identifiable, Hashable {
   case emoji(EmojiAnnotation)
   case measurement(MeasurementAnnotation)
   case imageLayer(ImageLayerAnnotation)
+  case loupe(LoupeAnnotation)
+
+  func duplicate(offset: CGPoint = CGPoint(x: 12, y: 12)) -> Annotation {
+    switch self {
+    case .rect(let a):
+      var copy = RectAnnotation(rect: a.rect, stroke: a.stroke, fill: a.fill)
+      copy.rect = copy.rect.offsetBy(dx: offset.x, dy: offset.y)
+      return .rect(copy)
+    case .ellipse(let a):
+      var copy = EllipseAnnotation(rect: a.rect, stroke: a.stroke, fill: a.fill)
+      copy.rect = copy.rect.offsetBy(dx: offset.x, dy: offset.y)
+      return .ellipse(copy)
+    case .line(let a):
+      return .line(LineAnnotation(
+        start: a.start.offset(by: offset), end: a.end.offset(by: offset), stroke: a.stroke
+      ))
+    case .arrow(let a):
+      return .arrow(ArrowAnnotation(
+        start: a.start.offset(by: offset), end: a.end.offset(by: offset),
+        stroke: a.stroke, headStyle: a.headStyle,
+        bendPoint: a.bendPoint?.offset(by: offset)
+      ))
+    case .freehand(let a):
+      return .freehand(FreehandAnnotation(
+        points: a.points.map { $0.offset(by: offset) },
+        stroke: a.stroke, isHighlighter: a.isHighlighter, recognizedShape: a.recognizedShape
+      ))
+    case .text(let a):
+      return .text(TextAnnotation(
+        position: a.position.offset(by: offset), text: a.text, color: a.color,
+        fontSize: a.fontSize, highlighted: a.highlighted,
+        highlightColor: a.highlightColor, highlightOpacity: a.highlightOpacity
+      ))
+    case .callout(let a):
+      return .callout(CalloutAnnotation(
+        rect: a.rect.offsetBy(dx: offset.x, dy: offset.y), text: a.text,
+        stroke: a.stroke, fill: a.fill, textColor: a.textColor, fontSize: a.fontSize,
+        tailTip: a.tailTip?.offset(by: offset)
+      ))
+    case .blur(let a):
+      return .blur(BlurAnnotation(
+        rect: a.rect.offsetBy(dx: offset.x, dy: offset.y), mode: a.mode, amount: a.amount
+      ))
+    case .spotlight(let a):
+      return .spotlight(SpotlightAnnotation(
+        rect: a.rect.offsetBy(dx: offset.x, dy: offset.y), shape: a.shape,
+        dimmingOpacity: a.dimmingOpacity, borderStroke: a.borderStroke
+      ))
+    case .step(let a):
+      return .step(StepAnnotation(
+        center: a.center.offset(by: offset), number: a.number, mode: a.mode,
+        radius: a.radius, fillColor: a.fillColor, textColor: a.textColor,
+        borderColor: a.borderColor, borderWidth: a.borderWidth
+      ))
+    case .counter(let a):
+      return .counter(CounterAnnotation(
+        center: a.center.offset(by: offset), value: a.value, radius: a.radius,
+        fillColor: a.fillColor, textColor: a.textColor,
+        borderColor: a.borderColor, borderWidth: a.borderWidth
+      ))
+    case .emoji(let a):
+      return .emoji(EmojiAnnotation(
+        position: a.position.offset(by: offset), emoji: a.emoji, size: a.size
+      ))
+    case .measurement(let a):
+      return .measurement(MeasurementAnnotation(
+        start: a.start.offset(by: offset), end: a.end.offset(by: offset),
+        unit: a.unit, ppi: a.ppi, baseFontSize: a.baseFontSize,
+        stroke: a.stroke, showExtensionLines: a.showExtensionLines, labelOffset: a.labelOffset
+      ))
+    case .imageLayer(let a):
+      return .imageLayer(ImageLayerAnnotation(
+        rect: a.rect.offsetBy(dx: offset.x, dy: offset.y), imageData: a.imageData
+      ))
+    case .loupe(let a):
+      return .loupe(LoupeAnnotation(
+        center: a.center.offset(by: offset), radius: a.radius, magnification: a.magnification
+      ))
+    }
+  }
+
+  var inspectorTool: AnnotationTool? {
+    switch self {
+    case .rect: return .rect
+    case .ellipse: return .ellipse
+    case .line: return .line
+    case .arrow: return .arrow
+    case .freehand: return .freehand
+    case .text: return .text
+    case .callout: return .callout
+    case .blur: return .blur
+    case .spotlight: return .spotlight
+    case .step, .counter: return .step
+    case .emoji: return .emoji
+    case .measurement: return .measurement
+    case .imageLayer: return nil
+    case .loupe: return .loupe
+    }
+
+  }
 
   var id: UUID {
     switch self {
@@ -592,7 +757,14 @@ enum Annotation: Identifiable, Hashable {
     case .emoji(let a): return a.id
     case .measurement(let a): return a.id
     case .imageLayer(let a): return a.id
+    case .loupe(let a): return a.id
     }
+  }
+}
+
+private extension CGPoint {
+  func offset(by delta: CGPoint) -> CGPoint {
+    CGPoint(x: x + delta.x, y: y + delta.y)
   }
 }
 

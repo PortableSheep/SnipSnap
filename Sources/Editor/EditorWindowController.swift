@@ -78,8 +78,25 @@ final class EditorWindowController {
         }
 
         if event.modifierFlags.contains(.command) {
+          if mods == .command, event.charactersIgnoringModifiers?.lowercased() == "s",
+             doc.pendingTextInput == nil {
+            do {
+              try doc.saveProject()
+            } catch {
+              NSAlert(error: error).runModal()
+            }
+            return nil
+          }
+
+          if mods == .command, event.charactersIgnoringModifiers?.lowercased() == "d",
+             doc.pendingTextInput == nil {
+            doc.duplicateSelected()
+            return nil
+          }
+
           // Cmd+Z / Shift+Cmd+Z
           if event.charactersIgnoringModifiers == "z" {
+            if doc.pendingTextInput != nil { return event }
             if event.modifierFlags.contains(.shift) {
               doc.redo()
             } else {
@@ -90,6 +107,7 @@ final class EditorWindowController {
           
           // Cmd+V - Paste image from clipboard
           if event.charactersIgnoringModifiers == "v" {
+            if doc.pendingTextInput != nil { return event }
             self.pasteImageFromClipboard(doc: doc)
             return nil
           }
@@ -246,8 +264,8 @@ private final class EditorWindowDelegate: NSObject, NSWindowDelegate {
 
     let alert = NSAlert()
     alert.messageText = "Save changes?"
-    alert.informativeText = "You have unsaved annotations. Export before closing?"
-    alert.addButton(withTitle: "Save")
+    alert.informativeText = "Save the editable annotations and crop alongside the original image?"
+    alert.addButton(withTitle: "Save Project")
     alert.addButton(withTitle: "Don’t Save")
     alert.addButton(withTitle: "Cancel")
     alert.alertStyle = .warning
@@ -256,9 +274,7 @@ private final class EditorWindowDelegate: NSObject, NSWindowDelegate {
     switch resp {
     case .alertFirstButtonReturn:
       do {
-        _ = try EditorRenderer.exportPNGNextToSource(doc: doc)
-        doc.markSaved()
-        NotificationCenter.default.post(name: .editorDidSave, object: doc.sourceURL)
+        try doc.saveProject()
         return true
       } catch {
         let err = NSAlert(error: error)
