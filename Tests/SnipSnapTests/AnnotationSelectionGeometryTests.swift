@@ -131,4 +131,22 @@ struct AnnotationSelectionGeometryTests {
       annotations: [.callout(callout)]
     ) == [callout.id])
   }
+
+  @Test("Callout tails form a filled wedge on every side without cutting across the body")
+  func calloutSides() {
+    for tip in [
+      CGPoint(x: 70, y: 0), CGPoint(x: 150, y: 60),
+      CGPoint(x: 70, y: 120), CGPoint(x: 0, y: 60)
+    ] {
+      let callout = CalloutAnnotation(
+        rect: CGRect(x: 20, y: 30, width: 100, height: 60), text: "",
+        stroke: .init(), fill: .init(), textColor: .white, fontSize: 16, tailTip: tip
+      )
+      let geometry = CalloutGeometry(callout)
+      #expect(geometry.outlinePath.contains(CGPoint(x: 70, y: 60)))
+      let wedgePoint = CGPoint(x: (tip.x + 70) / 2, y: (tip.y + 60) / 2)
+      #expect(geometry.contains(wedgePoint))
+      #expect(geometry.contains(tip, tolerance: 2))
+    }
+  }
 }

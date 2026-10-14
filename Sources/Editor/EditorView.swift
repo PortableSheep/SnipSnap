@@ -164,8 +164,12 @@ struct EditorView: View {
           icon: "doc.on.doc",
           helpText: "Copy to clipboard (⌘C)"
         ) {
-          EditorRenderer.copyToClipboard(doc: doc)
-          showToast("Copied to Clipboard")
+          do {
+            try EditorRenderer.copyToClipboard(doc: doc)
+            showToast("Copied to Clipboard")
+          } catch {
+            NSAlert(error: error).runModal()
+          }
         }
         .keyboardShortcut("c", modifiers: .command)
 
@@ -669,6 +673,13 @@ struct EditorView: View {
         }
 
         // Presentation section - always available
+        inspectorSection("Positioning") {
+          Toggle("Snap to alignment guides", isOn: $doc.alignmentSnappingEnabled)
+            .font(.system(size: 11))
+          Text("Hold Option while dragging for precise free movement.")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+        }
         inspectorSection("Presentation") {
           presentationInspector
         }
@@ -942,6 +953,18 @@ struct EditorView: View {
             .toggleStyle(.switch)
             .controlSize(.small)
         }
+      }
+      if case .callout(let callout) = doc.selectedAnnotation {
+        Button(callout.tailTip == nil ? "Add Tail" : "Remove Tail") {
+          doc.updateSelected { annotation in
+            guard case .callout(var callout) = annotation else { return }
+            callout.tailTip = callout.tailTip == nil
+              ? CGPoint(x: callout.rect.midX, y: callout.rect.maxY + 28) : nil
+            annotation = .callout(callout)
+          }
+        }
+        Text("Drag the tail tip to point at a screenshot detail.")
+          .foregroundStyle(.secondary)
       }
     }
   }

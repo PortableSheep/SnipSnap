@@ -182,10 +182,14 @@ struct StripView: View {
         }
 
         Button("Copy") {
-          NSPasteboard.general.clearContents()
-          if item.kind == .image, let image = NSImage(contentsOf: item.url) {
-            NSPasteboard.general.writeObjects([image])
+          if item.kind == .image {
+            do {
+              try ImageClipboard.copy(url: item.url)
+            } catch {
+              NSAlert(error: error).runModal()
+            }
           } else {
+            NSPasteboard.general.clearContents()
             NSPasteboard.general.writeObjects([item.url as NSURL])
           }
         }

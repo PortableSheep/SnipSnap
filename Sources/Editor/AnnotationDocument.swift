@@ -57,6 +57,7 @@ final class AnnotationDocument: ObservableObject {
   private var piiRedactionAnnotationIDs: Set<UUID> = []
 
   @Published var tool: AnnotationTool = .select
+  @Published var alignmentSnappingEnabled = true
   @Published var annotations: [Annotation] = [] {
     didSet { recomputeUnsavedChanges() }
   }

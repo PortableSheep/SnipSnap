@@ -8,6 +8,7 @@ struct EditorCanvasView: View {
   @State private var dragStartImagePoint: CGPoint? = nil
   @State private var dragCurrentImagePoint: CGPoint? = nil
   @State private var movingStartPoint: CGPoint? = nil
+  @State private var alignment = AnnotationAlignment.Result()
 
   @State private var activeSelectInteraction: SelectInteraction? = nil
   @State private var originalSelectedAtDragStart: Annotation? = nil
@@ -333,6 +334,20 @@ struct EditorCanvasView: View {
   }
 
   private func drawInProgress(context: inout GraphicsContext, size: CGSize) {
+    let imageRect = fitRect(imageSize: doc.imageSize, in: size)
+    let scale = imageRect.width / doc.imageSize.width
+    var guides = Path()
+    if let x = alignment.verticalGuide {
+      let viewX = imageRect.minX + x * scale
+      guides.move(to: CGPoint(x: viewX, y: imageRect.minY))
+      guides.addLine(to: CGPoint(x: viewX, y: imageRect.maxY))
+    }
+    if let y = alignment.horizontalGuide {
+      let viewY = imageRect.minY + y * scale
+      guides.move(to: CGPoint(x: imageRect.minX, y: viewY))
+      guides.addLine(to: CGPoint(x: imageRect.maxX, y: viewY))
+    }
+    context.stroke(guides, with: .color(.pink), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
     if case .marquee = activeSelectInteraction,
        let start = dragStartImagePoint, let current = dragCurrentImagePoint {
       let startView = imageToView(point: start, viewSize: size)
@@ -353,11 +368,11 @@ struct EditorCanvasView: View {
     guard let start = dragStartImagePoint, let curr = dragCurrentImagePoint else { return }
 
     let rectFit = fitRect(imageSize: doc.imageSize, in: size)
-    let scale = rectFit.width / doc.imageSize.width
+    let previewScale = rectFit.width / doc.imageSize.width
     let offset = rectFit.origin
 
     if let tool = ToolRegistry.tool(for: doc.tool), tool.capabilities.contains(.usesDrag), let preview = tool.preview(doc: doc, start: start, current: curr, isShiftDown: isShiftDown) {
-      draw(annotation: preview, context: &context, scale: scale, offset: offset)
+      draw(annotation: preview, context: &context, scale: previewScale, offset: offset)
     }
   }
 
@@ -537,8 +552,29 @@ struct EditorCanvasView: View {
           case .marquee:
             return
           case .move:
-            let delta = CGPoint(x: imgPoint.x - start.x, y: imgPoint.y - start.y)
+            var delta = CGPoint(
+              x: imgPoint.x - start.x - alignment.offset.width,
+              y: imgPoint.y - start.y - alignment.offset.height
+            )
             movingStartPoint = imgPoint
+            let selectedBounds = doc.annotations
+              .filter { doc.selectedIDs.contains($0.id) }
+              .reduce(CGRect.null) { $0.union(AnnotationSelectionGeometry.bounds(of: $1)) }
+              .offsetBy(dx: delta.x, dy: delta.y)
+            if doc.alignmentSnappingEnabled &&
+              !(NSApp.currentEvent?.modifierFlags.contains(.option) ?? false) {
+              let targets = [doc.cropRect ?? doc.fullImageRect] + doc.annotations
+                .filter { !doc.selectedIDs.contains($0.id) }
+                .map { AnnotationSelectionGeometry.bounds(of: $0) }
+              let scale = fitRect(imageSize: doc.imageSize, in: size).width / doc.imageSize.width
+              alignment = AnnotationAlignment.snap(
+                bounds: selectedBounds, targets: targets, tolerance: 5 / max(scale, 0.0001)
+              )
+            } else {
+              alignment = AnnotationAlignment.Result()
+            }
+            delta.x += alignment.offset.width
+            delta.y += alignment.offset.height
             doc.beginEditSessionIfNeeded()
             doc.updateSelectionInSession { annotation in
               applyMove(delta: delta, annotation: &annotation)
@@ -572,6 +608,7 @@ struct EditorCanvasView: View {
           dragStartImagePoint = nil
           dragCurrentImagePoint = nil
           movingStartPoint = nil
+          alignment = AnnotationAlignment.Result()
           activeSelectInteraction = nil
           originalSelectedAtDragStart = nil
           doc.endEditSession()
@@ -771,12 +808,6 @@ struct EditorCanvasView: View {
       break
 
     case .callout(let c):
-      let vr = CGRect(
-        x: offset.x + c.rect.minX * scale,
-        y: offset.y + c.rect.minY * scale,
-        width: c.rect.width * scale,
-        height: c.rect.height * scale
-      )
       let geometry = CalloutGeometry(c)
       let transform = CGAffineTransform(a: scale, b: 0, c: 0, d: scale, tx: offset.x, ty: offset.y)
       if c.fill.enabled {

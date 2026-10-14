@@ -521,12 +521,11 @@ enum EditorRenderer {
     }
   }
 
-  static func copyToClipboard(doc: AnnotationDocument) {
-    guard let cg = renderFinalExport(doc: doc) else { return }
-    let img = NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
-
-    NSPasteboard.general.clearContents()
-    NSPasteboard.general.writeObjects([img])
+  static func copyToClipboard(doc: AnnotationDocument) throws {
+    guard let cg = renderFinalExport(doc: doc) else {
+      throw NSError(domain: "SnipSnap", code: 10, userInfo: [NSLocalizedDescriptionKey: "Failed to render image for copying"])
+    }
+    try ImageClipboard.copy(image: cg)
   }
 
   static func exportPNGNextToSource(doc: AnnotationDocument) throws -> URL {
