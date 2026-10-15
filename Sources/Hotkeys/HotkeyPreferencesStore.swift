@@ -160,6 +160,10 @@ struct HotkeyBinding: Codable, Equatable {
     }
   }
 
+  static func resolved(for action: HotkeyAction, in bindings: [HotkeyAction: HotkeyBinding]) -> HotkeyBinding {
+    bindings[action] ?? defaults[action]!
+  }
+
   /// Default bindings
   static let defaults: [HotkeyAction: HotkeyBinding] = [
     .toggleRecording: HotkeyBinding(keyCode: UInt32(kVK_ANSI_6), modifiers: UInt32(cmdKey | shiftKey)),
@@ -210,7 +214,7 @@ final class HotkeyPreferencesStore: ObservableObject {
   }
 
   func binding(for action: HotkeyAction) -> HotkeyBinding {
-    bindings[action] ?? HotkeyBinding.defaults[action]!
+    HotkeyBinding.resolved(for: action, in: bindings)
   }
 
   func setBinding(_ binding: HotkeyBinding, for action: HotkeyAction) {
