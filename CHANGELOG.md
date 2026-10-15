@@ -37,6 +37,11 @@ All notable changes to SnipSnap will be documented here.
 
 ### 🐛 Bug Fixes
 
+- Fix loupes revealing blurred/redacted pixels in exports, copies, and the editor canvas
+- Fix Escape in Board search hiding the board instead of clearing the search
+- Fix saved/pasted annotation colors shifting by storing them in sRGB
+- Fix arrow keys nudging annotations while an inspector control has focus
+- Fix strip not refreshing when a capture's project sidecar can't be deleted
 - Fix remapped global shortcuts still responding to the old key combination until relaunch
 - Fix white fringes on rounded corners when copying captures to the clipboard
 - Fix recording crash: deadlock in FloatingStopButton.containsPoint() (`f4354e1`)
