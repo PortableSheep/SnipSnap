@@ -34,6 +34,31 @@ struct EditorQoLTests {
     return nil
   }
 
+  @Test("Loupe source includes redactions so magnifying can't reveal hidden pixels")
+  func loupeSourceIsRedacted() throws {
+    try withDocument { doc in
+      #expect(doc.loupeSourceImage === doc.cgImage)
+      doc.annotations = [.blur(BlurAnnotation(rect: CGRect(x: 0, y: 0, width: 64, height: 64), mode: .redact, amount: 10))]
+      let source = doc.loupeSourceImage
+      #expect(source !== doc.cgImage)
+      let pixel = try #require(NSBitmapImageRep(cgImage: source).colorAt(x: 32, y: 32))
+      #expect(pixel.alphaComponent > 0.99)
+      #expect(pixel.brightnessComponent < 0.01)
+      #expect(doc.loupeSourceImage === source)
+    }
+  }
+
+  @Test("Stored colors round-trip in sRGB")
+  func storedColorRoundTrip() throws {
+    let original = NSColor(srgbRed: 0.2, green: 0.6, blue: 0.9, alpha: 0.75)
+    let stored = try StoredColor(Color(nsColor: original))
+    let restored = try #require(NSColor(stored.color).usingColorSpace(.sRGB))
+    #expect(abs(restored.redComponent - 0.2) < 0.002)
+    #expect(abs(restored.greenComponent - 0.6) < 0.002)
+    #expect(abs(restored.blueComponent - 0.9) < 0.002)
+    #expect(abs(restored.alphaComponent - 0.75) < 0.002)
+  }
+
   @Test("Arrow keys map to image-space directions")
   func nudgeDirections() {
     #expect(EditorWindowController.nudgeDirection(keyCode: UInt16(kVK_LeftArrow)) == CGPoint(x: -1, y: 0))

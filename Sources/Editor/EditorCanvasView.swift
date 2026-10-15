@@ -1007,7 +1007,7 @@ struct EditorCanvasView: View {
     lensContext.transform = LoupeGeometry.magnificationTransform(
       center: center, magnification: magnification
     ).concatenating(context.transform)
-    lensContext.draw(Image(decorative: doc.cgImage, scale: 1), in: imageRect)
+    lensContext.draw(Image(decorative: doc.loupeSourceImage, scale: 1), in: imageRect)
 
     context.drawLayer { layer in
       layer.addFilter(.shadow(color: .black.opacity(0.35), radius: max(2, radius * 0.06), y: 2))

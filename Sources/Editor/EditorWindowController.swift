@@ -149,6 +149,7 @@ final class EditorWindowController {
         if let direction = Self.nudgeDirection(keyCode: event.keyCode),
            doc.pendingTextInput == nil,
            !doc.selectedIDs.isEmpty,
+           !Self.controlHasKeyFocus(in: event.window),
            mods.subtracting([.shift, .numericPad, .function]).isEmpty {
           let step: CGFloat = mods.contains(.shift) ? 10 : 1
           doc.nudgeSelected(by: CGPoint(x: direction.x * step, y: direction.y * step))
@@ -202,6 +203,13 @@ final class EditorWindowController {
   }
 
   /// Unit direction in image coordinates (y grows downward) for an arrow key.
+  /// True when an inspector control (slider, picker, field) owns the keyboard, so arrow
+  /// keys should adjust that control rather than nudge annotations on the canvas.
+  static func controlHasKeyFocus(in window: NSWindow?) -> Bool {
+    guard let responder = window?.firstResponder else { return false }
+    return responder is NSControl || responder is NSText
+  }
+
   static func nudgeDirection(keyCode: UInt16) -> CGPoint? {
     switch Int(keyCode) {
     case kVK_LeftArrow: return CGPoint(x: -1, y: 0)

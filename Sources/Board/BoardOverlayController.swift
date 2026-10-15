@@ -210,6 +210,9 @@ final class BoardOverlayController {
     if event.keyCode == 53 { // Esc
       if vm.dismissFocusedContent() {
         panel?.makeFirstResponder(panel?.contentView)
+      } else if vm.isSearching || isTextEditing {
+        vm.searchQuery = ""
+        panel?.makeFirstResponder(panel?.contentView)
       } else {
         hide()
       }
