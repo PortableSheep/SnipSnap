@@ -75,6 +75,7 @@
 		7834B1783914ADBEAA35E9B5 /* CaptureLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 222710FD5409E6C30A730A3C /* CaptureLibrary.swift */; };
 		789A289C3A6105FFCA48AED5 /* RedactionDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA040C16A249242D48907E1 /* RedactionDetector.swift */; };
 		78A309F3ECD6175177BA6673 /* OverlayEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36FB0DEDBD7A1BD083EE1FAF /* OverlayEvents.swift */; };
+		792BE5A7A1B012383A22CD0D /* AnnotationClipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B49A1AA1B3D12047F4D0FA6 /* AnnotationClipboard.swift */; };
 		792D32264E95CC608A734C1D /* ImageStitcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A92B392713A82F8437CF1168 /* ImageStitcherTests.swift */; };
 		79A56F2DA099EE46C2F4252D /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F542D03BFCD396E4EB4F38DE /* main.swift */; };
 		79ED493D36136FF4E7D3BD55 /* BoardCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1239F91D97AC2A16C5E8E8D7 /* BoardCanvasView.swift */; };
@@ -87,6 +88,7 @@
 		81620418B14B441AEC841CED /* CaptureMetadataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07D2CAB9224050361F05CB7E /* CaptureMetadataStore.swift */; };
 		82695213FBF2E2B93CB20D87 /* PreferencesStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5072B3E46CA45364D360FD41 /* PreferencesStoreTests.swift */; };
 		84D9246EC1022BEC955603F6 /* EditorWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13AAC8A7C5CF3B6CB309589C /* EditorWindowController.swift */; };
+		866B9B716470E3860758EFC9 /* EditorQoLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B3B40B94C7FE1DE0245B56C /* EditorQoLTests.swift */; };
 		86D415967BF395CC6EACA0BB /* CaptureBackgroundServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A1A6CB47E82AB62EA20D1C8 /* CaptureBackgroundServices.swift */; };
 		8815660E1E51FF537EA0BFD4 /* FeatureMatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED364C95A79AD70B690ACB0D /* FeatureMatcherTests.swift */; };
 		88331C566ABBBC3D4654C746 /* EditorToolProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 253C4680468BEA377635C0E3 /* EditorToolProtocol.swift */; };
@@ -141,6 +143,7 @@
 		D58877CF5732B70A1A4BC448 /* OverlayPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC53EF7E15B1F3E824F37AE7 /* OverlayPreviewView.swift */; };
 		D839A75F0CF5C4894EA88E23 /* HUDPlacement in Sources */ = {isa = PBXBuildFile; fileRef = 4704BCFA9CF80CD34CF19E1C /* HUDPlacement */; };
 		D8BEF7CB791BEAA0E4E60E92 /* SystemScreencaptureScreenshotter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A5FA0FFEC02DB97E70AD390 /* SystemScreencaptureScreenshotter.swift */; };
+		DB3CB6675A71FAAFCF973C1E /* EditorShortcutsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20EC164B18793ECBA4CDF4C7 /* EditorShortcutsView.swift */; };
 		DBBBA6A7E0117A0EAE637A72 /* BoardZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D04D7935EAFEFFA7D0A3B2E0 /* BoardZoneView.swift */; };
 		DCC6375AA8BC39C40877E1C1 /* AnnotationSelectionGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD00585622985EBC7A94A0C /* AnnotationSelectionGeometryTests.swift */; };
 		DF6AF1FE29C9E4B19B821F2E /* CaptureService.xpc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 391F46F453BF707DE1D94FFE /* CaptureService.xpc */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -209,6 +212,7 @@
 		07D2CAB9224050361F05CB7E /* CaptureMetadataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureMetadataStore.swift; sourceTree = "<group>"; };
 		0855E7E3A1DDA3D6340D3348 /* PreferencesPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesPage.swift; sourceTree = "<group>"; };
 		0870E4129A7A9C53A244408C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0B3B40B94C7FE1DE0245B56C /* EditorQoLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorQoLTests.swift; sourceTree = "<group>"; };
 		0C9459B3007D18D5C45F9867 /* CaptureOCRIndexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureOCRIndexer.swift; sourceTree = "<group>"; };
 		0D4434FB089D5FA1E8CC9F74 /* AnnotationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationModels.swift; sourceTree = "<group>"; };
 		0EB71C903B9727A88280742D /* AnnotationTextLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationTextLayout.swift; sourceTree = "<group>"; };
@@ -224,6 +228,7 @@
 		177633113AADF0C9E923E8C9 /* SharePresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePresenter.swift; sourceTree = "<group>"; };
 		18A680E21C6D86B473C59384 /* ImageClipboardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageClipboardTests.swift; sourceTree = "<group>"; };
 		1BD296AFB86520B9C0E53AF2 /* AnnotationAlignment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationAlignment.swift; sourceTree = "<group>"; };
+		20EC164B18793ECBA4CDF4C7 /* EditorShortcutsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorShortcutsView.swift; sourceTree = "<group>"; };
 		20EEDE19A148EEFB16A47055 /* BoardChromeLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardChromeLayout.swift; sourceTree = "<group>"; };
 		222710FD5409E6C30A730A3C /* CaptureLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureLibrary.swift; sourceTree = "<group>"; };
 		22C47B81FAC96C637E71ED66 /* HotkeyPreferencesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyPreferencesStore.swift; sourceTree = "<group>"; };
@@ -291,6 +296,7 @@
 		8831BD4AA3157E4049B96F38 /* ArrowGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrowGeometryTests.swift; sourceTree = "<group>"; };
 		8A1A6CB47E82AB62EA20D1C8 /* CaptureBackgroundServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureBackgroundServices.swift; sourceTree = "<group>"; };
 		8ACB9D63259BEE66B04C07B1 /* EditorProjectStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorProjectStoreTests.swift; sourceTree = "<group>"; };
+		8B49A1AA1B3D12047F4D0FA6 /* AnnotationClipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationClipboard.swift; sourceTree = "<group>"; };
 		8F93DF3C124290EB86C78DE6 /* OverlayPreviewWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPreviewWindowController.swift; sourceTree = "<group>"; };
 		9398A7CC90A2133ACB6F59ED /* GIFExportPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GIFExportPresenter.swift; sourceTree = "<group>"; };
 		998D108C3349B1504EE6138E /* HotkeyBindingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyBindingTests.swift; sourceTree = "<group>"; };
@@ -514,6 +520,7 @@
 			isa = PBXGroup;
 			children = (
 				1BD296AFB86520B9C0E53AF2 /* AnnotationAlignment.swift */,
+				8B49A1AA1B3D12047F4D0FA6 /* AnnotationClipboard.swift */,
 				4F09D13C25E263B36FAF251E /* AnnotationDocument.swift */,
 				0D4434FB089D5FA1E8CC9F74 /* AnnotationModels.swift */,
 				280CDF69EDCE16365544E092 /* AnnotationSelectionGeometry.swift */,
@@ -525,6 +532,7 @@
 				3DA25602B3368B0721CE3964 /* EditorCanvasView.swift */,
 				EA83192990E21A13EC042141 /* EditorProjectStore.swift */,
 				F5D9C62E886D167D428186CD /* EditorRenderer.swift */,
+				20EC164B18793ECBA4CDF4C7 /* EditorShortcutsView.swift */,
 				D8F52D232066519EA4CD4EC2 /* EditorView.swift */,
 				13AAC8A7C5CF3B6CB309589C /* EditorWindowController.swift */,
 				022D4F3A01FE2FA1566743D5 /* FreehandGeometry.swift */,
@@ -575,6 +583,7 @@
 				314F395763ADEDC073AB48B7 /* EditorArrangeTests.swift */,
 				5C66DD040B3EA06059026303 /* EditorInspectorTests.swift */,
 				8ACB9D63259BEE66B04C07B1 /* EditorProjectStoreTests.swift */,
+				0B3B40B94C7FE1DE0245B56C /* EditorQoLTests.swift */,
 				6EC4491B397E9F90786CBFF0 /* EditorRendererTests.swift */,
 				ED364C95A79AD70B690ACB0D /* FeatureMatcherTests.swift */,
 				BE83A21E320A820AA044DE38 /* FreehandGeometryTests.swift */,
@@ -852,6 +861,7 @@
 				AE8B9E66AF980AEDC34A806F /* EditorArrangeTests.swift in Sources */,
 				CE61D927580A7AD611FD76DE /* EditorInspectorTests.swift in Sources */,
 				74DD999949C6FE1859DA6567 /* EditorProjectStoreTests.swift in Sources */,
+				866B9B716470E3860758EFC9 /* EditorQoLTests.swift in Sources */,
 				B1EBCCB9CC9273BC42BCEF1E /* EditorRendererTests.swift in Sources */,
 				8815660E1E51FF537EA0BFD4 /* FeatureMatcherTests.swift in Sources */,
 				30FE83F41272484505A12B90 /* FreehandGeometryTests.swift in Sources */,
@@ -904,6 +914,7 @@
 			files = (
 				9CD8299BFB25D0BD126D5C6A /* AccessibilityPermission.swift in Sources */,
 				8F52BCE15C177B2E81153271 /* AnnotationAlignment.swift in Sources */,
+				792BE5A7A1B012383A22CD0D /* AnnotationClipboard.swift in Sources */,
 				777605B634E9DEE20495762F /* AnnotationDocument.swift in Sources */,
 				068B3F9FE6D6A208D1888CC4 /* AnnotationModels.swift in Sources */,
 				E20696828CBB38D67D7F0D23 /* AnnotationSelectionGeometry.swift in Sources */,
@@ -950,6 +961,7 @@
 				53DFF1BB61486826FF1A437E /* EditorCanvasView.swift in Sources */,
 				BB70CEFA6EAF97E645023487 /* EditorProjectStore.swift in Sources */,
 				E8B0A4875C3C326C367C07F8 /* EditorRenderer.swift in Sources */,
+				DB3CB6675A71FAAFCF973C1E /* EditorShortcutsView.swift in Sources */,
 				88331C566ABBBC3D4654C746 /* EditorToolProtocol.swift in Sources */,
 				C1013C6600C1437CAB077D84 /* EditorView.swift in Sources */,
 				84D9246EC1022BEC955603F6 /* EditorWindowController.swift in Sources */,

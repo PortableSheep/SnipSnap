@@ -162,11 +162,12 @@ struct EditorView: View {
 
         ToolbarIconButton(
           icon: "doc.on.doc",
-          helpText: "Copy to clipboard (⌘C)"
+          helpText: "Copy image to clipboard (⌘C). Selected annotations can also be pasted into another editor."
         ) {
           do {
-            try EditorRenderer.copyToClipboard(doc: doc)
-            showToast("Copied to Clipboard")
+            let count = try EditorRenderer.copyToClipboard(doc: doc)
+            showToast(count == 0 ? "Copied to Clipboard"
+              : "Copied image + \(count) annotation\(count == 1 ? "" : "s")")
           } catch {
             NSAlert(error: error).runModal()
           }
@@ -330,6 +331,13 @@ struct EditorView: View {
         RoundedRectangle(cornerRadius: 8, style: .continuous)
           .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
       )
+
+      ToolbarIconButton(icon: "keyboard", helpText: "Keyboard shortcuts (?)") {
+        doc.isShowingShortcuts.toggle()
+      }
+      .popover(isPresented: $doc.isShowingShortcuts, arrowEdge: .bottom) {
+        EditorShortcutsView()
+      }
 
       if needsPanHint {
         Text("Press H to Pan")

@@ -225,6 +225,8 @@ final class AnnotationDocument: ObservableObject {
   // Edge detection for measurement snapping
   let snapGuideManager = SnapGuideManager()
 
+  @Published var isShowingShortcuts = false
+
   // Transient input overlay
   @Published var pendingTextInput: PendingTextInput? = nil
 
@@ -238,6 +240,8 @@ final class AnnotationDocument: ObservableObject {
   private var currentSnapshot: Snapshot { Snapshot(annotations: annotations, cropRect: cropRect) }
 
   private var isEditSessionActive: Bool = false
+  private var lastNudge: (ids: Set<UUID>, time: Date)?
+  private var lastPaste: (changeCount: Int, count: Int)?
 
   struct PendingTextInput: Identifiable {
     let id = UUID()
@@ -679,6 +683,7 @@ final class AnnotationDocument: ObservableObject {
   }
 
   func pushUndoCheckpoint() {
+    lastNudge = nil
     undoStack.append(currentSnapshot)
     if undoStack.count > 100 { undoStack.removeFirst(undoStack.count - 100) }
     redoStack.removeAll(keepingCapacity: false)
@@ -696,6 +701,7 @@ final class AnnotationDocument: ObservableObject {
 
   func undo() {
     guard let prev = undoStack.popLast() else { return }
+    lastNudge = nil
     redoStack.append(currentSnapshot)
     annotations = prev.annotations
     cropRect = prev.cropRect
@@ -708,6 +714,7 @@ final class AnnotationDocument: ObservableObject {
 
   func redo() {
     guard let next = redoStack.popLast() else { return }
+    lastNudge = nil
     undoStack.append(currentSnapshot)
     annotations = next.annotations
     cropRect = next.cropRect
@@ -731,6 +738,35 @@ final class AnnotationDocument: ObservableObject {
     pushUndoCheckpoint()
     annotations.append(contentsOf: duplicates)
     setSelection(Set(duplicates.map(\.id)), primary: duplicates.last?.id)
+  }
+
+  /// Moves the selection by `delta` image pixels. Rapid repeats (holding an arrow key)
+  /// coalesce into one undo step.
+  func nudgeSelected(by delta: CGPoint, now: Date = Date()) {
+    guard !selectedIDs.isEmpty, delta != .zero else { return }
+    let coalesce = lastNudge.map { $0.ids == selectedIDs && now.timeIntervalSince($0.time) < 1 } ?? false
+    if !coalesce { pushUndoCheckpoint() }
+    for index in annotations.indices where selectedIDs.contains(annotations[index].id) {
+      annotations[index].translate(by: delta)
+    }
+    lastNudge = (selectedIDs, now)
+  }
+
+  /// Inserts copies of `pasted` (with new IDs) and selects them. Repeated pastes of the
+  /// same clipboard cascade so copies don't stack exactly on top of each other.
+  func pasteAnnotations(_ pasted: [Annotation], pasteboardChangeCount: Int) {
+    guard !pasted.isEmpty else { return }
+    if lastPaste?.changeCount == pasteboardChangeCount {
+      lastPaste?.count += 1
+    } else {
+      let overlapsOriginals = pasted.contains { item in annotations.contains { $0.id == item.id } }
+      lastPaste = (pasteboardChangeCount, overlapsOriginals ? 1 : 0)
+    }
+    let step = CGFloat(lastPaste?.count ?? 0) * 12
+    let copies = pasted.map { $0.duplicate(offset: CGPoint(x: step, y: step)) }
+    pushUndoCheckpoint()
+    annotations.append(contentsOf: copies)
+    setSelection(Set(copies.map(\.id)), primary: copies.last?.id)
   }
 
   func bringSelectedToFront() {

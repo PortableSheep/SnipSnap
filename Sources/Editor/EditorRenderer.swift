@@ -521,11 +521,17 @@ enum EditorRenderer {
     }
   }
 
-  static func copyToClipboard(doc: AnnotationDocument) throws {
+  /// Copies the rendered image; selected annotations ride along as editable data.
+  /// Returns the number of annotations included.
+  @discardableResult
+  static func copyToClipboard(doc: AnnotationDocument) throws -> Int {
     guard let cg = renderFinalExport(doc: doc) else {
       throw NSError(domain: "SnipSnap", code: 10, userInfo: [NSLocalizedDescriptionKey: "Failed to render image for copying"])
     }
-    try ImageClipboard.copy(image: cg)
+    let selected = doc.annotations.filter { doc.selectedIDs.contains($0.id) }
+    let extra = selected.isEmpty ? [:] : [AnnotationClipboard.type: try AnnotationClipboard.encode(selected)]
+    try ImageClipboard.copy(image: cg, additionalData: extra)
+    return selected.count
   }
 
   static func exportPNGNextToSource(doc: AnnotationDocument) throws -> URL {

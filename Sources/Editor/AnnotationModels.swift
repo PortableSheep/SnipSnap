@@ -762,6 +762,73 @@ enum Annotation: Identifiable, Hashable {
   }
 }
 
+extension Annotation {
+  mutating func translate(by delta: CGPoint) {
+    switch self {
+    case .rect(var r):
+      r.rect = r.rect.offsetBy(dx: delta.x, dy: delta.y)
+      self = .rect(r)
+    case .ellipse(var e):
+      e.rect = e.rect.offsetBy(dx: delta.x, dy: delta.y)
+      self = .ellipse(e)
+    case .callout(var c):
+      c.rect = c.rect.offsetBy(dx: delta.x, dy: delta.y)
+      if let tailTip = c.tailTip {
+        c.tailTip = CGPoint(x: tailTip.x + delta.x, y: tailTip.y + delta.y)
+      }
+      self = .callout(c)
+    case .arrow(var a):
+      a.translate(by: delta)
+      self = .arrow(a)
+    case .text(var t):
+      t.position = CGPoint(x: t.position.x + delta.x, y: t.position.y + delta.y)
+      self = .text(t)
+
+    case .blur(var b):
+      b.rect = b.rect.offsetBy(dx: delta.x, dy: delta.y)
+      self = .blur(b)
+
+    case .step(var s):
+      s.center = CGPoint(x: s.center.x + delta.x, y: s.center.y + delta.y)
+      self = .step(s)
+
+    case .measurement(var m):
+      m.start = CGPoint(x: m.start.x + delta.x, y: m.start.y + delta.y)
+      m.end = CGPoint(x: m.end.x + delta.x, y: m.end.y + delta.y)
+      self = .measurement(m)
+
+    case .line(var l):
+      l.start = CGPoint(x: l.start.x + delta.x, y: l.start.y + delta.y)
+      l.end = CGPoint(x: l.end.x + delta.x, y: l.end.y + delta.y)
+      self = .line(l)
+
+    case .freehand(var f):
+      f.points = f.points.map { CGPoint(x: $0.x + delta.x, y: $0.y + delta.y) }
+      self = .freehand(f)
+
+    case .spotlight(var sp):
+      sp.rect = sp.rect.offsetBy(dx: delta.x, dy: delta.y)
+      self = .spotlight(sp)
+
+    case .counter(var c):
+      c.center = CGPoint(x: c.center.x + delta.x, y: c.center.y + delta.y)
+      self = .counter(c)
+
+    case .emoji(var e):
+      e.position = CGPoint(x: e.position.x + delta.x, y: e.position.y + delta.y)
+      self = .emoji(e)
+      
+    case .imageLayer(var img):
+      img.rect = img.rect.offsetBy(dx: delta.x, dy: delta.y)
+      self = .imageLayer(img)
+
+    case .loupe(var loupe):
+      loupe.center = CGPoint(x: loupe.center.x + delta.x, y: loupe.center.y + delta.y)
+      self = .loupe(loupe)
+    }
+  }
+}
+
 private extension CGPoint {
   func offset(by delta: CGPoint) -> CGPoint {
     CGPoint(x: x + delta.x, y: y + delta.y)

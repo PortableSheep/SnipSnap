@@ -1587,68 +1587,7 @@ struct EditorCanvasView: View {
   }
 
   private func applyMove(delta: CGPoint, annotation: inout Annotation) {
-    switch annotation {
-    case .rect(var r):
-      r.rect = r.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .rect(r)
-    case .ellipse(var e):
-      e.rect = e.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .ellipse(e)
-    case .callout(var c):
-      c.rect = c.rect.offsetBy(dx: delta.x, dy: delta.y)
-      if let tailTip = c.tailTip {
-        c.tailTip = CGPoint(x: tailTip.x + delta.x, y: tailTip.y + delta.y)
-      }
-      annotation = .callout(c)
-    case .arrow(var a):
-      a.translate(by: delta)
-      annotation = .arrow(a)
-    case .text(var t):
-      t.position = CGPoint(x: t.position.x + delta.x, y: t.position.y + delta.y)
-      annotation = .text(t)
-
-    case .blur(var b):
-      b.rect = b.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .blur(b)
-
-    case .step(var s):
-      s.center = CGPoint(x: s.center.x + delta.x, y: s.center.y + delta.y)
-      annotation = .step(s)
-
-    case .measurement(var m):
-      m.start = CGPoint(x: m.start.x + delta.x, y: m.start.y + delta.y)
-      m.end = CGPoint(x: m.end.x + delta.x, y: m.end.y + delta.y)
-      annotation = .measurement(m)
-
-    case .line(var l):
-      l.start = CGPoint(x: l.start.x + delta.x, y: l.start.y + delta.y)
-      l.end = CGPoint(x: l.end.x + delta.x, y: l.end.y + delta.y)
-      annotation = .line(l)
-
-    case .freehand(var f):
-      f.points = f.points.map { CGPoint(x: $0.x + delta.x, y: $0.y + delta.y) }
-      annotation = .freehand(f)
-
-    case .spotlight(var sp):
-      sp.rect = sp.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .spotlight(sp)
-
-    case .counter(var c):
-      c.center = CGPoint(x: c.center.x + delta.x, y: c.center.y + delta.y)
-      annotation = .counter(c)
-
-    case .emoji(var e):
-      e.position = CGPoint(x: e.position.x + delta.x, y: e.position.y + delta.y)
-      annotation = .emoji(e)
-      
-    case .imageLayer(var img):
-      img.rect = img.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .imageLayer(img)
-
-    case .loupe(var loupe):
-      loupe.center = CGPoint(x: loupe.center.x + delta.x, y: loupe.center.y + delta.y)
-      annotation = .loupe(loupe)
-    }
+    annotation.translate(by: delta)
   }
 }
 

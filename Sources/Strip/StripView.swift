@@ -16,6 +16,8 @@ struct StripView: View {
   @State private var isHovered: Bool = false
   @State private var hoverDebounceTask: Task<Void, Never>? = nil
   @State private var deleteTask: Task<Void, Never>? = nil
+  @State private var copiedItemID: CaptureItem.ID? = nil
+  @State private var copiedResetTask: Task<Void, Never>? = nil
 
   var body: some View {
     let isVertical = state.dockPosition.isVertical
@@ -153,6 +155,16 @@ struct StripView: View {
     .help(title)
   }
 
+  private func showCopied(_ item: CaptureItem) {
+    copiedResetTask?.cancel()
+    withAnimation(.easeOut(duration: 0.15)) { copiedItemID = item.id }
+    copiedResetTask = Task { @MainActor in
+      try? await Task.sleep(nanoseconds: 1_200_000_000)
+      guard !Task.isCancelled else { return }
+      withAnimation(.easeIn(duration: 0.2)) { copiedItemID = nil }
+    }
+  }
+
   private func thumbs(items: [CaptureItem], size: CGFloat) -> some View {
     ForEach(items) { item in
       Button {
@@ -169,6 +181,17 @@ struct StripView: View {
           isVideo: item.kind == .video,
           size: size
         )
+        .overlay {
+          if copiedItemID == item.id {
+            Label("Copied", systemImage: "checkmark")
+              .font(.system(size: 10, weight: .semibold))
+              .padding(.horizontal, 6)
+              .padding(.vertical, 3)
+              .background(.regularMaterial, in: Capsule())
+              .transition(.opacity.combined(with: .scale(scale: 0.9)))
+              .accessibilityLabel("Copied to clipboard")
+          }
+        }
       }
       .buttonStyle(StripThumbButtonStyle())
       .help(item.url.lastPathComponent)
@@ -187,11 +210,13 @@ struct StripView: View {
               try ImageClipboard.copy(url: item.url)
             } catch {
               NSAlert(error: error).runModal()
+              return
             }
           } else {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.writeObjects([item.url as NSURL])
           }
+          showCopied(item)
         }
 
         Button("Share…") {

@@ -64,17 +64,33 @@ final class HotKeyManager {
     HotkeyPreferencesStore.shared.$bindings
       .dropFirst()
       .sink { [weak self] bindings in
+        guard !HotkeyPreferencesStore.shared.isRecordingShortcut else { return }
         self?.registerAllHotkeys(bindings)
+      }
+      .store(in: &cancellables)
+
+    HotkeyPreferencesStore.shared.$isRecordingShortcut
+      .dropFirst()
+      .removeDuplicates()
+      .sink { [weak self] recording in
+        if recording {
+          self?.unregisterAllHotkeys()
+        } else {
+          self?.registerAllHotkeys(HotkeyPreferencesStore.shared.bindings)
+        }
       }
       .store(in: &cancellables)
   }
 
-  private func registerAllHotkeys(_ bindings: [HotkeyAction: HotkeyBinding]) {
-    // Unregister existing
+  private func unregisterAllHotkeys() {
     for ref in hotKeyRefs {
       if let ref { UnregisterEventHotKey(ref) }
     }
     hotKeyRefs.removeAll()
+  }
+
+  private func registerAllHotkeys(_ bindings: [HotkeyAction: HotkeyBinding]) {
+    unregisterAllHotkeys()
 
     // Register from preferences
     var failed = Set<HotkeyAction>()

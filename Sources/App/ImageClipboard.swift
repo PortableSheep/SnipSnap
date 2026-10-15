@@ -15,7 +15,9 @@ enum ImageClipboard {
   }
 
   static func copy(
-    image: CGImage, originalPNG: Data? = nil, to pasteboard: NSPasteboard = .general
+    image: CGImage, originalPNG: Data? = nil,
+    additionalData: [NSPasteboard.PasteboardType: Data] = [:],
+    to pasteboard: NSPasteboard = .general
   ) throws {
     let bitmap = NSBitmapImageRep(cgImage: image)
     guard let png = originalPNG ?? bitmap.representation(using: .png, properties: [:]),
@@ -24,6 +26,9 @@ enum ImageClipboard {
     }
     let item = NSPasteboardItem()
     guard item.setData(png, forType: .png), item.setData(tiff, forType: .tiff) else {
+      throw failure("The image could not be prepared for the clipboard.")
+    }
+    for (type, data) in additionalData where !item.setData(data, forType: type) {
       throw failure("The image could not be prepared for the clipboard.")
     }
     pasteboard.clearContents()

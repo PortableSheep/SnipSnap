@@ -66,6 +66,8 @@ What makes it different:
 - **Emoji stamps** — Sometimes ✨ says it better than words
 - **Selection-aware inspector** — Select an annotation to edit its style without switching drawing tools; click empty canvas to return to the active tool's settings
 - **Transparent clipboard images** — Copy from the strip, editor, or pinned capture with explicit PNG and TIFF representations that preserve transparent corners
+- **Nudge & copy/paste layers** — Arrow keys nudge the selection (⇧ for 10 px); ⌘C/⌘V copy selected annotations between editors as editable layers
+- **Shortcut cheatsheet** — Press ? or ⌘/ in the editor to see every tool and editing shortcut
 
 ### Organization
 
@@ -149,6 +151,8 @@ Grant both and you're set. The app lives in your menu bar as a scissors icon.
 | Show/hide Board | ⌘⇧B |
 | Add clipboard to Board | ⌥⌘⇧V |
 | Show/hide pins | ⌥⌘⇧P |
+
+Preferences › Shortcuts warns about conflicts with other SnipSnap actions (offering to swap them) and with system shortcuts.
 
 ## Building from Source
 

@@ -1,3 +1,4 @@
+import Carbon
 import AppKit
 import SwiftUI
 
@@ -105,10 +106,19 @@ final class EditorWindowController {
             return nil
           }
           
-          // Cmd+V - Paste image from clipboard
+          // Cmd+V - Paste copied annotations, otherwise an image layer
           if event.charactersIgnoringModifiers == "v" {
             if doc.pendingTextInput != nil { return event }
-            self.pasteImageFromClipboard(doc: doc)
+            if let pasted = AnnotationClipboard.annotations() {
+              doc.pasteAnnotations(pasted, pasteboardChangeCount: NSPasteboard.general.changeCount)
+            } else {
+              self.pasteImageFromClipboard(doc: doc)
+            }
+            return nil
+          }
+
+          if mods == .command, event.charactersIgnoringModifiers == "/" {
+            doc.isShowingShortcuts.toggle()
             return nil
           }
 
@@ -135,8 +145,23 @@ final class EditorWindowController {
           }
         }
 
+        // Arrow keys nudge the selection (Shift = 10 px)
+        if let direction = Self.nudgeDirection(keyCode: event.keyCode),
+           doc.pendingTextInput == nil,
+           !doc.selectedIDs.isEmpty,
+           mods.subtracting([.shift, .numericPad, .function]).isEmpty {
+          let step: CGFloat = mods.contains(.shift) ? 10 : 1
+          doc.nudgeSelected(by: CGPoint(x: direction.x * step, y: direction.y * step))
+          return nil
+        }
+
         // Tool shortcuts (only when not editing text)
-        if doc.pendingTextInput == nil, !event.modifierFlags.contains(.command) {
+        if doc.pendingTextInput == nil,
+           !event.modifierFlags.contains(.command) {
+          if event.charactersIgnoringModifiers == "?" || (event.charactersIgnoringModifiers == "/" && mods == .shift) {
+            doc.isShowingShortcuts.toggle()
+            return nil
+          }
           if let char = event.charactersIgnoringModifiers?.lowercased() {
               let toolShortcuts: [String: AnnotationTool] = [
                 "v": .select,
@@ -173,6 +198,17 @@ final class EditorWindowController {
     } catch {
       let alert = NSAlert(error: error)
       alert.runModal()
+    }
+  }
+
+  /// Unit direction in image coordinates (y grows downward) for an arrow key.
+  static func nudgeDirection(keyCode: UInt16) -> CGPoint? {
+    switch Int(keyCode) {
+    case kVK_LeftArrow: return CGPoint(x: -1, y: 0)
+    case kVK_RightArrow: return CGPoint(x: 1, y: 0)
+    case kVK_UpArrow: return CGPoint(x: 0, y: -1)
+    case kVK_DownArrow: return CGPoint(x: 0, y: 1)
+    default: return nil
     }
   }
 
