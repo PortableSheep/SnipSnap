@@ -6,6 +6,32 @@
     <description>SnipSnap update feed</description>
     <language>en</language>
     <item>
+      <title>Version 1.1.20</title>
+      <sparkle:version>38</sparkle:version>
+      <sparkle:shortVersionString>1.1.20</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's New in 1.1.20</h2>
+        <h3>✨ Features</h3>
+
+<ul>
+<li>feat(editor): nudging, annotation copy/paste, shortcut cheatsheet, and shortcut conflict warnings (<code>6b51569</code>)</li>
+<li>feat(board): polish board focus, theme, and Services integration (<code>9ec277c</code>)</li>
+<li>feat(editor): add alignment guides and preserve clipboard transparency (<code>8f7a59d</code>)</li>
+<li>feat(editor): expand screenshot markup tools (<code>34466b8</code>)</li>
+</ul>
+
+<h3>🐛 Bug Fixes</h3>
+
+<ul>
+<li>fix(hotkeys): register remapped shortcuts immediately (<code>4b80f53</code>)</li>
+<li>Fix board detail view clipping and pin resize for small captures (<code>2e716b0</code>)</li>
+</ul>
+      ]]></description>
+      <pubDate>Thu, 15 Oct 2026 04:40:42 GMT</pubDate>
+      <enclosure url="https://github.com/PortableSheep/SnipSnap/releases/download/v1.1.20/SnipSnap-1.1.20.zip" sparkle:edSignature="Kn6s/sSvqzmpc8PQHfPQzEuWtG3jfpq34Lf3b4U8jhMzaD6Q3U3me+gzgvJ8BuNeYEFA2KbHv4EGj3UwRA/SAw==" length="3802205" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.1.19</title>
       <sparkle:version>37</sparkle:version>
       <sparkle:shortVersionString>1.1.19</sparkle:shortVersionString>
