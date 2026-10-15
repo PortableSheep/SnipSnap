@@ -57,6 +57,7 @@ final class AnnotationDocument: ObservableObject {
   private var piiRedactionAnnotationIDs: Set<UUID> = []
 
   @Published var tool: AnnotationTool = .select
+  @Published var alignmentSnappingEnabled = true
   @Published var annotations: [Annotation] = [] {
     didSet { recomputeUnsavedChanges() }
   }
@@ -70,7 +71,57 @@ final class AnnotationDocument: ObservableObject {
   /// Crop box being edited (image coordinates).
   @Published var pendingCrop: CGRect = .zero
   private var savedCropRect: CGRect? = nil
-  @Published var selectedID: UUID? = nil
+  @Published var selectedID: UUID? = nil {
+    didSet {
+      guard !isUpdatingSelection else { return }
+      selectedIDs = selectedID.map { Set([$0]) } ?? []
+      syncStyleFromSelectionIfNeeded()
+    }
+  }
+  @Published private(set) var selectedIDs: Set<UUID> = []
+  private var isUpdatingSelection = false
+
+  var selectedAnnotation: Annotation? {
+    guard let id = selectedID else { return nil }
+    return annotations.first { $0.id == id }
+  }
+
+  func select(_ id: UUID?) {
+    setSelection(id.map { [$0] } ?? [], primary: id)
+  }
+
+  func select(_ ids: Set<UUID>) {
+    setSelection(ids, primary: annotations.last(where: { ids.contains($0.id) })?.id)
+  }
+
+  func toggleSelection(_ id: UUID) {
+    var selection = selectedIDs
+    if selection.contains(id) {
+      selection.remove(id)
+    } else {
+      selection.insert(id)
+    }
+    let primary = selection.contains(id) ? id : annotations.last(where: { selection.contains($0.id) })?.id
+    setSelection(selection, primary: primary)
+  }
+
+  private func setSelection(_ ids: Set<UUID>, primary: UUID?) {
+    let validIDs = ids.filter { id in annotations.contains(where: { $0.id == id }) }
+    isUpdatingSelection = true
+    selectedIDs = Set(validIDs)
+    selectedID = primary.flatMap { selectedIDs.contains($0) ? $0 : nil }
+      ?? annotations.last(where: { selectedIDs.contains($0.id) })?.id
+    isUpdatingSelection = false
+    syncStyleFromSelectionIfNeeded()
+  }
+
+  var inspectorTool: AnnotationTool? {
+    guard selectedIDs.count <= 1 else { return nil }
+    if let annotation = selectedAnnotation {
+      return annotation.inspectorTool
+    }
+    return tool
+  }
 
   @Published private(set) var hasUnsavedChanges: Bool = false
   private var savedAnnotationsHash: Int = 0
@@ -110,6 +161,9 @@ final class AnnotationDocument: ObservableObject {
   // Emoji tool settings
   @Published var selectedEmoji: String = "👍"
   @Published var emojiSize: CGFloat = 48
+
+  // Loupe tool settings
+  @Published var loupeMagnification: CGFloat = 2.5
 
   // Freehand tool settings
   @Published var freehandIsHighlighter: Bool = false
@@ -171,6 +225,8 @@ final class AnnotationDocument: ObservableObject {
   // Edge detection for measurement snapping
   let snapGuideManager = SnapGuideManager()
 
+  @Published var isShowingShortcuts = false
+
   // Transient input overlay
   @Published var pendingTextInput: PendingTextInput? = nil
 
@@ -184,6 +240,8 @@ final class AnnotationDocument: ObservableObject {
   private var currentSnapshot: Snapshot { Snapshot(annotations: annotations, cropRect: cropRect) }
 
   private var isEditSessionActive: Bool = false
+  private var lastNudge: (ids: Set<UUID>, time: Date)?
+  private var lastPaste: (changeCount: Int, count: Int)?
 
   struct PendingTextInput: Identifiable {
     let id = UUID()
@@ -212,12 +270,16 @@ final class AnnotationDocument: ObservableObject {
 
     self.cgImage = cg
     self.imageSize = CGSize(width: cg.width, height: cg.height)
-    
+    let project = try EditorProjectStore.load(sourceURL: sourceURL, imageSize: self.imageSize)
+    self.annotations = try project?.annotations.map { try $0.annotation() } ?? []
+    self.cropRect = project?.cropRect
+    self.savedAnnotationsHash = annotationsHash(self.annotations)
+    self.savedCropRect = self.cropRect
+
     // Start with fit for all images - user can zoom as needed
     self.fitMode = .fit
 
-    // Initial state is "saved" (no edits yet).
-    savedAnnotationsHash = annotationsHash(annotations)
+    // A loaded sidecar is already the saved document state.
     hasUnsavedChanges = false
 
     // Load redaction suggestions from metadata if available.
@@ -353,6 +415,13 @@ final class AnnotationDocument: ObservableObject {
     savedAnnotationsHash = annotationsHash(annotations)
     savedCropRect = cropRect
     hasUnsavedChanges = false
+  }
+
+  func saveProject() throws {
+    try EditorProjectStore.save(
+      sourceURL: sourceURL, imageSize: imageSize, cropRect: cropRect, annotations: annotations
+    )
+    markSaved()
   }
 
   private func recomputeUnsavedChanges() {
@@ -532,11 +601,8 @@ final class AnnotationDocument: ObservableObject {
       emojiSize = e.size
     case .freehand(let f):
       stroke.color = f.stroke.color
-      if !f.isHighlighter {
-        // Only sync lineWidth from non-highlighter strokes; highlighter
-        // width is derived (base * 3) and must not feed back into base.
-        stroke.lineWidth = f.stroke.lineWidth
-      }
+      // Highlighter annotations store the expanded width, not the base setting.
+      stroke.lineWidth = f.isHighlighter ? f.stroke.lineWidth / 3 : f.stroke.lineWidth
       freehandIsHighlighter = f.isHighlighter
     case .line(let l):
       stroke = l.stroke
@@ -549,6 +615,8 @@ final class AnnotationDocument: ObservableObject {
     case .imageLayer:
       // Image layers don't have style properties to sync
       break
+    case .loupe(let l):
+      loupeMagnification = l.magnification
     }
   }
 
@@ -577,7 +645,7 @@ final class AnnotationDocument: ObservableObject {
   }
 
   func continueFreehandStroke(to point: CGPoint) {
-    guard var stroke = activeFreehandStroke else { return }
+    guard var stroke = activeFreehandStroke, stroke.points.last != point else { return }
     stroke.points.append(point)
     activeFreehandStroke = stroke
   }
@@ -592,7 +660,30 @@ final class AnnotationDocument: ObservableObject {
     endEditSession()
   }
 
+  func recognizeSelectedFreehandShape() {
+    guard let annotation = selectedAnnotation, case .freehand(let stroke) = annotation,
+          let shape = FreehandShapeRecognition.recognize(stroke),
+          shape != stroke.recognizedShape else { return }
+    updateSelected { annotation in
+      guard case .freehand(var stroke) = annotation else { return }
+      stroke.recognizedShape = shape
+      annotation = .freehand(stroke)
+    }
+  }
+
+  func restoreSelectedFreehandStroke() {
+    guard let annotation = selectedAnnotation,
+          case .freehand(let stroke) = annotation,
+          stroke.recognizedShape != nil else { return }
+    updateSelected { annotation in
+      guard case .freehand(var stroke) = annotation else { return }
+      stroke.recognizedShape = nil
+      annotation = .freehand(stroke)
+    }
+  }
+
   func pushUndoCheckpoint() {
+    lastNudge = nil
     undoStack.append(currentSnapshot)
     if undoStack.count > 100 { undoStack.removeFirst(undoStack.count - 100) }
     redoStack.removeAll(keepingCapacity: false)
@@ -610,33 +701,132 @@ final class AnnotationDocument: ObservableObject {
 
   func undo() {
     guard let prev = undoStack.popLast() else { return }
+    lastNudge = nil
     redoStack.append(currentSnapshot)
     annotations = prev.annotations
     cropRect = prev.cropRect
+    selectedIDs = selectedIDs.filter { id in annotations.contains(where: { $0.id == id }) }
     if let sel = selectedID, !annotations.contains(where: { $0.id == sel }) {
-      selectedID = nil
+      select(nil)
     }
+    syncStyleFromSelectionIfNeeded()
   }
 
   func redo() {
     guard let next = redoStack.popLast() else { return }
+    lastNudge = nil
     undoStack.append(currentSnapshot)
     annotations = next.annotations
     cropRect = next.cropRect
+    selectedIDs = selectedIDs.filter { id in annotations.contains(where: { $0.id == id }) }
+    if let sel = selectedID, !annotations.contains(where: { $0.id == sel }) {
+      select(nil)
+    }
+    syncStyleFromSelectionIfNeeded()
   }
 
   func deleteSelected() {
-    guard let id = selectedID else { return }
+    guard !selectedIDs.isEmpty else { return }
     pushUndoCheckpoint()
-    annotations.removeAll(where: { $0.id == id })
-    selectedID = nil
+    annotations.removeAll(where: { selectedIDs.contains($0.id) })
+    select(nil)
+  }
+
+  func duplicateSelected() {
+    let duplicates = annotations.filter { selectedIDs.contains($0.id) }.map { $0.duplicate() }
+    guard !duplicates.isEmpty else { return }
+    pushUndoCheckpoint()
+    annotations.append(contentsOf: duplicates)
+    setSelection(Set(duplicates.map(\.id)), primary: duplicates.last?.id)
+  }
+
+  /// Moves the selection by `delta` image pixels. Rapid repeats (holding an arrow key)
+  /// coalesce into one undo step.
+  func nudgeSelected(by delta: CGPoint, now: Date = Date()) {
+    guard !selectedIDs.isEmpty, delta != .zero else { return }
+    let coalesce = lastNudge.map { $0.ids == selectedIDs && now.timeIntervalSince($0.time) < 1 } ?? false
+    if !coalesce { pushUndoCheckpoint() }
+    for index in annotations.indices where selectedIDs.contains(annotations[index].id) {
+      annotations[index].translate(by: delta)
+    }
+    lastNudge = (selectedIDs, now)
+  }
+
+  /// Inserts copies of `pasted` (with new IDs) and selects them. Repeated pastes of the
+  /// same clipboard cascade so copies don't stack exactly on top of each other.
+  func pasteAnnotations(_ pasted: [Annotation], pasteboardChangeCount: Int) {
+    guard !pasted.isEmpty else { return }
+    if lastPaste?.changeCount == pasteboardChangeCount {
+      lastPaste?.count += 1
+    } else {
+      let overlapsOriginals = pasted.contains { item in annotations.contains { $0.id == item.id } }
+      lastPaste = (pasteboardChangeCount, overlapsOriginals ? 1 : 0)
+    }
+    let step = CGFloat(lastPaste?.count ?? 0) * 12
+    let copies = pasted.map { $0.duplicate(offset: CGPoint(x: step, y: step)) }
+    pushUndoCheckpoint()
+    annotations.append(contentsOf: copies)
+    setSelection(Set(copies.map(\.id)), primary: copies.last?.id)
+  }
+
+  func bringSelectedToFront() {
+    let selected = annotations.filter { selectedIDs.contains($0.id) }
+    guard !selected.isEmpty, annotations.suffix(selected.count) != selected[...] else {
+      return
+    }
+    pushUndoCheckpoint()
+    annotations.removeAll { selectedIDs.contains($0.id) }
+    annotations.append(contentsOf: selected)
+  }
+
+  func sendSelectedToBack() {
+    let selected = annotations.filter { selectedIDs.contains($0.id) }
+    guard !selected.isEmpty, annotations.prefix(selected.count) != selected[...] else {
+      return
+    }
+    pushUndoCheckpoint()
+    annotations.removeAll { selectedIDs.contains($0.id) }
+    annotations.insert(contentsOf: selected, at: 0)
+  }
+
+  func moveSelectedForward() {
+    var reordered = annotations
+    guard reordered.count > 1 else { return }
+    for index in (0..<(reordered.count - 1)).reversed()
+    where selectedIDs.contains(reordered[index].id) && !selectedIDs.contains(reordered[index + 1].id) {
+      reordered.swapAt(index, index + 1)
+    }
+    guard reordered != annotations else { return }
+    pushUndoCheckpoint()
+    annotations = reordered
+  }
+
+  func moveSelectedBackward() {
+    var reordered = annotations
+    guard reordered.count > 1 else { return }
+    for index in 1..<reordered.count
+    where selectedIDs.contains(reordered[index].id) && !selectedIDs.contains(reordered[index - 1].id) {
+      reordered.swapAt(index, index - 1)
+    }
+    guard reordered != annotations else { return }
+    pushUndoCheckpoint()
+    annotations = reordered
+  }
+
+  func updateSelectionInSession(_ update: (inout Annotation) -> Void) {
+    for index in annotations.indices where selectedIDs.contains(annotations[index].id) {
+      var annotation = annotations[index]
+      update(&annotation)
+      annotations[index] = annotation
+    }
   }
 
   func updateSelected(_ update: (inout Annotation) -> Void) {
     guard let id = selectedID, let idx = annotations.firstIndex(where: { $0.id == id }) else { return }
-    pushUndoCheckpoint()
     var a = annotations[idx]
     update(&a)
+    guard a != annotations[idx] else { return }
+    pushUndoCheckpoint()
     annotations[idx] = a
   }
 
@@ -644,6 +834,7 @@ final class AnnotationDocument: ObservableObject {
     guard let id = selectedID, let idx = annotations.firstIndex(where: { $0.id == id }) else { return }
     var a = annotations[idx]
     update(&a)
+    guard a != annotations[idx] else { return }
     annotations[idx] = a
   }
 

@@ -46,15 +46,28 @@ What makes it different:
 ### Annotation Editor
 
 - **Shapes & arrows** — Rectangles, lines, arrows with adjustable thickness and colors
-- **Text & callouts** — Add labels with speech bubbles that actually look good
+- **Curved arrows** — Select an arrow and drag its green midpoint handle to bend it; use Straighten Arrow in the inspector to reset the curve
+- **Smooth marker strokes** — Pen strokes use smooth curves during drawing and export; highlighter strokes retain their sampled path and translucent, wider style
+- **Shape recognition** — Convert a selected marker stroke to a clean line, rectangle, or ellipse, then revert to its original sampled path at any time
+- **Arrange annotations** — Duplicate the selected annotation with ⌘D, or move it forward/backward in the layer order from the inspector
+- **Editable projects** — Save annotations and crop as a `.snipsnap.json` sidecar beside the original capture with ⌘S; reopening the image restores its editable layers without changing the source image
+- **Multi-select** — Shift-click to toggle annotations, or drag a marquee in Select mode to select intersecting layers. Move the group together or use Arrange to duplicate, reorder, or delete it.
+- **Alignment guides** — Moving annotations or groups snaps their edges and centers to other annotations and the screenshot/crop. Hold Option to bypass snapping, or disable it in Positioning.
+- **Text & callouts** — Add labels with speech bubbles; drag a callout's tail tip to point at a detail, or add/remove its tail from the inspector
+- **Multiline labels** — Text and callouts use the same layout on canvas and in exports. Return adds a line while editing; Command-Return finishes and Escape cancels.
 - **Numbered steps** — Auto-incrementing step markers for tutorials
 - **Blur & pixelate** — Hide sensitive info with gaussian blur or mosaic
 - **Spotlight** — Dim everything except what matters
 - **Freehand marker** — Sketch with your trackpad (surprisingly usable)
 - **Measurement tool** — Pixel-perfect dimensions between elements, with edge snapping
+- **Loupe** — Drag to place a circular magnifier, resize its rim, and adjust zoom from the inspector; loupes remain editable and render in exports
 - **Device frames** — Wrap screenshots in MacBook, iPhone, or iPad mockups
 - **Custom backgrounds** — Solid colors or gradients instead of boring transparency
 - **Emoji stamps** — Sometimes ✨ says it better than words
+- **Selection-aware inspector** — Select an annotation to edit its style without switching drawing tools; click empty canvas to return to the active tool's settings
+- **Transparent clipboard images** — Copy from the strip, editor, or pinned capture with explicit PNG and TIFF representations that preserve transparent corners
+- **Nudge & copy/paste layers** — Arrow keys nudge the selection (⇧ for 10 px); ⌘C/⌘V copy selected annotations between editors as editable layers
+- **Shortcut cheatsheet** — Press ? or ⌘/ in the editor to see every tool and editing shortcut
 
 ### Organization
 
@@ -66,12 +79,13 @@ What makes it different:
 
 ### Board
 
-A full-screen corkboard for the stuff you need to remember — screenshots, links, copied text, and quick notes — pinned as free-form cards.
+A full-screen dark glass board for the stuff you need to remember — screenshots, links, copied text, and quick notes — pinned as free-form cards.
 
-- **Reveal anywhere** — Press ⌘⇧B or (optionally) push the pointer into a hot corner (Preferences › Board)
+- **Reveal anywhere** — Press ⌘⇧B or (optionally) push the pointer into a hot corner (Preferences › Board); the board takes keyboard focus immediately. Escape dismisses an open card or finishes editing; press it again to hide the board
 - **Quick add** — "Send to Board" from the strip, editor, or a pinned image; ⌥⌘⇧V turns the clipboard into a card; paste or drag & drop files, images, links, and text onto the board
 - **Context included** — Cards remember the source app and, optionally, the browser tab URL; links get titles, icons, and previews
-- **Todos & zones** — Any card can have a checkbox; drop labeled zones (e.g. Todo / Doing / Done) to group cards; Tidy Up arranges them
+- **Send from other apps** — Select text, a link, an image, or a file, then choose **Services › Send to SnipSnap Board** from the right-click or app menu. Availability depends on the app's Services support. If missing after installing, enable it in **System Settings › Keyboard › Keyboard Shortcuts › Services**; relaunch the source app if needed. In apps without Services, copy and use ⌥⌘⇧V
+- **Todos & zones** — Any card can have a checkbox; add a labeled zone to group cards; Tidy Up arranges them. The Kanban template has been removed; existing cards and zones are preserved
 - **Pin to Screen** — Pin any card as an always-on-top floating window; hide/show all pins at once with ⌥⌘⇧P
 - **Searchable** — On-device OCR makes text in screenshots searchable; Live Text works in the card inspector
 - **Private** — Stored locally in `~/Library/Application Support/SnipSnap/board/`
@@ -137,6 +151,8 @@ Grant both and you're set. The app lives in your menu bar as a scissors icon.
 | Show/hide Board | ⌘⇧B |
 | Add clipboard to Board | ⌥⌘⇧V |
 | Show/hide pins | ⌥⌘⇧P |
+
+Preferences › Shortcuts warns about conflicts with other SnipSnap actions (offering to swap them) and with system shortcuts.
 
 ## Building from Source
 

@@ -55,7 +55,7 @@ enum EditorRenderer {
     for a in doc.annotations {
       if case .blur = a { continue }
       if case .spotlight = a { continue }
-      draw(annotation: a, in: ctx)
+      draw(annotation: a, in: ctx, sourceImage: doc.cgImage)
     }
 
     return ctx.makeImage()
@@ -521,12 +521,17 @@ enum EditorRenderer {
     }
   }
 
-  static func copyToClipboard(doc: AnnotationDocument) {
-    guard let cg = renderFinalExport(doc: doc) else { return }
-    let img = NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
-
-    NSPasteboard.general.clearContents()
-    NSPasteboard.general.writeObjects([img])
+  /// Copies the rendered image; selected annotations ride along as editable data.
+  /// Returns the number of annotations included.
+  @discardableResult
+  static func copyToClipboard(doc: AnnotationDocument) throws -> Int {
+    guard let cg = renderFinalExport(doc: doc) else {
+      throw NSError(domain: "SnipSnap", code: 10, userInfo: [NSLocalizedDescriptionKey: "Failed to render image for copying"])
+    }
+    let selected = doc.annotations.filter { doc.selectedIDs.contains($0.id) }
+    let extra = selected.isEmpty ? [:] : [AnnotationClipboard.type: try AnnotationClipboard.encode(selected)]
+    try ImageClipboard.copy(image: cg, additionalData: extra)
+    return selected.count
   }
 
   static func exportPNGNextToSource(doc: AnnotationDocument) throws -> URL {
@@ -687,7 +692,38 @@ enum EditorRenderer {
       drawMeasurement(m, in: ctx)
     case .imageLayer(let img):
       drawImageLayer(img, in: ctx)
+    case .loupe(let loupe):
+      if let sourceImage {
+        drawLoupe(loupe, sourceImage: sourceImage, in: ctx)
+      }
     }
+  }
+
+  private static func drawLoupe(_ loupe: LoupeAnnotation, sourceImage: CGImage, in ctx: CGContext) {
+    let lensRect = loupe.bounds
+    ctx.saveGState()
+    ctx.addEllipse(in: lensRect)
+    ctx.clip()
+    let magnification = loupe.magnification
+    ctx.concatenate(LoupeGeometry.magnificationTransform(
+      center: loupe.center, magnification: magnification
+    ))
+    drawImageRightSideUp(
+      sourceImage,
+      in: CGRect(origin: .zero, size: CGSize(width: CGFloat(sourceImage.width), height: CGFloat(sourceImage.height))),
+      ctx: ctx
+    )
+    ctx.restoreGState()
+
+    ctx.saveGState()
+    ctx.setShadow(offset: CGSize(width: 0, height: -2), blur: loupe.radius * 0.08, color: CGColor(gray: 0, alpha: 0.35))
+    ctx.setStrokeColor(CGColor(gray: 1, alpha: 0.95))
+    ctx.setLineWidth(max(3, loupe.radius * 0.09))
+    ctx.strokeEllipse(in: lensRect)
+    ctx.restoreGState()
+    ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.55))
+    ctx.setLineWidth(max(1, loupe.radius * 0.025))
+    ctx.strokeEllipse(in: lensRect.insetBy(dx: loupe.radius * 0.055, dy: loupe.radius * 0.055))
   }
 
   private static func cgColor(_ color: Color, alpha: CGFloat = 1) -> CGColor {
@@ -729,133 +765,28 @@ enum EditorRenderer {
   }
 
   private static func drawArrow(_ a: ArrowAnnotation, in ctx: CGContext) {
-    let lw = a.stroke.lineWidth
-    let dx = a.end.x - a.start.x
-    let dy = a.end.y - a.start.y
-    let len = max(0.0001, hypot(dx, dy))
-    let ux = dx / len
-    let uy = dy / len
-
-    // Arrowhead sizing (matches canvas preview exactly)
-    var headLen: CGFloat = max(12, lw * 4)
-    headLen = min(headLen, len * 0.55)
-    let headWidth: CGFloat = headLen * 0.6
-    let perpX = -uy
-    let perpY = ux
-
-    let base = CGPoint(x: a.end.x - ux * headLen, y: a.end.y - uy * headLen)
-    let left = CGPoint(x: base.x + perpX * headWidth, y: base.y + perpY * headWidth)
-    let right = CGPoint(x: base.x - perpX * headWidth, y: base.y - perpY * headWidth)
-
-    // Shaft stops at head base for cleaner joins
-    let shaftEnd = (a.headStyle == .none) ? a.end : base
-
-    ctx.setStrokeColor(cgColor(a.stroke.color))
-    ctx.setLineWidth(lw)
-    ctx.setLineCap(.round)
-    ctx.setLineJoin(.round)
-
-    ctx.move(to: a.start)
-    ctx.addLine(to: shaftEnd)
-    ctx.strokePath()
-
-    switch a.headStyle {
-    case .open:
-      ctx.setLineWidth(max(1, lw * 0.85))
-      ctx.move(to: left)
-      ctx.addLine(to: a.end)
-      ctx.addLine(to: right)
-      ctx.strokePath()
-    case .filled:
-      ctx.setFillColor(cgColor(a.stroke.color))
-      ctx.beginPath()
-      ctx.move(to: a.end)
-      ctx.addLine(to: left)
-      ctx.addLine(to: right)
-      ctx.closePath()
-      ctx.fillPath()
-    case .none:
-      break
-    }
+    ArrowGeometry(a).draw(in: ctx)
   }
 
   private static func drawText(_ t: TextAnnotation, in ctx: CGContext) {
-    let font = CTFontCreateWithName("SFProText-Semibold" as CFString, t.fontSize, nil)
-    let attrs: [NSAttributedString.Key: Any] = [
-      kCTFontAttributeName as NSAttributedString.Key: font,
-      kCTForegroundColorAttributeName as NSAttributedString.Key: cgColor(t.color)
-    ]
-
-    let attributed = NSAttributedString(string: t.text, attributes: attrs)
-    let line = CTLineCreateWithAttributedString(attributed)
-    let bounds = CTLineGetBoundsWithOptions(line, [])
-    let ascent = CTFontGetAscent(font)
-    let descent = CTFontGetDescent(font)
-
-    let padX: CGFloat = 8
-    let padY: CGFloat = 6
-
-    if t.highlighted {
-      let rect = CGRect(
-        x: t.position.x,
-        y: t.position.y,
-        width: bounds.width + padX * 2,
-        height: (ascent + descent) + padY * 2
-      )
-      ctx.setFillColor(cgColor(t.highlightColor, alpha: t.highlightOpacity))
-      let path = CGPath(roundedRect: rect, cornerWidth: 10, cornerHeight: 10, transform: nil)
-      ctx.addPath(path)
-      ctx.fillPath()
-
-      ctx.saveGState()
-      ctx.textMatrix = .identity
-      ctx.translateBy(x: t.position.x + padX, y: t.position.y + padY + ascent)
-      ctx.scaleBy(x: 1, y: -1)
-      CTLineDraw(line, ctx)
-      ctx.restoreGState()
-    } else {
-      ctx.saveGState()
-      ctx.textMatrix = .identity
-      ctx.translateBy(x: t.position.x, y: t.position.y + ascent)
-      ctx.scaleBy(x: 1, y: -1)
-      CTLineDraw(line, ctx)
-      ctx.restoreGState()
-    }
+    AnnotationTextLayout.draw(t, in: ctx)
   }
 
   private static func drawCallout(_ c: CalloutAnnotation, in ctx: CGContext) {
-    let path = CGPath(roundedRect: c.rect, cornerWidth: 14, cornerHeight: 14, transform: nil)
+    let geometry = CalloutGeometry(c)
 
     if c.fill.enabled {
       ctx.setFillColor(cgColor(c.fill.color))
-      ctx.addPath(path)
+      ctx.addPath(geometry.outlinePath)
       ctx.fillPath()
     }
 
     ctx.setStrokeColor(cgColor(c.stroke.color))
     ctx.setLineWidth(c.stroke.lineWidth)
-    ctx.addPath(path)
+    ctx.addPath(geometry.outlinePath)
     ctx.strokePath()
 
-    // Text in padding area
-    let inset = c.rect.insetBy(dx: 14, dy: 12)
-
-    let font = CTFontCreateWithName("SFProText-Semibold" as CFString, c.fontSize, nil)
-    let attrs: [NSAttributedString.Key: Any] = [
-      kCTFontAttributeName as NSAttributedString.Key: font,
-      kCTForegroundColorAttributeName as NSAttributedString.Key: cgColor(c.textColor)
-    ]
-
-    let attributed = NSAttributedString(string: c.text, attributes: attrs)
-    let line = CTLineCreateWithAttributedString(attributed)
-    let ascent = CTFontGetAscent(font)
-
-    ctx.saveGState()
-    ctx.textMatrix = .identity
-    ctx.translateBy(x: inset.minX, y: inset.minY + ascent)
-    ctx.scaleBy(x: 1, y: -1)
-    CTLineDraw(line, ctx)
-    ctx.restoreGState()
+    AnnotationTextLayout.drawText(in: c, context: ctx)
   }
 
   private static func drawBlur(_ b: BlurAnnotation, in ctx: CGContext, sourceImage: CGImage? = nil) {
@@ -1038,18 +969,7 @@ enum EditorRenderer {
   }
 
   private static func drawFreehand(_ f: FreehandAnnotation, in ctx: CGContext) {
-    guard f.points.count >= 2 else { return }
-
-    ctx.setStrokeColor(cgColor(f.stroke.color, alpha: f.isHighlighter ? 0.4 : 1.0))
-    ctx.setLineWidth(f.stroke.lineWidth)
-    ctx.setLineCap(.round)
-    ctx.setLineJoin(.round)
-
-    ctx.move(to: f.points[0])
-    for point in f.points.dropFirst() {
-      ctx.addLine(to: point)
-    }
-    ctx.strokePath()
+    FreehandGeometry(f).draw(in: ctx)
   }
 
   /// Draws all spotlights as a single dimming layer with multiple cutouts

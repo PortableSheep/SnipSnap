@@ -12,11 +12,21 @@ All notable changes to SnipSnap will be documented here.
 - Editor: non-destructive Crop tool (⌘K; Return applies, Esc cancels, undoable) applied to every export/copy/share, Ellipse shortcut (O), remembered window size/position with an image-fitted default, and material sidebars matching the toolbar
 - Pinned images: opacity presets (100/75/50/30%) and click-through mode (hold ⌥ over the pin to interact again), both remembered across relaunches
 - Board toolbar moves clear of the display notch
+- Board uses only the dark glass background and no longer offers the Kanban template (existing cards and zones are preserved)
+- Board takes keyboard focus on open; Escape dismisses the card preview or editor, then hides the board on the next press
+- Editor: selection-aware inspector, multiline text and callouts with draggable tails, curved arrows, smooth pen strokes, shape recognition, loupes, duplicate (⌘D) and layer ordering, multi-select with marquee, and alignment guides (hold ⌥ to bypass)
+- Editor: save editable annotations as a `.snipsnap.json` sidecar (⌘S); reopening the capture restores its layers
+- Editor: arrow keys nudge the selection 1 px (⇧ for 10 px), with consecutive nudges undone as one step
+- Editor: ⌘C on a selection copies the image plus the selected annotations; ⌘V in any editor pastes them as editable layers
+- Editor: keyboard shortcut cheatsheet (? or ⌘/, or the toolbar keyboard button)
+- Strip: "Copied ✓" confirmation on the thumbnail after copying
+- Shortcuts preferences: warn when a shortcut is already used by another action (with Swap) or by macOS, and pause global hotkeys while recording a new shortcut
 
 ### ✨ Features
 
 - Add Board: a full-screen corkboard of screenshot, link, text, and note cards with todos, zones, search/OCR, always-on-top "Pin to Screen", hotkeys (⌘⇧B, ⌥⌘⇧V, ⌥⌘⇧P), optional hot corner, and Send to Board from the strip, editor, and pinned images
 - Record source app (and optionally browser tab) in capture metadata
+- Add "Send to SnipSnap Board" to macOS Services for selected text, links, images, and files in supported apps
 - Add auto hide to capture strip (`fa2bb22`)
 - Add updater (`1904b56`)
 - Add corner rounding. (`a358219`)
@@ -27,6 +37,8 @@ All notable changes to SnipSnap will be documented here.
 
 ### 🐛 Bug Fixes
 
+- Fix remapped global shortcuts still responding to the old key combination until relaunch
+- Fix white fringes on rounded corners when copying captures to the clipboard
 - Fix recording crash: deadlock in FloatingStopButton.containsPoint() (`f4354e1`)
 - Fix PII scan hanging on large/tall images (`e203c7d`)
 - Fix window/background layering - background now behind window (`6571925`)

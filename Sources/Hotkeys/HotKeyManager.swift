@@ -57,29 +57,46 @@ final class HotKeyManager {
     os_log(.info, log: hotkeyLog, "Carbon event handler installed")
 
     // Register hotkeys from preferences
-    registerAllHotkeys()
+    registerAllHotkeys(HotkeyPreferencesStore.shared.bindings)
 
-    // Listen for preference changes
+    // `@Published` emits before the stored property changes, so register the emitted value
+    // rather than reading the store again (which would re-register the previous shortcut).
     HotkeyPreferencesStore.shared.$bindings
       .dropFirst()
-      .sink { [weak self] _ in
-        self?.registerAllHotkeys()
+      .sink { [weak self] bindings in
+        guard !HotkeyPreferencesStore.shared.isRecordingShortcut else { return }
+        self?.registerAllHotkeys(bindings)
+      }
+      .store(in: &cancellables)
+
+    HotkeyPreferencesStore.shared.$isRecordingShortcut
+      .dropFirst()
+      .removeDuplicates()
+      .sink { [weak self] recording in
+        if recording {
+          self?.unregisterAllHotkeys()
+        } else {
+          self?.registerAllHotkeys(HotkeyPreferencesStore.shared.bindings)
+        }
       }
       .store(in: &cancellables)
   }
 
-  private func registerAllHotkeys() {
-    // Unregister existing
+  private func unregisterAllHotkeys() {
     for ref in hotKeyRefs {
       if let ref { UnregisterEventHotKey(ref) }
     }
     hotKeyRefs.removeAll()
+  }
+
+  private func registerAllHotkeys(_ bindings: [HotkeyAction: HotkeyBinding]) {
+    unregisterAllHotkeys()
 
     // Register from preferences
     var failed = Set<HotkeyAction>()
     let prefs = HotkeyPreferencesStore.shared
     for action in HotkeyAction.allCases {
-      let binding = prefs.binding(for: action)
+      let binding = HotkeyBinding.resolved(for: action, in: bindings)
       if !registerHotKey(id: action.hotkeyID, keyCode: binding.keyCode, modifiers: binding.modifiers) {
         failed.insert(action)
       }

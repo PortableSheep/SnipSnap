@@ -79,9 +79,12 @@ struct CaptureLibraryTests {
     #expect(library.items.count == 1)
 
     let item = try #require(library.items.first)
+    let projectURL = EditorProjectStore.projectURL(for: item.url)
+    try createFile(in: tempDir, name: projectURL.lastPathComponent)
     try library.delete(item)
 
     #expect(library.items.isEmpty)
     #expect(!FileManager.default.fileExists(atPath: item.url.path))
+    #expect(!FileManager.default.fileExists(atPath: projectURL.path))
   }
 }

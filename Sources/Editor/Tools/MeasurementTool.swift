@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 /// Measurement units for dimension annotations
-enum MeasurementUnit: String, CaseIterable, Identifiable {
+enum MeasurementUnit: String, CaseIterable, Identifiable, Codable {
   case pixels
   case points
   case rem

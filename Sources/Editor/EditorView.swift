@@ -116,8 +116,8 @@ struct EditorView: View {
       // Delete button
       ToolbarIconButton(
         icon: "trash",
-        isDisabled: doc.selectedID == nil,
-        helpText: "Delete selected (Delete)"
+        isDisabled: doc.selectedIDs.isEmpty,
+        helpText: "Delete selected annotations (Delete)"
       ) {
         doc.deleteSelected()
       }
@@ -149,12 +149,28 @@ struct EditorView: View {
 
       // Copy & Export
       HStack(spacing: 6) {
+        Button {
+          saveProject()
+        } label: {
+          Label("Save Project", systemImage: "square.and.arrow.down")
+            .font(.system(size: 11, weight: .medium))
+        }
+        .buttonStyle(.bordered)
+        .disabled(!doc.hasUnsavedChanges)
+        .keyboardShortcut("s", modifiers: .command)
+        .help("Save editable annotations and crop (⌘S)")
+
         ToolbarIconButton(
           icon: "doc.on.doc",
-          helpText: "Copy to clipboard (⌘C)"
+          helpText: "Copy image to clipboard (⌘C). Selected annotations can also be pasted into another editor."
         ) {
-          EditorRenderer.copyToClipboard(doc: doc)
-          showToast("Copied to Clipboard")
+          do {
+            let count = try EditorRenderer.copyToClipboard(doc: doc)
+            showToast(count == 0 ? "Copied to Clipboard"
+              : "Copied image + \(count) annotation\(count == 1 ? "" : "s")")
+          } catch {
+            NSAlert(error: error).runModal()
+          }
         }
         .keyboardShortcut("c", modifiers: .command)
 
@@ -315,6 +331,13 @@ struct EditorView: View {
         RoundedRectangle(cornerRadius: 8, style: .continuous)
           .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
       )
+
+      ToolbarIconButton(icon: "keyboard", helpText: "Keyboard shortcuts (?)") {
+        doc.isShowingShortcuts.toggle()
+      }
+      .popover(isPresented: $doc.isShowingShortcuts, arrowEdge: .bottom) {
+        EditorShortcutsView()
+      }
 
       if needsPanHint {
         Text("Press H to Pan")
@@ -542,7 +565,7 @@ struct EditorView: View {
         Divider().padding(.vertical, 4).padding(.horizontal, 6)
 
         // Drawing tools
-        ForEach([AnnotationTool.rect, .ellipse, .line, .arrow, .freehand], id: \.self) { tool in
+        ForEach([AnnotationTool.rect, .ellipse, .line, .arrow, .freehand, .loupe], id: \.self) { tool in
           sidebarToolButton(tool)
         }
 
@@ -609,11 +632,36 @@ struct EditorView: View {
 
   // MARK: - Inspector Panel (right)
 
+  private var inspectorUsesStroke: Bool {
+    doc.inspectorTool?.usesStroke == true ||
+      (doc.inspectorTool == .spotlight && doc.spotlightShowBorder)
+  }
+
+  private var inspectorLabel: String {
+    if case .counter = doc.selectedAnnotation { return "Counter" }
+    return doc.inspectorTool?.label ?? "Image"
+  }
+
+  // Apply styles only for explicit control edits, never for selection synchronization.
+  func inspectorBinding<Value: Equatable>(
+    _ keyPath: ReferenceWritableKeyPath<AnnotationDocument, Value>,
+    apply: @escaping () -> Void
+  ) -> Binding<Value> {
+    Binding(
+      get: { doc[keyPath: keyPath] },
+      set: { value in
+        guard doc[keyPath: keyPath] != value else { return }
+        doc[keyPath: keyPath] = value
+        apply()
+      }
+    )
+  }
+
   private var inspectorPanel: some View {
     ScrollView(.vertical, showsIndicators: false) {
       VStack(alignment: .leading, spacing: 16) {
         // Style section - only for tools that use stroke/fill
-        if doc.tool.usesStroke || doc.tool.usesFill {
+        if inspectorUsesStroke || doc.inspectorTool?.usesFill == true {
           inspectorSection("Style") {
             styleInspector
           }
@@ -621,12 +669,25 @@ struct EditorView: View {
 
         // Tool-specific section
         if hasToolSpecificOptions {
-          inspectorSection(doc.tool.label + " Options") {
+          inspectorSection(inspectorLabel + " Options") {
             toolOptionsInspector
           }
         }
 
+        if doc.selectedAnnotation != nil {
+          inspectorSection("Arrange") {
+            arrangeInspector
+          }
+        }
+
         // Presentation section - always available
+        inspectorSection("Positioning") {
+          Toggle("Snap to alignment guides", isOn: $doc.alignmentSnappingEnabled)
+            .font(.system(size: 11))
+          Text("Hold Option while dragging for precise free movement.")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+        }
         inspectorSection("Presentation") {
           presentationInspector
         }
@@ -663,15 +724,11 @@ struct EditorView: View {
   private var styleInspector: some View {
     VStack(alignment: .leading, spacing: 10) {
       // Color - for stroke-based tools
-      if doc.tool.usesStroke {
+      if inspectorUsesStroke {
         HStack {
           Text("Color")
             .frame(width: 60, alignment: .leading)
-          ColorPicker("", selection: Binding(get: {
-            doc.stroke.color
-          }, set: { new in
-            doc.stroke.color = new
-          }), supportsOpacity: true)
+          ColorPicker("", selection: inspectorBinding(\.stroke.color, apply: applyStrokeToSelectionIfNeeded), supportsOpacity: true)
           .labelsHidden()
         }
 
@@ -679,11 +736,7 @@ struct EditorView: View {
         HStack {
           Text("Width")
             .frame(width: 60, alignment: .leading)
-          Slider(value: Binding(get: {
-            Double(doc.stroke.lineWidth)
-          }, set: { v in
-            doc.stroke.lineWidth = CGFloat(v)
-          }), in: 1...18, onEditingChanged: { editing in
+          Slider(value: inspectorBinding(\.stroke.lineWidth, apply: applyStrokeToSelectionIfNeeded), in: 1...18, onEditingChanged: { editing in
             if editing {
               doc.beginEditSessionIfNeeded()
             } else {
@@ -698,16 +751,16 @@ struct EditorView: View {
       }
 
       // Fill - for tools that support fill
-      if doc.tool.usesFill {
+      if doc.inspectorTool?.usesFill == true {
         HStack {
           Text("Fill")
             .frame(width: 60, alignment: .leading)
-          Toggle("", isOn: $doc.fill.enabled)
+          Toggle("", isOn: inspectorBinding(\.fill.enabled, apply: applyFillToSelectionIfNeeded))
             .toggleStyle(.switch)
             .controlSize(.small)
           Spacer()
           if doc.fill.enabled {
-            ColorPicker("", selection: $doc.fill.color, supportsOpacity: true)
+            ColorPicker("", selection: inspectorBinding(\.fill.color, apply: applyFillToSelectionIfNeeded), supportsOpacity: true)
               .labelsHidden()
           }
         }
@@ -719,8 +772,8 @@ struct EditorView: View {
   // MARK: - Tool Options Inspector
 
   private var hasToolSpecificOptions: Bool {
-    switch doc.tool {
-    case .blur, .spotlight, .step, .arrow, .text, .callout, .freehand, .emoji, .measurement:
+    switch doc.inspectorTool {
+    case .blur, .spotlight, .step, .arrow, .text, .callout, .freehand, .emoji, .measurement, .loupe:
       return true
     default:
       return false
@@ -730,7 +783,7 @@ struct EditorView: View {
   @ViewBuilder
   private var toolOptionsInspector: some View {
     VStack(alignment: .leading, spacing: 10) {
-      switch doc.tool {
+      switch doc.inspectorTool {
       case .blur:
         blurOptions
       case .spotlight:
@@ -747,6 +800,8 @@ struct EditorView: View {
         emojiOptions
       case .measurement:
         measurementOptions
+      case .loupe:
+        loupeOptions
       default:
         EmptyView()
       }
@@ -759,7 +814,7 @@ struct EditorView: View {
       HStack {
         Text("Mode")
           .frame(width: 60, alignment: .leading)
-        Picker("", selection: $doc.blurMode) {
+        Picker("", selection: inspectorBinding(\.blurMode, apply: applyBlurToSelectionIfNeeded)) {
           ForEach(BlurMode.allCases) { m in
             Text(m.label).tag(m)
           }
@@ -770,11 +825,7 @@ struct EditorView: View {
       HStack {
         Text("Amount")
           .frame(width: 60, alignment: .leading)
-        Slider(value: Binding(get: {
-          Double(doc.blurAmount)
-        }, set: { v in
-          doc.blurAmount = CGFloat(v)
-        }), in: 2...40)
+        Slider(value: inspectorBinding(\.blurAmount, apply: applyBlurToSelectionIfNeeded), in: 2...40)
         Text("\(Int(doc.blurAmount))")
           .font(.system(size: 11, design: .monospaced))
           .foregroundColor(.secondary)
@@ -788,7 +839,7 @@ struct EditorView: View {
       HStack {
         Text("Shape")
           .frame(width: 60, alignment: .leading)
-        Picker("", selection: $doc.spotlightShape) {
+        Picker("", selection: inspectorBinding(\.spotlightShape, apply: applySpotlightToSelectionIfNeeded)) {
           ForEach(SpotlightShape.allCases) { s in
             Text(s.label).tag(s)
           }
@@ -799,7 +850,7 @@ struct EditorView: View {
       HStack {
         Text("Dim")
           .frame(width: 60, alignment: .leading)
-        Slider(value: $doc.spotlightDimmingOpacity, in: 0.3...0.9)
+        Slider(value: inspectorBinding(\.spotlightDimmingOpacity, apply: applySpotlightToSelectionIfNeeded), in: 0.3...0.9)
         Text("\(Int(doc.spotlightDimmingOpacity * 100))%")
           .font(.system(size: 11, design: .monospaced))
           .foregroundColor(.secondary)
@@ -809,7 +860,7 @@ struct EditorView: View {
       HStack {
         Text("Border")
           .frame(width: 60, alignment: .leading)
-        Toggle("", isOn: $doc.spotlightShowBorder)
+        Toggle("", isOn: inspectorBinding(\.spotlightShowBorder, apply: applySpotlightToSelectionIfNeeded))
           .toggleStyle(.switch)
           .controlSize(.small)
       }
@@ -821,50 +872,65 @@ struct EditorView: View {
       HStack {
         Text("Fill")
           .frame(width: 60, alignment: .leading)
-        ColorPicker("", selection: $doc.stepFillColor, supportsOpacity: true)
+        ColorPicker("", selection: inspectorBinding(\.stepFillColor, apply: applyStepToSelectionIfNeeded), supportsOpacity: true)
           .labelsHidden()
       }
 
       HStack {
         Text("Text")
           .frame(width: 60, alignment: .leading)
-        ColorPicker("", selection: $doc.stepTextColor, supportsOpacity: true)
+        ColorPicker("", selection: inspectorBinding(\.stepTextColor, apply: applyStepToSelectionIfNeeded), supportsOpacity: true)
           .labelsHidden()
       }
 
       HStack {
         Text("Size")
           .frame(width: 60, alignment: .leading)
-        Slider(value: Binding(get: {
-          Double(doc.stepRadius)
-        }, set: { v in
-          doc.stepRadius = CGFloat(v)
-        }), in: 10...44)
+        Slider(value: inspectorBinding(\.stepRadius, apply: applyStepToSelectionIfNeeded), in: 10...44)
       }
 
-      HStack {
-        Text("Mode")
-          .frame(width: 60, alignment: .leading)
-        Picker("", selection: $doc.stepMode) {
-          ForEach(CounterMode.allCases) { m in
-            Text(m.label).tag(m)
+      if case .counter = doc.selectedAnnotation {
+        EmptyView()
+      } else {
+        HStack {
+          Text("Mode")
+            .frame(width: 60, alignment: .leading)
+          Picker("", selection: inspectorBinding(\.stepMode, apply: applyStepToSelectionIfNeeded)) {
+            ForEach(CounterMode.allCases) { m in
+              Text(m.label).tag(m)
+            }
           }
+          .labelsHidden()
         }
-        .labelsHidden()
       }
     }
   }
 
   private var arrowOptions: some View {
-    HStack {
-      Text("Head")
-        .frame(width: 60, alignment: .leading)
-      Picker("", selection: $doc.arrowHeadStyle) {
-        ForEach(ArrowHeadStyle.allCases) { s in
-          Text(s.label).tag(s)
+    VStack(alignment: .leading, spacing: 10) {
+      HStack {
+        Text("Head")
+          .frame(width: 60, alignment: .leading)
+        Picker("", selection: inspectorBinding(\.arrowHeadStyle, apply: applyArrowHeadToSelectionIfNeeded)) {
+          ForEach(ArrowHeadStyle.allCases) { s in
+            Text(s.label).tag(s)
+          }
         }
+        .labelsHidden()
       }
-      .labelsHidden()
+      if case .arrow(let arrow) = doc.selectedAnnotation {
+        Text("Drag the green handle to bend the arrow.")
+          .foregroundColor(.secondary)
+        Button("Straighten Arrow") {
+          doc.updateSelected { annotation in
+            if case .arrow(var arrow) = annotation {
+              arrow.bendPoint = nil
+              annotation = .arrow(arrow)
+            }
+          }
+        }
+        .disabled(arrow.bendPoint == nil)
+      }
     }
   }
 
@@ -873,7 +939,7 @@ struct EditorView: View {
       HStack {
         Text("Size")
           .frame(width: 60, alignment: .leading)
-        Slider(value: $doc.textFontSize, in: 12...72)
+        Slider(value: inspectorBinding(\.textFontSize, apply: applyTextStyleToSelectionIfNeeded), in: 12...72)
         Text("\(Int(doc.textFontSize))")
           .font(.system(size: 11, design: .monospaced))
           .foregroundColor(.secondary)
@@ -883,28 +949,71 @@ struct EditorView: View {
       HStack {
         Text("Color")
           .frame(width: 60, alignment: .leading)
-        ColorPicker("", selection: $doc.textColor, supportsOpacity: true)
+        ColorPicker("", selection: inspectorBinding(\.textColor, apply: applyTextStyleToSelectionIfNeeded), supportsOpacity: true)
           .labelsHidden()
       }
 
-      HStack {
-        Text("Highlight")
-          .frame(width: 60, alignment: .leading)
-        Toggle("", isOn: $doc.textHighlighted)
-          .toggleStyle(.switch)
-          .controlSize(.small)
+      if doc.inspectorTool == .text {
+        HStack {
+          Text("Highlight")
+            .frame(width: 60, alignment: .leading)
+          Toggle("", isOn: inspectorBinding(\.textHighlighted, apply: applyTextStyleToSelectionIfNeeded))
+            .toggleStyle(.switch)
+            .controlSize(.small)
+        }
+      }
+      if case .callout(let callout) = doc.selectedAnnotation {
+        Button(callout.tailTip == nil ? "Add Tail" : "Remove Tail") {
+          doc.updateSelected { annotation in
+            guard case .callout(var callout) = annotation else { return }
+            callout.tailTip = callout.tailTip == nil
+              ? CGPoint(x: callout.rect.midX, y: callout.rect.maxY + 28) : nil
+            annotation = .callout(callout)
+          }
+        }
+        Text("Drag the tail tip to point at a screenshot detail.")
+          .foregroundStyle(.secondary)
       }
     }
   }
 
   private var freehandOptions: some View {
-    HStack {
-      Text("Highlighter")
-        .frame(width: 70, alignment: .leading)
-      Toggle("", isOn: $doc.freehandIsHighlighter)
-        .toggleStyle(.switch)
-        .controlSize(.small)
+    VStack(alignment: .leading, spacing: 8) {
+      HStack {
+        Text("Highlighter")
+          .frame(width: 70, alignment: .leading)
+        Toggle("", isOn: inspectorBinding(\.freehandIsHighlighter, apply: applyFreehandToSelectionIfNeeded))
+          .toggleStyle(.switch)
+          .controlSize(.small)
+      }
+
+      if let selectedFreehand {
+        if let shape = selectedFreehand.recognizedShape {
+          Button {
+            doc.restoreSelectedFreehandStroke()
+          } label: {
+            Label("Revert to Freehand", systemImage: "pencil.tip.crop.circle")
+          }
+          .help("Restore the original sampled marker path")
+          Text("Recognized as \(shape.label)")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+        } else {
+          Button {
+            doc.recognizeSelectedFreehandShape()
+          } label: {
+            Label("Recognize Shape", systemImage: "scribble.variable")
+          }
+          .disabled(FreehandShapeRecognition.recognize(selectedFreehand) == nil)
+          .help("Convert this stroke to a clean line, rectangle, or ellipse")
+        }
+      }
     }
+  }
+
+  private var selectedFreehand: FreehandAnnotation? {
+    guard case .freehand(let annotation) = doc.selectedAnnotation else { return nil }
+    return annotation
   }
 
   private var emojiOptions: some View {
@@ -912,13 +1021,13 @@ struct EditorView: View {
       HStack {
         Text("Emoji")
           .frame(width: 60, alignment: .leading)
-        EmojiPicker(selected: $doc.selectedEmoji)
+        EmojiPicker(selected: inspectorBinding(\.selectedEmoji, apply: applyEmojiToSelectionIfNeeded))
       }
 
       HStack {
         Text("Size")
           .frame(width: 60, alignment: .leading)
-        Slider(value: $doc.emojiSize, in: 24...96)
+        Slider(value: inspectorBinding(\.emojiSize, apply: applyEmojiToSelectionIfNeeded), in: 24...96)
         Text("\(Int(doc.emojiSize))")
           .font(.system(size: 11, design: .monospaced))
           .foregroundColor(.secondary)
@@ -932,7 +1041,7 @@ struct EditorView: View {
       HStack {
         Text("Unit")
           .frame(width: 60, alignment: .leading)
-        Picker("", selection: $doc.measurementUnit) {
+        Picker("", selection: inspectorBinding(\.measurementUnit, apply: applyMeasurementToSelectionIfNeeded)) {
           ForEach(MeasurementUnit.allCases) { u in
             Text(u.fullName).tag(u)
           }
@@ -951,11 +1060,67 @@ struct EditorView: View {
       HStack {
         Text("End caps")
           .frame(width: 60, alignment: .leading)
-        Toggle("", isOn: $doc.measurementShowExtensionLines)
+        Toggle("", isOn: inspectorBinding(\.measurementShowExtensionLines, apply: applyMeasurementToSelectionIfNeeded))
           .toggleStyle(.switch)
           .controlSize(.small)
       }
     }
+  }
+
+  private var loupeOptions: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack {
+        Text("Zoom")
+          .frame(width: 60, alignment: .leading)
+        Slider(
+          value: inspectorBinding(\.loupeMagnification, apply: applyLoupeToSelectionIfNeeded),
+          in: 1.25...5,
+          step: 0.25
+        )
+      }
+      Text(String(format: "%.2g× magnification", doc.loupeMagnification))
+        .font(.system(size: 11))
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+  }
+
+  private var arrangeInspector: some View {
+    VStack(spacing: 8) {
+      if doc.selectedIDs.count > 1 {
+        Text("\(doc.selectedIDs.count) annotations selected")
+          .font(.system(size: 11))
+          .foregroundColor(.secondary)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+
+      Button {
+        doc.duplicateSelected()
+      } label: {
+        Label("Duplicate", systemImage: "plus.square.on.square")
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      .keyboardShortcut("d", modifiers: .command)
+
+      HStack(spacing: 8) {
+        Button("To Back") { doc.sendSelectedToBack() }
+          .frame(maxWidth: .infinity)
+          .help("Send behind all other annotations")
+        Button("Backward") { doc.moveSelectedBackward() }
+          .frame(maxWidth: .infinity)
+          .help("Move behind one annotation")
+      }
+      HStack(spacing: 8) {
+        Button("Forward") { doc.moveSelectedForward() }
+          .frame(maxWidth: .infinity)
+          .help("Move in front of one annotation")
+        Button("To Front") { doc.bringSelectedToFront() }
+          .frame(maxWidth: .infinity)
+          .help("Bring in front of all other annotations")
+      }
+    }
+    .buttonStyle(.bordered)
+    .font(.system(size: 11))
   }
 
   // MARK: - Presentation Inspector
@@ -1064,57 +1229,6 @@ struct EditorView: View {
       .onChange(of: doc.hasUnsavedChanges) { _ in
         hostWindow?.isDocumentEdited = doc.hasUnsavedChanges
       }
-      .onChange(of: doc.selectedID) { _ in
-        doc.syncStyleFromSelectionIfNeeded()
-      }
-      .onChange(of: doc.stroke) { _ in
-        applyStrokeToSelectionIfNeeded()
-      }
-      .onChange(of: doc.fill) { _ in
-        applyFillToSelectionIfNeeded()
-      }
-      .onChange(of: doc.arrowHeadStyle) { _ in
-        applyArrowHeadToSelectionIfNeeded()
-      }
-      .onChange(of: doc.textColor) { _ in
-        applyTextStyleToSelectionIfNeeded()
-      }
-      .onChange(of: doc.textFontSize) { _ in
-        applyTextStyleToSelectionIfNeeded()
-      }
-      .onChange(of: doc.textHighlighted) { _ in
-        applyTextStyleToSelectionIfNeeded()
-      }
-      .onChange(of: doc.blurMode) { _ in
-        applyBlurToSelectionIfNeeded()
-      }
-      .onChange(of: doc.blurAmount) { _ in
-        applyBlurToSelectionIfNeeded()
-      }
-      .onChange(of: doc.stepRadius) { _ in
-        applyStepToSelectionIfNeeded()
-      }
-      .onChange(of: doc.stepFillColor) { _ in
-        applyStepToSelectionIfNeeded()
-      }
-      .onChange(of: doc.stepTextColor) { _ in
-        applyStepToSelectionIfNeeded()
-      }
-      .onChange(of: doc.stepBorderColor) { _ in
-        applyStepToSelectionIfNeeded()
-      }
-      .onChange(of: doc.stepBorderWidth) { _ in
-        applyStepToSelectionIfNeeded()
-      }
-      .onChange(of: doc.stepMode) { _ in
-        applyStepToSelectionIfNeeded()
-      }
-      .onChange(of: doc.measurementUnit) { _ in
-        applyMeasurementToSelectionIfNeeded()
-      }
-      .onChange(of: doc.measurementShowExtensionLines) { _ in
-        applyMeasurementToSelectionIfNeeded()
-      }
       .onExitCommand {
         if doc.pendingTextInput != nil {
           doc.cancelPendingTextInput()
@@ -1135,6 +1249,15 @@ struct EditorView: View {
     } catch {
       let alert = NSAlert(error: error)
       alert.runModal()
+    }
+  }
+
+  private func saveProject() {
+    do {
+      try doc.saveProject()
+      showToast("Editable Project Saved")
+    } catch {
+      NSAlert(error: error).runModal()
     }
   }
 
@@ -1224,6 +1347,9 @@ extension EditorView {
       doc.updateSelectedMaybeInSession { ann in
         if case .freehand(var f) = ann {
           f.stroke = doc.stroke
+          if f.isHighlighter {
+            f.stroke.lineWidth = max(doc.stroke.lineWidth * 3, 16)
+          }
           ann = .freehand(f)
         }
       }
@@ -1258,8 +1384,19 @@ extension EditorView {
           ann = .measurement(m)
         }
       }
+    case .loupe:
+      break
     case .imageLayer:
       break
+    }
+  }
+
+  private func applyLoupeToSelectionIfNeeded() {
+    doc.updateSelectedMaybeInSession { annotation in
+      if case .loupe(var loupe) = annotation {
+        loupe.magnification = doc.loupeMagnification
+        annotation = .loupe(loupe)
+      }
     }
   }
 
@@ -1348,10 +1485,6 @@ extension EditorView {
   }
 
   private func applyStepToSelectionIfNeeded() {
-    guard let id = doc.selectedID else { return }
-    guard let a = doc.annotations.first(where: { $0.id == id }) else { return }
-    guard case .step = a else { return }
-
     doc.updateSelectedMaybeInSession { ann in
       if case .step(var s) = ann {
         s.radius = doc.stepRadius
@@ -1361,6 +1494,44 @@ extension EditorView {
         s.borderWidth = doc.stepBorderWidth
         s.mode = doc.stepMode
         ann = .step(s)
+      } else if case .counter(var c) = ann {
+        c.radius = doc.stepRadius
+        c.fillColor = doc.stepFillColor
+        c.textColor = doc.stepTextColor
+        c.borderColor = doc.stepBorderColor
+        c.borderWidth = doc.stepBorderWidth
+        ann = .counter(c)
+      }
+    }
+  }
+
+  private func applySpotlightToSelectionIfNeeded() {
+    doc.updateSelectedMaybeInSession { ann in
+      if case .spotlight(var s) = ann {
+        s.shape = doc.spotlightShape
+        s.dimmingOpacity = doc.spotlightDimmingOpacity
+        s.borderStroke = doc.spotlightShowBorder ? doc.stroke : nil
+        ann = .spotlight(s)
+      }
+    }
+  }
+
+  private func applyEmojiToSelectionIfNeeded() {
+    doc.updateSelectedMaybeInSession { ann in
+      if case .emoji(var e) = ann {
+        e.emoji = doc.selectedEmoji
+        e.size = doc.emojiSize
+        ann = .emoji(e)
+      }
+    }
+  }
+
+  private func applyFreehandToSelectionIfNeeded() {
+    doc.updateSelectedMaybeInSession { ann in
+      if case .freehand(var f) = ann {
+        f.isHighlighter = doc.freehandIsHighlighter
+        f.stroke.lineWidth = f.isHighlighter ? max(doc.stroke.lineWidth * 3, 16) : doc.stroke.lineWidth
+        ann = .freehand(f)
       }
     }
   }

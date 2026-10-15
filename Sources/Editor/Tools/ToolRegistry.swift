@@ -14,6 +14,7 @@ enum ToolRegistry {
     .step: StepTool(),
     .emoji: EmojiTool(),
     .measurement: MeasurementTool(),
+    .loupe: LoupeTool(),
   ]
 
   static func tool(for id: AnnotationTool) -> (any EditorTool)? {
@@ -154,14 +155,14 @@ private struct CalloutTool: EditorTool {
 
   func preview(doc: AnnotationDocument, start: CGPoint, current: CGPoint, isShiftDown: Bool) -> Annotation? {
     let r = rectFrom(start: start, end: current, constrainSquare: false)
-    return .callout(CalloutAnnotation(rect: r, text: "", stroke: doc.stroke, fill: doc.fill, textColor: doc.textColor, fontSize: doc.textFontSize))
+    return .callout(makeCallout(doc: doc, rect: r))
   }
 
   func commit(doc: AnnotationDocument, start: CGPoint, end: CGPoint, isShiftDown: Bool) {
     let r = rectFrom(start: start, end: end, constrainSquare: false)
     if r.width >= 10 && r.height >= 10 {
       doc.pushUndoCheckpoint()
-      let callout = CalloutAnnotation(rect: r, text: "", stroke: doc.stroke, fill: doc.fill, textColor: doc.textColor, fontSize: doc.textFontSize)
+      let callout = makeCallout(doc: doc, rect: r)
       doc.annotations.append(.callout(callout))
       doc.selectedID = callout.id
       doc.pendingTextInput = .init(
@@ -172,6 +173,14 @@ private struct CalloutTool: EditorTool {
         removeTargetOnCancel: true
       )
     }
+  }
+
+  private func makeCallout(doc: AnnotationDocument, rect: CGRect) -> CalloutAnnotation {
+    CalloutAnnotation(
+      rect: rect, text: "", stroke: doc.stroke, fill: doc.fill,
+      textColor: doc.textColor, fontSize: doc.textFontSize,
+      tailTip: CGPoint(x: rect.midX, y: rect.maxY + 28)
+    )
   }
 }
 
@@ -300,6 +309,42 @@ private struct EmojiTool: EditorTool {
 
   func preview(doc: AnnotationDocument, start: CGPoint, current: CGPoint, isShiftDown: Bool) -> Annotation? { nil }
   func commit(doc: AnnotationDocument, start: CGPoint, end: CGPoint, isShiftDown: Bool) {}
+}
+
+private struct LoupeTool: EditorTool {
+  let id: AnnotationTool = .loupe
+  let capabilities: ToolCapabilities = [.usesDrag]
+
+  func begin(doc: AnnotationDocument, at point: CGPoint, isShiftDown: Bool) -> ToolBeginResult {
+    .startDrag
+  }
+
+  func preview(doc: AnnotationDocument, start: CGPoint, current: CGPoint, isShiftDown: Bool) -> Annotation? {
+    makeLoupe(doc: doc, start: start, end: current, isShiftDown: isShiftDown)
+  }
+
+  func commit(doc: AnnotationDocument, start: CGPoint, end: CGPoint, isShiftDown: Bool) {
+    let rect = rectFrom(start: start, end: end, constrainSquare: isShiftDown)
+    guard min(rect.width, rect.height) / 2 >= 12,
+          let loupe = makeLoupe(doc: doc, start: start, end: end, isShiftDown: isShiftDown),
+          case .loupe(let value) = loupe else { return }
+    doc.pushUndoCheckpoint()
+    doc.annotations.append(loupe)
+    doc.selectedID = value.id
+  }
+
+  private func makeLoupe(
+    doc: AnnotationDocument, start: CGPoint, end: CGPoint, isShiftDown: Bool
+  ) -> Annotation? {
+    let rect = rectFrom(start: start, end: end, constrainSquare: isShiftDown)
+    let radius = min(rect.width, rect.height) / 2
+    guard radius > 0 else { return nil }
+    return .loupe(LoupeAnnotation(
+      center: CGPoint(x: rect.midX, y: rect.midY),
+      radius: radius,
+      magnification: doc.loupeMagnification
+    ))
+  }
 }
 
 private func rectFrom(start: CGPoint, end: CGPoint, constrainSquare: Bool) -> CGRect {

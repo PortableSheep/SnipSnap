@@ -184,10 +184,12 @@ final class PinnedImageWindowController {
 
   private func copyPinnedImage(url: URL) {
     let displayURL = annotatedURL(for: url) ?? url
-    guard let image = NSImage(contentsOf: displayURL) else { return }
-    NSPasteboard.general.clearContents()
-    NSPasteboard.general.writeObjects([image])
-    flash(url, "Copied")
+    do {
+      try ImageClipboard.copy(url: displayURL)
+      flash(url, "Copied")
+    } catch {
+      NSAlert(error: error).runModal()
+    }
   }
 
   private func sendToBoard(url: URL) {

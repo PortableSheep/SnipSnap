@@ -44,7 +44,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
 }
 
 /// A hotkey binding (key + modifiers)
-struct HotkeyBinding: Codable, Equatable {
+struct HotkeyBinding: Codable, Hashable {
   var keyCode: UInt32
   var modifiers: UInt32
 
@@ -160,6 +160,41 @@ struct HotkeyBinding: Codable, Equatable {
     }
   }
 
+  static func resolved(for action: HotkeyAction, in bindings: [HotkeyAction: HotkeyBinding]) -> HotkeyBinding {
+    bindings[action] ?? defaults[action]!
+  }
+
+  var isDisplayable: Bool { Self.keyName(for: keyCode) != nil }
+
+  /// A macOS or standard app shortcut that this global hotkey would shadow, if any.
+  var reservedShortcutName: String? {
+    let cmd = UInt32(cmdKey), shift = UInt32(shiftKey), opt = UInt32(optionKey), ctrl = UInt32(controlKey)
+    let reserved: [HotkeyBinding: String] = [
+      HotkeyBinding(keyCode: UInt32(kVK_ANSI_3), modifiers: cmd | shift): "macOS screenshot of the screen",
+      HotkeyBinding(keyCode: UInt32(kVK_ANSI_4), modifiers: cmd | shift): "macOS screenshot of a selection",
+      HotkeyBinding(keyCode: UInt32(kVK_ANSI_5), modifiers: cmd | shift): "the macOS Screenshot toolbar",
+      HotkeyBinding(keyCode: UInt32(kVK_ANSI_3), modifiers: cmd | shift | ctrl): "macOS copy screen to clipboard",
+      HotkeyBinding(keyCode: UInt32(kVK_ANSI_4), modifiers: cmd | shift | ctrl): "macOS copy selection to clipboard",
+      HotkeyBinding(keyCode: UInt32(kVK_Space), modifiers: cmd): "Spotlight",
+      HotkeyBinding(keyCode: UInt32(kVK_Space), modifiers: cmd | opt): "Finder search",
+      HotkeyBinding(keyCode: UInt32(kVK_Space), modifiers: ctrl): "switching input sources",
+      HotkeyBinding(keyCode: UInt32(kVK_Space), modifiers: cmd | ctrl): "Emoji & Symbols",
+      HotkeyBinding(keyCode: UInt32(kVK_Tab), modifiers: cmd): "the app switcher",
+      HotkeyBinding(keyCode: UInt32(kVK_ANSI_Grave), modifiers: cmd): "cycling windows",
+      HotkeyBinding(keyCode: UInt32(kVK_ANSI_Q), modifiers: cmd | ctrl): "Lock Screen",
+      HotkeyBinding(keyCode: UInt32(kVK_ANSI_Q), modifiers: cmd | shift): "Log Out",
+      HotkeyBinding(keyCode: UInt32(kVK_ANSI_F), modifiers: cmd | ctrl): "Enter Full Screen",
+      HotkeyBinding(keyCode: UInt32(kVK_Escape), modifiers: cmd | opt): "Force Quit",
+      HotkeyBinding(keyCode: UInt32(kVK_UpArrow), modifiers: ctrl): "Mission Control",
+      HotkeyBinding(keyCode: UInt32(kVK_DownArrow), modifiers: ctrl): "App Exposé",
+      HotkeyBinding(keyCode: UInt32(kVK_LeftArrow), modifiers: ctrl): "switching Spaces",
+      HotkeyBinding(keyCode: UInt32(kVK_RightArrow), modifiers: ctrl): "switching Spaces",
+    ]
+    if let name = reserved[self] { return name }
+    if modifiers == cmd { return "the standard \(displayString) command in every app" }
+    return nil
+  }
+
   /// Default bindings
   static let defaults: [HotkeyAction: HotkeyBinding] = [
     .toggleRecording: HotkeyBinding(keyCode: UInt32(kVK_ANSI_6), modifiers: UInt32(cmdKey | shiftKey)),
@@ -180,6 +215,10 @@ final class HotkeyPreferencesStore: ObservableObject {
   @Published var bindings: [HotkeyAction: HotkeyBinding] {
     didSet { save() }
   }
+
+  /// True while Preferences is recording a shortcut; global hotkeys are paused so the
+  /// keys being recorded aren't swallowed by an existing registration.
+  @Published var isRecordingShortcut = false
 
   /// Actions whose Carbon registration failed (updated by HotKeyManager).
   @Published var failedRegistrations: Set<HotkeyAction> = []
@@ -210,7 +249,7 @@ final class HotkeyPreferencesStore: ObservableObject {
   }
 
   func binding(for action: HotkeyAction) -> HotkeyBinding {
-    bindings[action] ?? HotkeyBinding.defaults[action]!
+    HotkeyBinding.resolved(for: action, in: bindings)
   }
 
   func setBinding(_ binding: HotkeyBinding, for action: HotkeyAction) {
@@ -219,5 +258,17 @@ final class HotkeyPreferencesStore: ObservableObject {
 
   func resetToDefaults() {
     bindings = HotkeyBinding.defaults
+  }
+
+  func conflictingAction(for binding: HotkeyBinding, excluding action: HotkeyAction) -> HotkeyAction? {
+    HotkeyAction.allCases.first { $0 != action && self.binding(for: $0) == binding }
+  }
+
+  /// Assigns `binding` to `action` and gives `other` the shortcut `action` had.
+  func swapBinding(_ binding: HotkeyBinding, for action: HotkeyAction, with other: HotkeyAction) {
+    var updated = bindings
+    updated[other] = self.binding(for: action)
+    updated[action] = binding
+    bindings = updated
   }
 }

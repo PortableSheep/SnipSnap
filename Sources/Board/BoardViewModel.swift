@@ -175,6 +175,16 @@ final class BoardViewModel: ObservableObject {
     editingZoneID = nil
   }
 
+  /// Dismiss the card/zone interaction in one step, without leaving a selected card
+  /// that would consume the next Escape.
+  @discardableResult
+  func dismissFocusedContent() -> Bool {
+    guard detailCardID != nil || editingCardID != nil || editingZoneID != nil else { return false }
+    detailCardID = nil
+    clearSelection()
+    return true
+  }
+
   func beginCardDrag(_ id: UUID, extend: Bool) {
     if draggingIDs.isEmpty {
       if !selection.contains(id) { select(id, extend: extend) } else { store.bringToFront(selection) }
@@ -353,12 +363,6 @@ final class BoardViewModel: ObservableObject {
     )
     let zone = store.addZone(title: "New Zone", frame: frame)
     editingZoneID = zone.id
-  }
-
-  func addTodoTemplate() {
-    let visible = visibleBoardRect
-    let width: CGFloat = 3 * 320 + 2 * 24
-    store.applyTodoTemplate(origin: CGPoint(x: visible.midX - width / 2, y: visible.minY + 90))
   }
 
   func endZoneDrag() {

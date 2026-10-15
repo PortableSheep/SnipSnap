@@ -253,7 +253,7 @@ private struct CardPinView: View {
   var body: some View {
     let controls = hovering || resizing
     ZStack {
-      CardContentView(card: card, store: store, style: BoardThemeStyle(theme: .glass))
+      CardContentView(card: card, store: store, style: BoardThemeStyle())
 
       if card.todo == .done {
         Color.black.opacity(0.35).allowsHitTesting(false)

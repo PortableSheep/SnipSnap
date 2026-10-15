@@ -8,9 +8,12 @@ struct EditorCanvasView: View {
   @State private var dragStartImagePoint: CGPoint? = nil
   @State private var dragCurrentImagePoint: CGPoint? = nil
   @State private var movingStartPoint: CGPoint? = nil
+  @State private var alignment = AnnotationAlignment.Result()
 
   @State private var activeSelectInteraction: SelectInteraction? = nil
   @State private var originalSelectedAtDragStart: Annotation? = nil
+  @State private var marqueeBaseSelection: Set<UUID> = []
+  @State private var marqueeIsAdditive = false
 
   @State private var isShiftDown: Bool = false
   
@@ -213,8 +216,11 @@ struct EditorCanvasView: View {
     }
 
     // Selection outline always on top
-    if let sel = doc.selectedID, let a = doc.annotations.first(where: { $0.id == sel }) {
-      drawSelection(for: a, context: &context, scale: scale, offset: rect.origin)
+    for annotation in doc.annotations where doc.selectedIDs.contains(annotation.id) {
+      drawSelection(
+        for: annotation, context: &context, scale: scale, offset: rect.origin,
+        showHandles: doc.selectedIDs.count == 1
+      )
     }
 
     // Draw redaction suggestion indicators
@@ -328,16 +334,45 @@ struct EditorCanvasView: View {
   }
 
   private func drawInProgress(context: inout GraphicsContext, size: CGSize) {
+    let imageRect = fitRect(imageSize: doc.imageSize, in: size)
+    let scale = imageRect.width / doc.imageSize.width
+    var guides = Path()
+    if let x = alignment.verticalGuide {
+      let viewX = imageRect.minX + x * scale
+      guides.move(to: CGPoint(x: viewX, y: imageRect.minY))
+      guides.addLine(to: CGPoint(x: viewX, y: imageRect.maxY))
+    }
+    if let y = alignment.horizontalGuide {
+      let viewY = imageRect.minY + y * scale
+      guides.move(to: CGPoint(x: imageRect.minX, y: viewY))
+      guides.addLine(to: CGPoint(x: imageRect.maxX, y: viewY))
+    }
+    context.stroke(guides, with: .color(.pink), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+    if case .marquee = activeSelectInteraction,
+       let start = dragStartImagePoint, let current = dragCurrentImagePoint {
+      let startView = imageToView(point: start, viewSize: size)
+      let currentView = imageToView(point: current, viewSize: size)
+      let rect = CGRect(
+        x: min(startView.x, currentView.x), y: min(startView.y, currentView.y),
+        width: abs(currentView.x - startView.x), height: abs(currentView.y - startView.y)
+      )
+      context.fill(Path(rect), with: .color(.accentColor.opacity(0.12)))
+      context.stroke(
+        Path(rect), with: .color(.accentColor),
+        style: StrokeStyle(lineWidth: 1, dash: [4, 3])
+      )
+      return
+    }
     // If we're moving/resizing an existing annotation, don't show tool previews.
     guard activeSelectInteraction == nil else { return }
     guard let start = dragStartImagePoint, let curr = dragCurrentImagePoint else { return }
 
     let rectFit = fitRect(imageSize: doc.imageSize, in: size)
-    let scale = rectFit.width / doc.imageSize.width
+    let previewScale = rectFit.width / doc.imageSize.width
     let offset = rectFit.origin
 
     if let tool = ToolRegistry.tool(for: doc.tool), tool.capabilities.contains(.usesDrag), let preview = tool.preview(doc: doc, start: start, current: curr, isShiftDown: isShiftDown) {
-      draw(annotation: preview, context: &context, scale: scale, offset: offset)
+      draw(annotation: preview, context: &context, scale: previewScale, offset: offset)
     }
   }
 
@@ -427,13 +462,28 @@ struct EditorCanvasView: View {
           dragStartImagePoint = imgPoint
           dragCurrentImagePoint = imgPoint
 
+          if doc.selectedIDs.count == 1,
+             let selected = doc.selectedAnnotation,
+             let handle = hitTestHandle(point: imgPoint, annotation: selected, viewSize: size) {
+            movingStartPoint = imgPoint
+            originalSelectedAtDragStart = selected
+            activeSelectInteraction = .handle(handle)
+            return
+          }
+
           // Universal behavior: clicking an existing annotation selects it (and allows move/resize)
           // even if a drawing tool is currently active.
           if let hitID = hitTest(point: imgPoint), let a = doc.annotations.first(where: { $0.id == hitID }) {
-            doc.selectedID = hitID
+            if isShiftDown {
+              doc.toggleSelection(hitID)
+              guard doc.selectedIDs.contains(hitID) else { return }
+            } else if !doc.selectedIDs.contains(hitID) {
+              doc.select(hitID)
+            }
             movingStartPoint = imgPoint
             originalSelectedAtDragStart = a
-            if let hit = hitTestHandle(point: imgPoint, annotation: a, viewSize: size) {
+            if doc.selectedIDs.count == 1,
+               let hit = hitTestHandle(point: imgPoint, annotation: a, viewSize: size) {
               activeSelectInteraction = .handle(hit)
             } else {
               activeSelectInteraction = .move
@@ -441,8 +491,15 @@ struct EditorCanvasView: View {
             return
           }
 
-          // Clicked empty canvas — deselect any selected annotation
-          doc.selectedID = nil
+          if doc.tool == .select {
+            marqueeIsAdditive = isShiftDown
+            marqueeBaseSelection = marqueeIsAdditive ? doc.selectedIDs : []
+            activeSelectInteraction = .marquee
+            return
+          }
+
+          // Drawing on empty canvas deselects the previous annotation.
+          doc.select(nil)
 
           switch doc.tool {
           case .select:
@@ -477,6 +534,10 @@ struct EditorCanvasView: View {
 
         dragCurrentImagePoint = imgPoint
 
+        if case .marquee = activeSelectInteraction {
+          return
+        }
+
         // Handle freehand drawing continuation
         if doc.tool == .freehand, doc.activeFreehandStroke != nil {
           doc.continueFreehandStroke(to: imgPoint)
@@ -488,12 +549,35 @@ struct EditorCanvasView: View {
           guard let interaction = activeSelectInteraction else { return }
 
           switch interaction {
+          case .marquee:
+            return
           case .move:
-            let delta = CGPoint(x: imgPoint.x - start.x, y: imgPoint.y - start.y)
+            var delta = CGPoint(
+              x: imgPoint.x - start.x - alignment.offset.width,
+              y: imgPoint.y - start.y - alignment.offset.height
+            )
             movingStartPoint = imgPoint
+            let selectedBounds = doc.annotations
+              .filter { doc.selectedIDs.contains($0.id) }
+              .reduce(CGRect.null) { $0.union(AnnotationSelectionGeometry.bounds(of: $1)) }
+              .offsetBy(dx: delta.x, dy: delta.y)
+            if doc.alignmentSnappingEnabled &&
+              !(NSApp.currentEvent?.modifierFlags.contains(.option) ?? false) {
+              let targets = [doc.cropRect ?? doc.fullImageRect] + doc.annotations
+                .filter { !doc.selectedIDs.contains($0.id) }
+                .map { AnnotationSelectionGeometry.bounds(of: $0) }
+              let scale = fitRect(imageSize: doc.imageSize, in: size).width / doc.imageSize.width
+              alignment = AnnotationAlignment.snap(
+                bounds: selectedBounds, targets: targets, tolerance: 5 / max(scale, 0.0001)
+              )
+            } else {
+              alignment = AnnotationAlignment.Result()
+            }
+            delta.x += alignment.offset.width
+            delta.y += alignment.offset.height
             doc.beginEditSessionIfNeeded()
-            doc.updateSelectedInSession { a in
-              applyMove(delta: delta, annotation: &a)
+            doc.updateSelectionInSession { annotation in
+              applyMove(delta: delta, annotation: &annotation)
             }
 
           case .handle(let h):
@@ -524,6 +608,7 @@ struct EditorCanvasView: View {
           dragStartImagePoint = nil
           dragCurrentImagePoint = nil
           movingStartPoint = nil
+          alignment = AnnotationAlignment.Result()
           activeSelectInteraction = nil
           originalSelectedAtDragStart = nil
           doc.endEditSession()
@@ -531,11 +616,31 @@ struct EditorCanvasView: View {
 
         // Commit freehand stroke if active
         if doc.tool == .freehand, doc.activeFreehandStroke != nil {
+          doc.continueFreehandStroke(to: imgEnd)
           doc.commitFreehandStroke()
           return
         }
 
         guard let start = dragStartImagePoint else { return }
+
+        if case .marquee = activeSelectInteraction {
+          let startView = imageToView(point: start, viewSize: size)
+          let endView = value.location
+          let distance = hypot(endView.x - startView.x, endView.y - startView.y)
+          if distance >= 4 {
+            let selectionRect = CGRect(
+              x: min(start.x, imgEnd.x), y: min(start.y, imgEnd.y),
+              width: abs(imgEnd.x - start.x), height: abs(imgEnd.y - start.y)
+            )
+            let hits = AnnotationSelectionGeometry.intersecting(
+              selectionRect, annotations: doc.annotations
+            )
+            doc.select(marqueeBaseSelection.union(hits))
+          } else if !marqueeIsAdditive {
+            doc.select(nil)
+          }
+          return
+        }
 
         // If we were moving/resizing an existing annotation, never commit the active tool.
         if activeSelectInteraction != nil {
@@ -554,17 +659,21 @@ struct EditorCanvasView: View {
   private enum SelectInteraction {
     case move
     case handle(HandleHit)
+    case marquee
   }
 
   private enum HandleKind: Hashable {
     case rect(RectHandle)
     case arrowStart
     case arrowEnd
+    case arrowBend
     case lineStart
     case lineEnd
     case measurementStart
     case measurementEnd
     case measurementLabel
+    case loupeRadius
+    case calloutTail
   }
 
   private enum RectHandle: CaseIterable {
@@ -686,51 +795,12 @@ struct EditorCanvasView: View {
       context.stroke(Path(ellipseIn: vr), with: .color(e.stroke.color), lineWidth: e.stroke.lineWidth * scale)
 
     case .arrow(let a):
-      let s = CGPoint(x: offset.x + a.start.x * scale, y: offset.y + a.start.y * scale)
-      let e = CGPoint(x: offset.x + a.end.x * scale, y: offset.y + a.end.y * scale)
-      let lw = a.stroke.lineWidth * scale
-      let dx = e.x - s.x
-      let dy = e.y - s.y
-      let len = max(0.0001, hypot(dx, dy))
-      let ux = dx / len
-      let uy = dy / len
-
-      // Arrowhead sizing
-      var headLen: CGFloat = max(12, lw * 4)
-      headLen = min(headLen, len * 0.55)
-      let headWidth: CGFloat = headLen * 0.6
-      let perpX = -uy
-      let perpY = ux
-
-      let base = CGPoint(x: e.x - ux * headLen, y: e.y - uy * headLen)
-      let left = CGPoint(x: base.x + perpX * headWidth, y: base.y + perpY * headWidth)
-      let right = CGPoint(x: base.x - perpX * headWidth, y: base.y - perpY * headWidth)
-
-      // Shaft should stop at the head base for cleaner joins
-      let shaftEnd = (a.headStyle == .none) ? e : base
-      var shaft = Path()
-      shaft.move(to: s)
-      shaft.addLine(to: shaftEnd)
-      context.stroke(shaft, with: .color(a.stroke.color), style: .init(lineWidth: lw, lineCap: .round, lineJoin: .round))
-
-      switch a.headStyle {
-      case .open:
-        var head = Path()
-        head.move(to: left)
-        head.addLine(to: e)
-        head.addLine(to: right)
-        context.stroke(head, with: .color(a.stroke.color), style: .init(lineWidth: max(1, lw * 0.85), lineCap: .round, lineJoin: .round))
-
-      case .filled:
-        var head = Path()
-        head.move(to: e)
-        head.addLine(to: left)
-        head.addLine(to: right)
-        head.closeSubpath()
-        context.fill(head, with: .color(a.stroke.color))
-
-      case .none:
-        break
+      context.withCGContext { cgContext in
+        cgContext.saveGState()
+        defer { cgContext.restoreGState() }
+        cgContext.translateBy(x: offset.x, y: offset.y)
+        cgContext.scaleBy(x: scale, y: scale)
+        ArrowGeometry(a).draw(in: cgContext)
       }
 
     case .text:
@@ -738,16 +808,15 @@ struct EditorCanvasView: View {
       break
 
     case .callout(let c):
-      let vr = CGRect(
-        x: offset.x + c.rect.minX * scale,
-        y: offset.y + c.rect.minY * scale,
-        width: c.rect.width * scale,
-        height: c.rect.height * scale
-      )
+      let geometry = CalloutGeometry(c)
+      let transform = CGAffineTransform(a: scale, b: 0, c: 0, d: scale, tx: offset.x, ty: offset.y)
       if c.fill.enabled {
-        context.fill(Path(roundedRect: vr, cornerRadius: 14), with: .color(c.fill.color))
+        context.fill(Path(geometry.outlinePath).applying(transform), with: .color(c.fill.color))
       }
-      context.stroke(Path(roundedRect: vr, cornerRadius: 14), with: .color(c.stroke.color), lineWidth: c.stroke.lineWidth * scale)
+      context.stroke(
+        Path(geometry.outlinePath).applying(transform),
+        with: .color(c.stroke.color), lineWidth: c.stroke.lineWidth * scale
+      )
       // Callout text is rendered as a SwiftUI overlay (see overlayTextAnnotations).
 
     case .blur(let b):
@@ -846,17 +915,13 @@ struct EditorCanvasView: View {
       context.stroke(line, with: .color(l.stroke.color), style: .init(lineWidth: lw, lineCap: .round))
 
     case .freehand(let f):
-      guard f.points.count >= 2 else { break }
-      var path = Path()
-      let firstPt = CGPoint(x: offset.x + f.points[0].x * scale, y: offset.y + f.points[0].y * scale)
-      path.move(to: firstPt)
-      for pt in f.points.dropFirst() {
-        let vpt = CGPoint(x: offset.x + pt.x * scale, y: offset.y + pt.y * scale)
-        path.addLine(to: vpt)
+      context.withCGContext { cgContext in
+        cgContext.saveGState()
+        defer { cgContext.restoreGState() }
+        cgContext.translateBy(x: offset.x, y: offset.y)
+        cgContext.scaleBy(x: scale, y: scale)
+        FreehandGeometry(f).draw(in: cgContext)
       }
-      let lw = f.stroke.lineWidth * scale
-      let opacity: Double = f.isHighlighter ? 0.4 : 1.0
-      context.stroke(path, with: .color(f.stroke.color.opacity(opacity)), style: .init(lineWidth: lw, lineCap: .round, lineJoin: .round))
 
     case .spotlight(let sp):
       // Draw dimming overlay with cutout for spotlight area
@@ -915,6 +980,42 @@ struct EditorCanvasView: View {
         height: img.rect.height * scale
       )
       context.draw(Image(decorative: cgImage, scale: 1), in: vr)
+
+    case .loupe(let loupe):
+      drawLoupe(loupe, context: &context, scale: scale, offset: offset)
+    }
+  }
+
+  private func drawLoupe(
+    _ loupe: LoupeAnnotation, context: inout GraphicsContext, scale: CGFloat, offset: CGPoint
+  ) {
+    let center = CGPoint(
+      x: offset.x + loupe.center.x * scale, y: offset.y + loupe.center.y * scale
+    )
+    let radius = loupe.radius * scale
+    let lensRect = CGRect(
+      x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2
+    )
+    let imageRect = CGRect(
+      origin: offset,
+      size: CGSize(width: doc.imageSize.width * scale, height: doc.imageSize.height * scale)
+    )
+
+    var lensContext = context
+    lensContext.clip(to: Path(ellipseIn: lensRect))
+    let magnification = loupe.magnification
+    lensContext.transform = LoupeGeometry.magnificationTransform(
+      center: center, magnification: magnification
+    ).concatenating(context.transform)
+    lensContext.draw(Image(decorative: doc.cgImage, scale: 1), in: imageRect)
+
+    context.drawLayer { layer in
+      layer.addFilter(.shadow(color: .black.opacity(0.35), radius: max(2, radius * 0.06), y: 2))
+      layer.stroke(Path(ellipseIn: lensRect), with: .color(.white.opacity(0.95)), lineWidth: max(3, radius * 0.09))
+      layer.stroke(
+        Path(ellipseIn: lensRect.insetBy(dx: radius * 0.055, dy: radius * 0.055)),
+        with: .color(.black.opacity(0.55)), lineWidth: max(1, radius * 0.025)
+      )
     }
   }
 
@@ -933,23 +1034,13 @@ struct EditorCanvasView: View {
             if pending?.kind == .text, editingID == t.id {
               EmptyView()
             } else {
-              let pos = CGPoint(x: rect.origin.x + t.position.x * scale, y: rect.origin.y + t.position.y * scale)
-              Group {
-                if t.highlighted {
-                  Text(t.text)
-                    .font(.system(size: t.fontSize * scale, weight: .semibold))
-                    .foregroundStyle(t.color)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(t.highlightColor.opacity(t.highlightOpacity))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                } else {
-                  Text(t.text)
-                    .font(.system(size: t.fontSize * scale, weight: .semibold))
-                    .foregroundStyle(t.color)
+              Canvas { context, _ in
+                context.withCGContext { cgContext in
+                  cgContext.translateBy(x: rect.minX, y: rect.minY)
+                  cgContext.scaleBy(x: scale, y: scale)
+                  AnnotationTextLayout.draw(t, in: cgContext)
                 }
               }
-              .offset(x: pos.x, y: pos.y)
             }
           }
 
@@ -958,18 +1049,13 @@ struct EditorCanvasView: View {
             if pending?.kind == .callout, editingID == c.id {
               EmptyView()
             } else {
-              let vr = CGRect(
-                x: rect.origin.x + c.rect.minX * scale,
-                y: rect.origin.y + c.rect.minY * scale,
-                width: c.rect.width * scale,
-                height: c.rect.height * scale
-              )
-              let inset = vr.insetBy(dx: 14, dy: 12)
-              Text(c.text)
-                .font(.system(size: c.fontSize * scale, weight: .semibold))
-                .foregroundStyle(c.textColor)
-                .frame(width: inset.width, height: inset.height, alignment: .topLeading)
-                .offset(x: inset.minX, y: inset.minY)
+              Canvas { context, _ in
+                context.withCGContext { cgContext in
+                  cgContext.translateBy(x: rect.minX, y: rect.minY)
+                  cgContext.scaleBy(x: scale, y: scale)
+                  AnnotationTextLayout.drawText(in: c, context: cgContext)
+                }
+              }
             }
           }
 
@@ -1005,17 +1091,14 @@ struct EditorCanvasView: View {
 
       // Draw active freehand stroke while drawing
       if let activeStroke = doc.activeFreehandStroke, activeStroke.points.count >= 2 {
-        Canvas { ctx, size in
-          var path = Path()
-          let firstPt = CGPoint(x: rect.origin.x + activeStroke.points[0].x * scale, y: rect.origin.y + activeStroke.points[0].y * scale)
-          path.move(to: firstPt)
-          for pt in activeStroke.points.dropFirst() {
-            let vpt = CGPoint(x: rect.origin.x + pt.x * scale, y: rect.origin.y + pt.y * scale)
-            path.addLine(to: vpt)
+        Canvas { ctx, _ in
+          ctx.withCGContext { cgContext in
+            cgContext.saveGState()
+            defer { cgContext.restoreGState() }
+            cgContext.translateBy(x: rect.minX, y: rect.minY)
+            cgContext.scaleBy(x: scale, y: scale)
+            FreehandGeometry(activeStroke).draw(in: cgContext)
           }
-          let lw = activeStroke.stroke.lineWidth * scale
-          let opacity: Double = activeStroke.isHighlighter ? 0.4 : 1.0
-          ctx.stroke(path, with: .color(activeStroke.stroke.color.opacity(opacity)), style: .init(lineWidth: lw, lineCap: .round, lineJoin: .round))
         }
         .allowsHitTesting(false)
       }
@@ -1036,7 +1119,10 @@ struct EditorCanvasView: View {
 
   // Arrowheads are drawn inline in the arrow case for better joins.
 
-  private func drawSelection(for annotation: Annotation, context: inout GraphicsContext, scale: CGFloat, offset: CGPoint) {
+  private func drawSelection(
+    for annotation: Annotation, context: inout GraphicsContext, scale: CGFloat,
+    offset: CGPoint, showHandles: Bool
+  ) {
     let dash: [CGFloat] = [6, 4]
     let stroke = StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round, miterLimit: 2, dash: dash, dashPhase: 0)
 
@@ -1057,40 +1143,70 @@ struct EditorCanvasView: View {
       drawHandle(at: s, context: &context)
       drawHandle(at: e, context: &context)
 
+    case .loupe(let loupe):
+      let center = CGPoint(
+        x: offset.x + loupe.center.x * scale, y: offset.y + loupe.center.y * scale
+      )
+      let radius = loupe.radius * scale
+      let lensRect = CGRect(
+        x: center.x - radius, y: center.y - radius,
+        width: radius * 2, height: radius * 2
+      )
+      context.stroke(Path(ellipseIn: lensRect), with: .color(.blue.opacity(0.85)), style: stroke)
+      if showHandles {
+        drawHandle(at: CGPoint(x: center.x + radius, y: center.y), context: &context)
+      }
+
     case .arrow(let a):
       let s = CGPoint(x: offset.x + a.start.x * scale, y: offset.y + a.start.y * scale)
       let e = CGPoint(x: offset.x + a.end.x * scale, y: offset.y + a.end.y * scale)
-      var p = Path(); p.move(to: s); p.addLine(to: e)
+      let transform = CGAffineTransform(a: scale, b: 0, c: 0, d: scale, tx: offset.x, ty: offset.y)
+      let p = Path(ArrowGeometry(a).path).applying(transform)
       context.stroke(p, with: .color(.blue.opacity(0.85)), style: stroke)
-      drawHandle(at: s, context: &context)
-      drawHandle(at: e, context: &context)
+      if showHandles {
+        drawHandle(at: s, context: &context)
+        drawHandle(at: e, context: &context)
+        let bend = CGPoint(x: offset.x + a.midpoint.x * scale, y: offset.y + a.midpoint.y * scale)
+        let bendRect = CGRect(x: bend.x - 4, y: bend.y - 4, width: 8, height: 8)
+        context.fill(Path(ellipseIn: bendRect), with: .color(.white))
+        context.stroke(Path(ellipseIn: bendRect), with: .color(.green), lineWidth: 1.5)
+      }
 
     case .rect(let r):
       let vr = CGRect(x: offset.x + r.rect.minX * scale, y: offset.y + r.rect.minY * scale, width: r.rect.width * scale, height: r.rect.height * scale)
       context.stroke(Path(vr), with: .color(.blue.opacity(0.85)), style: stroke)
-      drawRectHandles(rect: vr, context: &context)
+      if showHandles { drawRectHandles(rect: vr, context: &context) }
 
     case .ellipse(let e):
       let vr = CGRect(x: offset.x + e.rect.minX * scale, y: offset.y + e.rect.minY * scale, width: e.rect.width * scale, height: e.rect.height * scale)
       context.stroke(Path(ellipseIn: vr), with: .color(.blue.opacity(0.85)), style: stroke)
-      drawRectHandles(rect: vr, context: &context)
+      if showHandles { drawRectHandles(rect: vr, context: &context) }
 
     case .callout(let c):
       let vr = CGRect(x: offset.x + c.rect.minX * scale, y: offset.y + c.rect.minY * scale, width: c.rect.width * scale, height: c.rect.height * scale)
-      context.stroke(Path(roundedRect: vr, cornerRadius: 14), with: .color(.blue.opacity(0.85)), style: stroke)
-      drawRectHandles(rect: vr, context: &context)
+      let geometry = CalloutGeometry(c)
+      let transform = CGAffineTransform(a: scale, b: 0, c: 0, d: scale, tx: offset.x, ty: offset.y)
+      context.stroke(Path(geometry.outlinePath).applying(transform), with: .color(.blue.opacity(0.85)), style: stroke)
+      if showHandles {
+        drawRectHandles(rect: vr, context: &context)
+        if let tailTip = c.tailTip {
+          drawHandle(at: CGPoint(x: offset.x + tailTip.x * scale, y: offset.y + tailTip.y * scale), context: &context)
+        }
+      }
 
     case .blur(let b):
       let vr = CGRect(x: offset.x + b.rect.minX * scale, y: offset.y + b.rect.minY * scale, width: b.rect.width * scale, height: b.rect.height * scale)
       context.stroke(Path(vr), with: .color(.blue.opacity(0.85)), style: stroke)
-      drawRectHandles(rect: vr, context: &context)
+      if showHandles { drawRectHandles(rect: vr, context: &context) }
 
     case .text(let t):
-      let pos = CGPoint(x: offset.x + t.position.x * scale, y: offset.y + t.position.y * scale)
-      let font = NSFont.systemFont(ofSize: t.fontSize * scale, weight: .semibold)
-      let attrs: [NSAttributedString.Key: Any] = [.font: font]
-      let m = (t.text as NSString).size(withAttributes: attrs)
-      let r = CGRect(x: pos.x - 6, y: pos.y - 6, width: m.width + 12, height: m.height + 12)
+      let bounds = AnnotationTextLayout.textBounds(t)
+      let r = CGRect(
+        x: offset.x + bounds.minX * scale - 6,
+        y: offset.y + bounds.minY * scale - 6,
+        width: bounds.width * scale + 12,
+        height: bounds.height * scale + 12
+      )
       context.stroke(Path(roundedRect: r, cornerRadius: 10), with: .color(.blue.opacity(0.85)), style: stroke)
 
     case .line(let l):
@@ -1098,25 +1214,25 @@ struct EditorCanvasView: View {
       let e = CGPoint(x: offset.x + l.end.x * scale, y: offset.y + l.end.y * scale)
       var p = Path(); p.move(to: s); p.addLine(to: e)
       context.stroke(p, with: .color(.blue.opacity(0.85)), style: stroke)
-      drawHandle(at: s, context: &context)
-      drawHandle(at: e, context: &context)
+      if showHandles {
+        drawHandle(at: s, context: &context)
+        drawHandle(at: e, context: &context)
+      }
 
     case .freehand(let f):
-      guard f.points.count >= 2 else { break }
-      // Draw bounding box around freehand stroke
-      let xs = f.points.map { $0.x }
-      let ys = f.points.map { $0.y }
-      let minX = (xs.min() ?? 0) * scale + offset.x
-      let maxX = (xs.max() ?? 0) * scale + offset.x
-      let minY = (ys.min() ?? 0) * scale + offset.y
-      let maxY = (ys.max() ?? 0) * scale + offset.y
-      let boundingRect = CGRect(x: minX - 4, y: minY - 4, width: maxX - minX + 8, height: maxY - minY + 8)
+      let geometry = FreehandGeometry(f)
+      guard !geometry.path.isEmpty else { break }
+      let bounds = geometry.bounds
+      let boundingRect = CGRect(
+        x: bounds.minX * scale + offset.x - 4, y: bounds.minY * scale + offset.y - 4,
+        width: bounds.width * scale + 8, height: bounds.height * scale + 8
+      )
       context.stroke(Path(boundingRect), with: .color(.blue.opacity(0.85)), style: stroke)
 
     case .spotlight(let sp):
       let vr = CGRect(x: offset.x + sp.rect.minX * scale, y: offset.y + sp.rect.minY * scale, width: sp.rect.width * scale, height: sp.rect.height * scale)
       context.stroke(Path(vr), with: .color(.blue.opacity(0.85)), style: stroke)
-      drawRectHandles(rect: vr, context: &context)
+      if showHandles { drawRectHandles(rect: vr, context: &context) }
 
     case .counter(let c):
       let center = CGPoint(x: offset.x + c.center.x * scale, y: offset.y + c.center.y * scale)
@@ -1133,7 +1249,7 @@ struct EditorCanvasView: View {
     case .imageLayer(let img):
       let vr = CGRect(x: offset.x + img.rect.minX * scale, y: offset.y + img.rect.minY * scale, width: img.rect.width * scale, height: img.rect.height * scale)
       context.stroke(Path(vr), with: .color(.blue.opacity(0.85)), style: stroke)
-      drawRectHandles(rect: vr, context: &context)
+      if showHandles { drawRectHandles(rect: vr, context: &context) }
     }
   }
 
@@ -1174,6 +1290,7 @@ struct EditorCanvasView: View {
     case .arrow(let a):
       if near(a.start) { return HandleHit(kind: .arrowStart) }
       if near(a.end) { return HandleHit(kind: .arrowEnd) }
+      if near(a.midpoint) { return HandleHit(kind: .arrowBend) }
       return nil
 
     case .rect(let r):
@@ -1185,6 +1302,7 @@ struct EditorCanvasView: View {
         .map { HandleHit(kind: .rect($0)) }
 
     case .callout(let c):
+      if let tailTip = c.tailTip, near(tailTip) { return HandleHit(kind: .calloutTail) }
       return hitRectHandle(point: point, rect: c.rect, hitRadiusImg: hitRadiusImg)
         .map { HandleHit(kind: .rect($0)) }
 
@@ -1217,6 +1335,10 @@ struct EditorCanvasView: View {
     case .imageLayer(let img):
       return hitRectHandle(point: point, rect: img.rect, hitRadiusImg: hitRadiusImg)
         .map { HandleHit(kind: .rect($0)) }
+
+    case .loupe(let loupe):
+      let radiusHandle = CGPoint(x: loupe.center.x + loupe.radius, y: loupe.center.y)
+      return near(radiusHandle) ? HandleHit(kind: .loupeRadius) : nil
 
     default:
       return nil
@@ -1265,7 +1387,8 @@ struct EditorCanvasView: View {
       if isShiftDown {
         newStart = snap45(from: o.end, to: current)
       }
-      a.start = newStart
+      a = o
+      a.moveEndpoint(start: newStart, end: o.end)
       annotation = .arrow(a)
 
     case (.arrowEnd, .arrow(let o), .arrow(var a)):
@@ -1273,8 +1396,21 @@ struct EditorCanvasView: View {
       if isShiftDown {
         newEnd = snap45(from: o.start, to: current)
       }
-      a.end = newEnd
+      a = o
+      a.moveEndpoint(start: o.start, end: newEnd)
       annotation = .arrow(a)
+
+    case (.arrowBend, .arrow, .arrow(var a)):
+      a.bendPoint = current
+      annotation = .arrow(a)
+
+    case (.loupeRadius, .loupe(let original), .loupe(var loupe)):
+      loupe.radius = max(12, hypot(current.x - original.center.x, current.y - original.center.y))
+      annotation = .loupe(loupe)
+
+    case (.calloutTail, .callout, .callout(var callout)):
+      callout.tailTip = current
+      annotation = .callout(callout)
 
     case (.rect(let h), .rect(let o), .rect(var r)):
       r.rect = clampRect(resizedRect(from: o.rect, handle: h, to: current, constrainSquare: isShiftDown))
@@ -1386,16 +1522,11 @@ struct EditorCanvasView: View {
         let dx = point.x - cx, dy = point.y - cy
         if (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1 { return e.id }
       case .callout(let c):
-        if c.rect.insetBy(dx: -8, dy: -8).contains(point) { return c.id }
+        if CalloutGeometry(c).contains(point, tolerance: 8) { return c.id }
       case .arrow(let ar):
-        if distancePointToSegment(p: point, a: ar.start, b: ar.end) <= 10 { return ar.id }
+        if ArrowGeometry(ar).contains(point, tolerance: 10) { return ar.id }
       case .text(let t):
-        let padX: CGFloat = t.highlighted ? 8 : 0
-        let padY: CGFloat = t.highlighted ? 6 : 0
-        let approxWidth = CGFloat(t.text.count) * t.fontSize * 0.6 + padX * 2
-        let approxHeight = t.fontSize * 1.2 + padY * 2
-        let approx = CGRect(x: t.position.x, y: t.position.y, width: max(30, approxWidth), height: max(20, approxHeight))
-        if approx.insetBy(dx: -8, dy: -8).contains(point) { return t.id }
+        if AnnotationTextLayout.textBounds(t).insetBy(dx: -8, dy: -8).contains(point) { return t.id }
 
       case .blur(let b):
         if b.rect.insetBy(dx: -8, dy: -8).contains(point) { return b.id }
@@ -1416,12 +1547,7 @@ struct EditorCanvasView: View {
         if distancePointToSegment(p: point, a: l.start, b: l.end) <= 10 { return l.id }
 
       case .freehand(let f):
-        // Check distance to the path
-        for i in 0..<(f.points.count - 1) {
-          if distancePointToSegment(p: point, a: f.points[i], b: f.points[i + 1]) <= max(10, f.stroke.lineWidth / 2) {
-            return f.id
-          }
-        }
+        if FreehandGeometry(f).contains(point, tolerance: 10) { return f.id }
 
       case .spotlight(let sp):
         if sp.rect.insetBy(dx: -8, dy: -8).contains(point) { return sp.id }
@@ -1435,6 +1561,10 @@ struct EditorCanvasView: View {
         
       case .imageLayer(let img):
         if img.rect.insetBy(dx: -8, dy: -8).contains(point) { return img.id }
+      case .loupe(let loupe):
+        if LoupeGeometry.contains(point, loupe: loupe, tolerance: 8) {
+          return loupe.id
+        }
       }
     }
     return nil
@@ -1457,62 +1587,7 @@ struct EditorCanvasView: View {
   }
 
   private func applyMove(delta: CGPoint, annotation: inout Annotation) {
-    switch annotation {
-    case .rect(var r):
-      r.rect = r.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .rect(r)
-    case .ellipse(var e):
-      e.rect = e.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .ellipse(e)
-    case .callout(var c):
-      c.rect = c.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .callout(c)
-    case .arrow(var a):
-      a.start = CGPoint(x: a.start.x + delta.x, y: a.start.y + delta.y)
-      a.end = CGPoint(x: a.end.x + delta.x, y: a.end.y + delta.y)
-      annotation = .arrow(a)
-    case .text(var t):
-      t.position = CGPoint(x: t.position.x + delta.x, y: t.position.y + delta.y)
-      annotation = .text(t)
-
-    case .blur(var b):
-      b.rect = b.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .blur(b)
-
-    case .step(var s):
-      s.center = CGPoint(x: s.center.x + delta.x, y: s.center.y + delta.y)
-      annotation = .step(s)
-
-    case .measurement(var m):
-      m.start = CGPoint(x: m.start.x + delta.x, y: m.start.y + delta.y)
-      m.end = CGPoint(x: m.end.x + delta.x, y: m.end.y + delta.y)
-      annotation = .measurement(m)
-
-    case .line(var l):
-      l.start = CGPoint(x: l.start.x + delta.x, y: l.start.y + delta.y)
-      l.end = CGPoint(x: l.end.x + delta.x, y: l.end.y + delta.y)
-      annotation = .line(l)
-
-    case .freehand(var f):
-      f.points = f.points.map { CGPoint(x: $0.x + delta.x, y: $0.y + delta.y) }
-      annotation = .freehand(f)
-
-    case .spotlight(var sp):
-      sp.rect = sp.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .spotlight(sp)
-
-    case .counter(var c):
-      c.center = CGPoint(x: c.center.x + delta.x, y: c.center.y + delta.y)
-      annotation = .counter(c)
-
-    case .emoji(var e):
-      e.position = CGPoint(x: e.position.x + delta.x, y: e.position.y + delta.y)
-      annotation = .emoji(e)
-      
-    case .imageLayer(var img):
-      img.rect = img.rect.offsetBy(dx: delta.x, dy: delta.y)
-      annotation = .imageLayer(img)
-    }
+    annotation.translate(by: delta)
   }
 }
 
@@ -1522,8 +1597,6 @@ private struct InlineTextEditorOverlay: View {
   let targetID: UUID
   let rect: CGRect
   let scale: CGFloat
-
-  @FocusState private var focused: Bool
 
   private var textBinding: Binding<String> {
     Binding(
@@ -1574,38 +1647,25 @@ private struct InlineTextEditorOverlay: View {
     }
     .onAppear {
       doc.beginEditSessionIfNeeded()
-      DispatchQueue.main.async {
-        focused = true
-      }
     }
     .onChange(of: pending.id) { _ in
       doc.beginEditSessionIfNeeded()
-      DispatchQueue.main.async {
-        focused = true
-      }
     }
   }
 
   private var inlineTextField: some View {
     let (fontSize, color, highlighted, highlightColor, highlightOpacity) = currentTextStyle
 
-    return Group {
-      if #available(macOS 13.0, *) {
-        TextField("Text", text: textBinding, axis: .vertical)
-          .lineLimit(1...4)
-      } else {
-        TextField("Text", text: textBinding)
-      }
-    }
-    .focused($focused)
-    .font(.system(size: fontSize, weight: .semibold))
-    .foregroundStyle(color)
-    .textFieldStyle(.plain)
-    // Keep the inline editor only as wide as the content (clamped to the image bounds).
-    .frame(width: textFieldWidth, alignment: .leading)
-    .fixedSize(horizontal: true, vertical: false)
-    .padding(.horizontal, 8)
-    .padding(.vertical, 6)
+    let padding = highlighted ? AnnotationTextLayout.highlightPadding : .zero
+    return AnnotationTextEditor(
+      text: textBinding, fontSize: fontSize / scale, color: color,
+      wraps: false, onCommit: doc.commitPendingTextInput, onCancel: doc.cancelPendingTextInput
+    )
+    .frame(width: textFieldWidth / scale, height: textFieldHeight / scale, alignment: .topLeading)
+    .scaleEffect(scale, anchor: .topLeading)
+    .frame(width: textFieldWidth, height: textFieldHeight, alignment: .topLeading)
+    .padding(.horizontal, padding.width * scale)
+    .padding(.vertical, padding.height * scale)
     .background(
       Group {
         if highlighted {
@@ -1620,40 +1680,24 @@ private struct InlineTextEditorOverlay: View {
       RoundedRectangle(cornerRadius: 10)
         .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
     )
-    .onSubmit {
-      doc.commitPendingTextInput()
-    }
-    .onExitCommand {
-      doc.cancelPendingTextInput()
-    }
+    .help("Return adds a line; Command-Return finishes editing; Escape cancels")
   }
 
   private var inlineCalloutField: some View {
     guard let callout = currentCallout else { return AnyView(EmptyView()) }
 
-    let vr = CGRect(
-      x: rect.origin.x + callout.rect.minX * scale,
-      y: rect.origin.y + callout.rect.minY * scale,
-      width: callout.rect.width * scale,
-      height: callout.rect.height * scale
+    let modelInset = AnnotationTextLayout.calloutTextRect(callout)
+    let inset = CGRect(
+      x: rect.minX + modelInset.minX * scale,
+      y: rect.minY + modelInset.minY * scale,
+      width: modelInset.width * scale, height: modelInset.height * scale
     )
-    let inset = vr.insetBy(dx: 14, dy: 12)
-    let fontSize = callout.fontSize * scale
-
-    let field = Group {
-      if #available(macOS 13.0, *) {
-        TextField("Text", text: textBinding, axis: .vertical)
-          .lineLimit(1...6)
-      } else {
-        TextField("Text", text: textBinding)
-      }
-    }
-    .focused($focused)
-    .font(.system(size: fontSize, weight: .semibold))
-    .foregroundStyle(callout.textColor)
-    .textFieldStyle(.plain)
-    .padding(.horizontal, 4)
-    .padding(.vertical, 2)
+    let field = AnnotationTextEditor(
+      text: textBinding, fontSize: callout.fontSize, color: callout.textColor,
+      wraps: true, onCommit: doc.commitPendingTextInput, onCancel: doc.cancelPendingTextInput
+    )
+    .frame(width: modelInset.width, height: modelInset.height, alignment: .topLeading)
+    .scaleEffect(scale, anchor: .topLeading)
     .frame(width: inset.width, height: inset.height, alignment: .topLeading)
     .background(Color.black.opacity(0.18))
     .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -1662,40 +1706,25 @@ private struct InlineTextEditorOverlay: View {
         .strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
     )
     .offset(x: inset.minX, y: inset.minY)
-    .onSubmit {
-      doc.commitPendingTextInput()
-    }
-    .onExitCommand {
-      doc.cancelPendingTextInput()
-    }
+    .help("Return adds a line; Command-Return finishes editing; Escape cancels")
 
     return AnyView(field)
   }
 
   private var textFieldWidth: CGFloat {
-    let (fontSize, _, _, _, _) = currentTextStyle
-    let font = NSFont.systemFont(ofSize: fontSize, weight: .semibold)
+    let (fontSize, color, _, _, _) = currentTextStyle
+    let layout = AnnotationTextLayout(text: textBinding.wrappedValue, fontSize: fontSize / scale, color: color)
+    return max(60, layout.size.width + 4) * scale
+  }
 
-    let raw = textBinding.wrappedValue
-    let textForMeasure = raw.isEmpty ? "Text" : raw
-    let lines = textForMeasure.split(separator: "\n", omittingEmptySubsequences: false)
-    let widestLine = lines
-      .map { (String($0) as NSString).size(withAttributes: [.font: font]).width }
-      .max() ?? 0
-
-    // The TextField also has horizontal padding; account for that.
-    let ideal = max(60, widestLine + 16)
-
-    // Clamp so it never runs off the fitted image rect.
-    let availableRight = max(60, rect.maxX - textOrigin.x - 8)
-    return min(ideal, availableRight)
+  private var textFieldHeight: CGFloat {
+    let (fontSize, color, _, _, _) = currentTextStyle
+    let layout = AnnotationTextLayout(text: textBinding.wrappedValue, fontSize: fontSize / scale, color: color)
+    return max(fontSize / scale * 1.2, layout.size.height) * scale
   }
 
   private var textFieldOrigin: CGPoint {
-    // If we're near the right edge, shift left so the editor stays in-bounds.
-    let x = min(textOrigin.x, rect.maxX - textFieldWidth - 8)
-    let clampedX = max(rect.minX + 4, x)
-    return CGPoint(x: clampedX, y: textOrigin.y)
+    textOrigin
   }
 
   private var textOrigin: CGPoint {

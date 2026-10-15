@@ -21,8 +21,6 @@ struct CardContentView: View {
 
   // MARK: Capture
 
-  private var framed: Bool { style.theme != .glass }
-
   private var captureBody: some View {
     VStack(spacing: 0) {
       ZStack {
@@ -38,24 +36,10 @@ struct CardContentView: View {
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .clipped()
-      .clipShape(RoundedRectangle(cornerRadius: framed ? 2 : 10, style: .continuous))
-      .padding(framed ? 7 : 0)
-
-      if framed, let caption = captionText {
-        Text(caption)
-          .font(.system(size: 11, weight: .medium, design: .rounded))
-          .foregroundStyle(Color(white: 0.25))
-          .lineLimit(1)
-          .truncationMode(.middle)
-          .padding(.horizontal, 10)
-          .padding(.bottom, 7)
-          .padding(.top, -2)
-          .frame(maxWidth: .infinity, alignment: .leading)
-      }
+      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
-    .background(framed ? Color(white: 0.985) : .clear)
     .overlay(alignment: .bottomLeading) {
-      if !framed, let caption = captionText {
+      if let caption = captionText {
         Text(caption)
           .font(.system(size: 11, weight: .semibold, design: .rounded))
           .foregroundStyle(.white)
@@ -311,7 +295,7 @@ struct BoardCardView: View {
     .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     .overlay {
       RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        .strokeBorder(isSelected ? Color.accentColor : Color.white.opacity(style.theme == .glass ? 0.12 : 0), lineWidth: isSelected ? 2.5 : 1)
+        .strokeBorder(isSelected ? Color.accentColor : Color.white.opacity(0.12), lineWidth: isSelected ? 2.5 : 1)
     }
     .overlay { if isDone { doneOverlay } }
     .overlay { if isPinnedOut { pinnedOverlay } }
@@ -319,11 +303,6 @@ struct BoardCardView: View {
       if let todo = card.todo {
         TodoCheckbox(state: todo) { vm.toggleTodo(card.id) }
           .offset(x: -8, y: -8)
-      }
-    }
-    .overlay(alignment: .top) {
-      if style.usesPushPins, card.kind != .note || style.theme == .cork {
-        PushPin(color: pinColor).offset(y: -5)
       }
     }
     .overlay(alignment: .bottomLeading) {
@@ -359,17 +338,12 @@ struct BoardCardView: View {
   private var cornerRadius: CGFloat {
     switch card.kind {
     case .note: return 3
-    case .capture: return style.theme == .glass ? 10 : 3
-    case .link, .text: return style.theme == .glass ? 12 : 6
+    case .capture: return 10
+    case .link, .text: return 12
     }
   }
 
   private var framedOffset: CGFloat { 0 }
-
-  private var pinColor: Color {
-    let colors: [Color] = [.red, .blue, .green, .orange, .purple]
-    return colors[Int(card.id.uuid.0) % colors.count]
-  }
 
   private var helpText: String {
     var parts: [String] = []

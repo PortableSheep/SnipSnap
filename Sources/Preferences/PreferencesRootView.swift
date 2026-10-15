@@ -96,13 +96,6 @@ private struct BoardPreferencesView: View {
       PreferenceHeader(title: "Board", subtitle: "A corkboard for screenshots, links, and notes you need to remember")
 
       PreferenceSection("Appearance") {
-        PreferenceRow(icon: "paintpalette", title: "Theme", subtitle: "Background style of the board") {
-          Picker("", selection: $prefs.theme) {
-            ForEach(BoardTheme.allCases) { Text($0.label).tag($0) }
-          }
-          .labelsHidden()
-          .frame(width: 140)
-        }
         PreferenceRow(icon: "rotate.right", title: "Tilt cards", subtitle: "Give new cards a slight, hand-pinned angle") {
           Toggle("", isOn: $prefs.tiltCards).toggleStyle(.switch).controlSize(.small)
         }
@@ -282,8 +275,18 @@ private struct OverlaysPreferencesView: View {
 private struct ShortcutsPreferencesView: View {
   @ObservedObject var hotkeyPrefs: HotkeyPreferencesStore
   @State private var recordingAction: HotkeyAction?
-  @State private var showConflictAlert = false
-  @State private var conflictMessage = ""
+  @State private var pending: PendingShortcut?
+
+  private struct PendingShortcut {
+    enum Issue {
+      case duplicate(HotkeyAction)
+      case reserved(String)
+      case unsupported
+    }
+    let action: HotkeyAction
+    let binding: HotkeyBinding
+    let issue: Issue
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 24) {
@@ -301,19 +304,8 @@ private struct ShortcutsPreferencesView: View {
                 recordingAction = action
               },
               onStopRecording: { newBinding in
-                if let newBinding {
-                  // Check for conflicts
-                  for otherAction in HotkeyAction.allCases where otherAction != action {
-                    if hotkeyPrefs.binding(for: otherAction) == newBinding {
-                      conflictMessage = "This shortcut is already used by \"\(otherAction.label)\""
-                      showConflictAlert = true
-                      recordingAction = nil
-                      return
-                    }
-                  }
-                  hotkeyPrefs.setBinding(newBinding, for: action)
-                }
                 recordingAction = nil
+                if let newBinding { propose(newBinding, for: action) }
               }
             )
           }
@@ -330,7 +322,7 @@ private struct ShortcutsPreferencesView: View {
 
         Spacer()
 
-        Text("Click a shortcut, then press new keys")
+        Text("Click a shortcut, then press new keys. Esc cancels.")
           .font(.system(size: 12))
           .foregroundColor(.secondary)
       }
@@ -339,10 +331,60 @@ private struct ShortcutsPreferencesView: View {
       Spacer()
     }
     .frame(maxWidth: .infinity, alignment: .leading)
-    .alert("Shortcut Conflict", isPresented: $showConflictAlert) {
-      Button("OK", role: .cancel) {}
-    } message: {
-      Text(conflictMessage)
+    .onChange(of: recordingAction) { action in
+      hotkeyPrefs.isRecordingShortcut = action != nil
+    }
+    .onDisappear {
+      recordingAction = nil
+      hotkeyPrefs.isRecordingShortcut = false
+    }
+    .alert(alertTitle, isPresented: Binding(
+      get: { pending != nil },
+      set: { if !$0 { pending = nil } }
+    ), presenting: pending) { pending in
+      switch pending.issue {
+      case .duplicate(let other):
+        Button("Swap Shortcuts") {
+          hotkeyPrefs.swapBinding(pending.binding, for: pending.action, with: other)
+        }
+        Button("Cancel", role: .cancel) {}
+      case .reserved:
+        Button("Use Anyway") { hotkeyPrefs.setBinding(pending.binding, for: pending.action) }
+        Button("Cancel", role: .cancel) {}
+      case .unsupported:
+        Button("OK", role: .cancel) {}
+      }
+    } message: { pending in
+      switch pending.issue {
+      case .duplicate(let other):
+        Text("\(pending.binding.displayString) is already used by \"\(other.label)\". Swap so \"\(other.label)\" uses \(hotkeyPrefs.binding(for: pending.action).displayString)?")
+      case .reserved(let name):
+        Text("\(pending.binding.displayString) is used by \(name). SnipSnap would take it over everywhere while running.")
+      case .unsupported:
+        Text("That key can't be used for a global shortcut. Try a letter, number, arrow, Space, or function key.")
+      }
+    }
+  }
+
+  private var alertTitle: String {
+    switch pending?.issue {
+    case .duplicate: return "Shortcut Already in Use"
+    case .reserved: return "Shortcut Conflicts with macOS"
+    case .unsupported: return "Unsupported Key"
+    case nil: return ""
+    }
+  }
+
+  private func propose(_ binding: HotkeyBinding, for action: HotkeyAction) {
+    guard binding != hotkeyPrefs.binding(for: action) else { return }
+    if !binding.isDisplayable {
+      pending = PendingShortcut(action: action, binding: binding, issue: .unsupported)
+    } else if let other = hotkeyPrefs.conflictingAction(for: binding, excluding: action) {
+      pending = PendingShortcut(action: action, binding: binding, issue: .duplicate(other))
+    } else if let name = binding.reservedShortcutName {
+      pending = PendingShortcut(action: action, binding: binding, issue: .reserved(name))
+    } else {
+      hotkeyPrefs.setBinding(binding, for: action)
     }
   }
 }

@@ -245,21 +245,6 @@ final class BoardStore: ObservableObject {
     }
   }
 
-  /// Adds Todo / Doing / Done zones side by side starting at `origin`.
-  func applyTodoTemplate(origin: CGPoint, zoneSize: CGSize = CGSize(width: 320, height: 520)) {
-    let titles = ["Todo", "Doing", "Done"]
-    let colors = ["#5E9CFF", "#FFB547", "#4CD787"]
-    for (i, title) in titles.enumerated() {
-      let frame = CGRect(
-        x: origin.x + CGFloat(i) * (zoneSize.width + 24),
-        y: origin.y,
-        width: zoneSize.width,
-        height: zoneSize.height
-      )
-      addZone(title: title, frame: frame, colorHex: colors[i])
-    }
-  }
-
   /// Zone whose frame contains the center of `rect` (topmost zone wins).
   func zoneID(containing rect: CGRect) -> UUID? {
     let center = CGPoint(x: rect.midX, y: rect.midY)

@@ -1,8 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Borderless non-activating panel that can still become key (so text fields and key
-/// shortcuts work) without pulling the user's current app out of focus.
+/// Borderless panel that can become key for text fields and keyboard shortcuts.
 final class KeyablePanel: NSPanel {
   override var canBecomeKey: Bool { true }
   override var canBecomeMain: Bool { false }
@@ -10,6 +9,7 @@ final class KeyablePanel: NSPanel {
 
 /// Hosts the corkboard SwiftUI view and accepts drops from other apps.
 private final class BoardContainerView: NSView {
+  override var acceptsFirstResponder: Bool { true }
   var onDrop: ((NSPasteboard, CGPoint) -> Bool)?
   private let highlight = CALayer()
 
@@ -59,6 +59,7 @@ final class BoardOverlayController {
   private let vm: BoardViewModel
   private var panel: KeyablePanel?
   private var monitors: [Any] = []
+  private var previousApplication: NSRunningApplication?
   private(set) var isVisible = false
 
   var onDidHide: (() -> Void)?
@@ -79,11 +80,14 @@ final class BoardOverlayController {
     vm.notch = BoardNotch(screen: screen)
 
     if !isVisible {
+      let frontmost = NSWorkspace.shared.frontmostApplication
+      previousApplication = frontmost?.bundleIdentifier == Bundle.main.bundleIdentifier ? nil : frontmost
       // Recreate the root view so appear animations replay and state is fresh.
       installContent(in: panel)
       panel.alphaValue = 0
-      panel.orderFrontRegardless()
-      panel.makeKey()
+      NSApp.activate(ignoringOtherApps: true)
+      panel.makeKeyAndOrderFront(nil)
+      panel.makeFirstResponder(panel.contentView)
       NSAnimationContext.runAnimationGroup { ctx in
         ctx.duration = 0.16
         panel.animator().alphaValue = 1
@@ -91,7 +95,8 @@ final class BoardOverlayController {
       installMonitors()
       isVisible = true
     } else {
-      panel.makeKey()
+      NSApp.activate(ignoringOtherApps: true)
+      panel.makeKeyAndOrderFront(nil)
     }
   }
 
@@ -110,7 +115,12 @@ final class BoardOverlayController {
     }, completionHandler: { [weak self] in
       Task { @MainActor in
         guard let self, !self.isVisible else { return }
+        let shouldRestoreFocus = NSApp.isActive && panel.isKeyWindow
         panel.orderOut(nil)
+        if shouldRestoreFocus {
+          self.previousApplication?.activate(options: [])
+        }
+        self.previousApplication = nil
         self.onDidHide?()
       }
     })
@@ -129,7 +139,7 @@ final class BoardOverlayController {
   private func makePanel() -> KeyablePanel {
     let panel = KeyablePanel(
       contentRect: .zero,
-      styleMask: [.borderless, .nonactivatingPanel],
+      styleMask: [.borderless],
       backing: .buffered,
       defer: false
     )
@@ -198,17 +208,8 @@ final class BoardOverlayController {
     let chars = event.charactersIgnoringModifiers?.lowercased() ?? ""
 
     if event.keyCode == 53 { // Esc
-      if vm.editingCardID != nil || vm.editingZoneID != nil {
-        vm.editingCardID = nil
-        vm.editingZoneID = nil
-        panel?.makeFirstResponder(nil)
-      } else if vm.detailCardID != nil {
-        vm.detailCardID = nil
-      } else if vm.isSearching {
-        vm.searchQuery = ""
-        panel?.makeFirstResponder(nil)
-      } else if !vm.selection.isEmpty {
-        vm.clearSelection()
+      if vm.dismissFocusedContent() {
+        panel?.makeFirstResponder(panel?.contentView)
       } else {
         hide()
       }
