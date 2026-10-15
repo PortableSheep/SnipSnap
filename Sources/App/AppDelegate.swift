@@ -89,6 +89,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     pinnedImages.restorePins()
     board.start()
+    NSApp.servicesProvider = self
+    NSUpdateDynamicServices()
 
     HotkeyPreferencesStore.shared.$bindings
       .dropFirst()
@@ -141,6 +143,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   private var cancellables: Set<AnyCancellable> = []
+
+  @objc func sendToBoard(
+    _ pasteboard: NSPasteboard,
+    userData: String?,
+    error: AutoreleasingUnsafeMutablePointer<NSString?>
+  ) {
+    guard let boardController else {
+      error.pointee = "SnipSnap Board is not ready. Please try again."
+      os_log(.error, log: appLog, "Board Service invoked before Board was ready")
+      return
+    }
+    let source = SourceContextProvider.snapshotFrontmostApp()
+    guard boardController.sendPasteboardToBoard(pasteboard, source: source) > 0 else {
+      error.pointee = "No supported content was provided. Select text, a link, an image, or a file and try again."
+      os_log(.error, log: appLog, "Board Service received no supported content")
+      return
+    }
+  }
 
   private var isRecording: Bool {
     isServiceRecording

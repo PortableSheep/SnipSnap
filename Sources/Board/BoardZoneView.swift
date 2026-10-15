@@ -19,7 +19,7 @@ struct BoardZoneView: View {
   var body: some View {
     ZStack(alignment: .topLeading) {
       RoundedRectangle(cornerRadius: 18, style: .continuous)
-        .fill(tint.opacity(style.theme == .paper ? 0.08 : 0.13))
+        .fill(tint.opacity(0.13))
         .overlay {
           RoundedRectangle(cornerRadius: 18, style: .continuous)
             .strokeBorder(tint.opacity(0.55), style: StrokeStyle(lineWidth: 1.5, dash: [7, 5]))

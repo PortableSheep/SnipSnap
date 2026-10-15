@@ -20,7 +20,7 @@ struct BoardCanvasView: View {
     self.prefs = vm.prefs
   }
 
-  private var style: BoardThemeStyle { BoardThemeStyle(theme: prefs.theme) }
+  private let style = BoardThemeStyle()
 
   var body: some View {
     ZStack {
@@ -86,7 +86,7 @@ struct BoardCanvasView: View {
   // MARK: - Backdrop & background gestures
 
   private var backdrop: some View {
-    BoardBackdrop(theme: prefs.theme)
+    BoardBackdrop()
       .ignoresSafeArea()
       .contentShape(Rectangle())
       .gesture(
@@ -227,17 +227,7 @@ private struct BoardToolbar: View {
 
       ToolbarButton(systemName: "note.text.badge.plus", help: "New note (double-click the board)") { vm.addNote() }
       ToolbarButton(systemName: "doc.on.clipboard", help: "Paste clipboard as card (⌘V)") { vm.paste(viewPoint: nil) }
-      Menu {
-        Button("Add Zone") { vm.addZone() }
-        Button("Add Todo · Doing · Done") { vm.addTodoTemplate() }
-      } label: {
-        Image(systemName: "rectangle.dashed.badge.record")
-      }
-      .menuStyle(.borderlessButton)
-      .menuIndicator(.hidden)
-      .fixedSize()
-      .frame(width: 30, height: 28)
-      .help("Zones")
+      ToolbarButton(systemName: "rectangle.dashed.badge.record", help: "Add zone") { vm.addZone() }
       ToolbarButton(systemName: "wand.and.stars", help: "Tidy up") { vm.tidyUp() }
 
       divider
@@ -264,10 +254,6 @@ private struct BoardToolbar: View {
         help: prefs.pinsHidden ? "Show pinned cards and images" : "Hide pinned cards and images"
       ) { vm.actions.togglePinsHidden() }
       Menu {
-        Picker("Theme", selection: $prefs.theme) {
-          ForEach(BoardTheme.allCases) { Text($0.label).tag($0) }
-        }
-        .pickerStyle(.inline)
         Toggle("Tilt Cards", isOn: $prefs.tiltCards)
         Divider()
         Button("Board Settings…") { vm.actions.showPreferences() }

@@ -96,13 +96,6 @@ private struct BoardPreferencesView: View {
       PreferenceHeader(title: "Board", subtitle: "A corkboard for screenshots, links, and notes you need to remember")
 
       PreferenceSection("Appearance") {
-        PreferenceRow(icon: "paintpalette", title: "Theme", subtitle: "Background style of the board") {
-          Picker("", selection: $prefs.theme) {
-            ForEach(BoardTheme.allCases) { Text($0.label).tag($0) }
-          }
-          .labelsHidden()
-          .frame(width: 140)
-        }
         PreferenceRow(icon: "rotate.right", title: "Tilt cards", subtitle: "Give new cards a slight, hand-pinned angle") {
           Toggle("", isOn: $prefs.tiltCards).toggleStyle(.switch).controlSize(.small)
         }

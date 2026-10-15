@@ -63,14 +63,6 @@ struct BoardStoreTests {
     #expect(store.zones.isEmpty)
   }
 
-  @Test("Todo template creates three zones")
-  func todoTemplate() {
-    let (store, dir) = makeStore()
-    defer { try? FileManager.default.removeItem(at: dir) }
-    store.applyTodoTemplate(origin: .zero)
-    #expect(store.zones.map(\.title) == ["Todo", "Doing", "Done"])
-  }
-
   @Test("Archive hides cards and clears pins; restore and purge work")
   func archiveRestorePurge() {
     let (store, dir) = makeStore()
@@ -117,6 +109,125 @@ struct BoardStoreTests {
         #expect(!frames[i].intersects(frames[j]))
       }
     }
+  }
+}
+
+@MainActor
+@Suite("Board interactions", .serialized)
+struct BoardInteractionTests {
+  private func makeModel() -> (BoardViewModel, URL) {
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("board-interaction-\(UUID().uuidString)")
+    let store = BoardStore(rootURL: dir, saveDelay: 0)
+    let defaults = UserDefaults(suiteName: dir.lastPathComponent)!
+    let prefs = BoardPreferencesStore(defaults: defaults)
+    prefs.fetchLinkPreviews = false
+    prefs.ocrBoardCards = false
+    let factory = CardFactory(store: store, tilt: { false })
+    let enrichment = BoardEnrichmentService(store: store, prefs: prefs)
+    return (BoardViewModel(store: store, prefs: prefs, factory: factory, enrichment: enrichment), dir)
+  }
+
+  private func cleanUp(_ dir: URL) {
+    UserDefaults.standard.removePersistentDomain(forName: dir.lastPathComponent)
+    try? FileManager.default.removeItem(at: dir)
+  }
+
+  @Test("Dismissing focused content clears editing and selection together", arguments: ["preview", "card", "zone"])
+  func dismissFocusedContent(_ focus: String) {
+    let (vm, dir) = makeModel()
+    defer { cleanUp(dir) }
+    let id = UUID()
+    vm.selection = [id]
+    switch focus {
+    case "preview":
+      vm.detailCardID = id
+      vm.editingCardID = id
+    case "card": vm.editingCardID = id
+    default: vm.editingZoneID = id
+    }
+    #expect(vm.dismissFocusedContent())
+    #expect(vm.detailCardID == nil)
+    #expect(vm.editingCardID == nil)
+    #expect(vm.editingZoneID == nil)
+    #expect(vm.selection.isEmpty)
+    #expect(!vm.dismissFocusedContent())
+  }
+
+  @Test("Board opens with keyboard focus; Escape closes focused content then board", arguments: [true, false])
+  func keyboardFocusAndEscape(_ preview: Bool) async throws {
+    let (vm, dir) = makeModel()
+    let overlay = BoardOverlayController(vm: vm)
+    defer { overlay.hide(); cleanUp(dir) }
+    let card = vm.store.add(vm.factory.noteCard(at: .zero, text: "Preview me"))
+    overlay.show()
+    let window = try #require(NSApp.keyWindow as? KeyablePanel)
+    #expect(!window.styleMask.contains(.nonactivatingPanel))
+    #expect(NSApp.isActive)
+    #expect(window.firstResponder === window.contentView)
+    vm.selection = [card.id]
+    if preview {
+      vm.detailCardID = card.id
+    } else {
+      vm.editingCardID = card.id
+      try await Task.sleep(nanoseconds: 100_000_000)
+      #expect(window.firstResponder is NSText)
+    }
+
+    let escape = try #require(NSEvent.keyEvent(
+      with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+      windowNumber: window.windowNumber, context: nil, characters: "\u{1b}",
+      charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53))
+    NSApp.sendEvent(escape)
+    #expect(vm.detailCardID == nil)
+    #expect(vm.editingCardID == nil)
+    #expect(vm.selection.isEmpty)
+    #expect(overlay.isVisible)
+    NSApp.sendEvent(escape)
+    #expect(!overlay.isVisible)
+    try await Task.sleep(nanoseconds: 200_000_000)
+  }
+
+  @Test("macOS Service declaration matches the registered provider and accepted pasteboard types")
+  func serviceRegistration() throws {
+    let services = try #require(Bundle.main.infoDictionary?["NSServices"] as? [[String: Any]])
+    let service = try #require(services.first)
+    #expect(service["NSMessage"] as? String == "sendToBoard")
+    #expect(service["NSPortName"] as? String == "SnipSnap")
+    #expect(service["NSSendTypes"] as? [String] == [
+      NSPasteboard.PasteboardType.string.rawValue,
+      NSPasteboard.PasteboardType.URL.rawValue,
+      NSPasteboard.PasteboardType.fileURL.rawValue,
+      NSPasteboard.PasteboardType.png.rawValue,
+      NSPasteboard.PasteboardType.tiff.rawValue
+    ])
+    let provider = try #require(NSApp.servicesProvider as? NSObject)
+    #expect(provider.responds(to: #selector(AppDelegate.sendToBoard(_:userData:error:))))
+  }
+
+  @Test("Service pasteboard creates and persists cards without changing the clipboard", arguments: [
+    "Selected text from another app", "https://example.com"
+  ])
+  func servicePasteboard(_ content: String) async throws {
+    let (vm, dir) = makeModel()
+    let controller = BoardController(pinnedImages: nil, store: vm.store, prefs: vm.prefs)
+    let pb = NSPasteboard(name: NSPasteboard.Name("board-service-\(UUID().uuidString)"))
+    defer { controller.hideBoard(); pb.releaseGlobally(); cleanUp(dir) }
+    controller.showBoard()
+    pb.setString(content, forType: .string)
+    let clipboardChangeCount = NSPasteboard.general.changeCount
+    let source = SourceContext(appName: "TextEdit", bundleID: "com.apple.TextEdit")
+    #expect(controller.sendPasteboardToBoard(pb, source: source) == 1)
+    let card = try #require(vm.store.cards.first)
+    #expect(card.kind == (content.hasPrefix("https://") ? .link : .text))
+    #expect(card.source?.appName == "TextEdit")
+    #expect(NSPasteboard.general.changeCount == clipboardChangeCount)
+    let reloaded = BoardStore(rootURL: dir, saveDelay: 0)
+    #expect(reloaded.cards.count == 1)
+    pb.clearContents()
+    #expect(controller.sendPasteboardToBoard(pb) == 0)
+    #expect(vm.store.cards.count == 1)
+    controller.hideBoard()
+    try await Task.sleep(nanoseconds: 200_000_000)
   }
 }
 

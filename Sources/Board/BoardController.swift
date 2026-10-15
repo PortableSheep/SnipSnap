@@ -93,11 +93,6 @@ final class BoardController {
       .sink { [weak self] _ in self?.syncPins() }
       .store(in: &cancellables)
 
-    prefs.$theme.dropFirst()
-      .receive(on: RunLoop.main)
-      .sink { [weak self] _ in self?.pins.refreshAll() }
-      .store(in: &cancellables)
-
     saveObserver = NotificationCenter.default.addObserver(forName: .editorDidSave, object: nil, queue: .main) { [weak self] note in
       guard let url = note.object as? URL else { return }
       Task { @MainActor in self?.handleEditorSave(url) }
@@ -205,6 +200,20 @@ final class BoardController {
 
   // MARK: - Quick add
 
+  @discardableResult
+  func sendPasteboardToBoard(_ pasteboard: NSPasteboard, source: SourceContext? = nil) -> Int {
+    let origin = overlay.isVisible
+      ? viewModel.insertionPoint()
+      : store.insertionOrigin(in: viewModel.visibleBoardRect.isEmpty ? CGRect(x: 0, y: 0, width: 1400, height: 900) : viewModel.visibleBoardRect)
+    let count = viewModel.addFromPasteboard(pasteboard, atBoardPoint: origin, source: source)
+    guard count > 0 else { return 0 }
+    store.saveNow()
+    let first = viewModel.selection.first.flatMap { store.card($0) }
+    let image = first.flatMap { store.thumbnail(for: $0) }
+    announce(count == 1 ? "Added to Board" : "\(count) cards added to Board", systemImage: "rectangle.stack.badge.plus", image: image)
+    return count
+  }
+
   /// "Send to Board" for an existing SnipSnap capture (strip, editor, pinned image).
   func sendCaptureToBoard(_ captureURL: URL, renderedImage: Data? = nil) {
     let metadata = metadataStore.load(for: captureURL)
@@ -226,16 +235,9 @@ final class BoardController {
   func clipboardToBoard() {
     Task { @MainActor in
       let source = await SourceContextProvider.snapshot(includeBrowserTab: prefs.captureBrowserContext)
-      let origin = overlay.isVisible
-        ? viewModel.insertionPoint()
-        : store.insertionOrigin(in: viewModel.visibleBoardRect.isEmpty ? CGRect(x: 0, y: 0, width: 1400, height: 900) : viewModel.visibleBoardRect)
-      let count = viewModel.addFromPasteboard(.general, atBoardPoint: origin, source: source)
+      let count = sendPasteboardToBoard(.general, source: source)
       if count == 0 {
         announce("Clipboard is empty", systemImage: "clipboard", image: nil)
-      } else {
-        let first = viewModel.selection.first.flatMap { store.card($0) }
-        let image = first.flatMap { store.thumbnail(for: $0) }
-        announce(count == 1 ? "Clipboard added to Board" : "\(count) cards added to Board", systemImage: "doc.on.clipboard", image: image)
       }
     }
   }

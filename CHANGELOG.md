@@ -12,11 +12,14 @@ All notable changes to SnipSnap will be documented here.
 - Editor: non-destructive Crop tool (⌘K; Return applies, Esc cancels, undoable) applied to every export/copy/share, Ellipse shortcut (O), remembered window size/position with an image-fitted default, and material sidebars matching the toolbar
 - Pinned images: opacity presets (100/75/50/30%) and click-through mode (hold ⌥ over the pin to interact again), both remembered across relaunches
 - Board toolbar moves clear of the display notch
+- Board uses only the dark glass background and no longer offers the Kanban template (existing cards and zones are preserved)
+- Board takes keyboard focus on open; Escape dismisses the card preview or editor, then hides the board on the next press
 
 ### ✨ Features
 
 - Add Board: a full-screen corkboard of screenshot, link, text, and note cards with todos, zones, search/OCR, always-on-top "Pin to Screen", hotkeys (⌘⇧B, ⌥⌘⇧V, ⌥⌘⇧P), optional hot corner, and Send to Board from the strip, editor, and pinned images
 - Record source app (and optionally browser tab) in capture metadata
+- Add "Send to SnipSnap Board" to macOS Services for selected text, links, images, and files in supported apps
 - Add auto hide to capture strip (`fa2bb22`)
 - Add updater (`1904b56`)
 - Add corner rounding. (`a358219`)

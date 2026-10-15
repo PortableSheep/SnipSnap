@@ -77,12 +77,13 @@ What makes it different:
 
 ### Board
 
-A full-screen corkboard for the stuff you need to remember — screenshots, links, copied text, and quick notes — pinned as free-form cards.
+A full-screen dark glass board for the stuff you need to remember — screenshots, links, copied text, and quick notes — pinned as free-form cards.
 
-- **Reveal anywhere** — Press ⌘⇧B or (optionally) push the pointer into a hot corner (Preferences › Board)
+- **Reveal anywhere** — Press ⌘⇧B or (optionally) push the pointer into a hot corner (Preferences › Board); the board takes keyboard focus immediately. Escape dismisses an open card or finishes editing; press it again to hide the board
 - **Quick add** — "Send to Board" from the strip, editor, or a pinned image; ⌥⌘⇧V turns the clipboard into a card; paste or drag & drop files, images, links, and text onto the board
 - **Context included** — Cards remember the source app and, optionally, the browser tab URL; links get titles, icons, and previews
-- **Todos & zones** — Any card can have a checkbox; drop labeled zones (e.g. Todo / Doing / Done) to group cards; Tidy Up arranges them
+- **Send from other apps** — Select text, a link, an image, or a file, then choose **Services › Send to SnipSnap Board** from the right-click or app menu. Availability depends on the app's Services support. If missing after installing, enable it in **System Settings › Keyboard › Keyboard Shortcuts › Services**; relaunch the source app if needed. In apps without Services, copy and use ⌥⌘⇧V
+- **Todos & zones** — Any card can have a checkbox; add a labeled zone to group cards; Tidy Up arranges them. The Kanban template has been removed; existing cards and zones are preserved
 - **Pin to Screen** — Pin any card as an always-on-top floating window; hide/show all pins at once with ⌥⌘⇧P
 - **Searchable** — On-device OCR makes text in screenshots searchable; Live Text works in the card inspector
 - **Private** — Stored locally in `~/Library/Application Support/SnipSnap/board/`

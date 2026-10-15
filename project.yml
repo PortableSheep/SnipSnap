@@ -98,6 +98,18 @@ targets:
         LSUIElement: true
         NSScreenCaptureUsageDescription: SnipSnap needs Screen Recording permission to capture your screen.
         NSAppleEventsUsageDescription: SnipSnap reads the active browser tab's URL and title so Board cards remember where they came from. This is optional and can be turned off in Preferences › Board.
+        NSServices:
+          - NSMenuItem:
+              default: Send to SnipSnap Board
+            NSMessage: sendToBoard
+            NSPortName: SnipSnap
+            NSRequiredContext: {}
+            NSSendTypes:
+              - public.utf8-plain-text
+              - public.url
+              - public.file-url
+              - public.png
+              - public.tiff
         SUFeedURL: https://portablesheep.github.io/SnipSnap/appcast.xml
         SUPublicEDKey: "F/ram4+XMkAhklEyc9TP5rCQn/h611jy3n6RdyRFl2Q="
         SUEnableAutomaticChecks: true
