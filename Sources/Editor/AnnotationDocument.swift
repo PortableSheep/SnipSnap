@@ -56,6 +56,22 @@ final class AnnotationDocument: ObservableObject {
   /// Track annotation IDs that were created from PII redaction
   private var piiRedactionAnnotationIDs: Set<UUID> = []
 
+  private var loupeSourceCache: (blurs: [BlurAnnotation], image: CGImage)?
+
+  /// Source image for loupes: the screenshot with blur/redactions applied, so magnifying
+  /// never reveals hidden pixels. Cached until the blur annotations change.
+  var loupeSourceImage: CGImage {
+    let blurs = annotations.compactMap { annotation -> BlurAnnotation? in
+      if case .blur(let blur) = annotation { return blur }
+      return nil
+    }
+    if blurs.isEmpty { return cgImage }
+    if let cache = loupeSourceCache, cache.blurs == blurs { return cache.image }
+    let image = EditorRenderer.renderRedactedSource(doc: self) ?? cgImage
+    loupeSourceCache = (blurs, image)
+    return image
+  }
+
   @Published var tool: AnnotationTool = .select
   @Published var alignmentSnappingEnabled = true
   @Published var annotations: [Annotation] = [] {

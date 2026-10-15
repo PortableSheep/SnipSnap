@@ -42,6 +42,9 @@ enum EditorRenderer {
       }
     }
 
+    // Loupes magnify the redacted image so they can't reveal blurred/redacted pixels.
+    let protectedSource = ctx.makeImage() ?? doc.cgImage
+
     // Collect all spotlights and draw them as a single combined dimming layer
     let spotlights = doc.annotations.compactMap { a -> SpotlightAnnotation? in
       if case .spotlight(let sp) = a { return sp }
@@ -55,9 +58,36 @@ enum EditorRenderer {
     for a in doc.annotations {
       if case .blur = a { continue }
       if case .spotlight = a { continue }
-      draw(annotation: a, in: ctx, sourceImage: doc.cgImage)
+      draw(annotation: a, in: ctx, sourceImage: protectedSource)
     }
 
+    return ctx.makeImage()
+  }
+
+  /// Base image with blur/redaction annotations applied, used as the loupe source on canvas.
+  static func renderRedactedSource(doc: AnnotationDocument) -> CGImage? {
+    let w = doc.cgImage.width
+    let h = doc.cgImage.height
+    guard let ctx = CGContext(
+      data: nil,
+      width: w,
+      height: h,
+      bitsPerComponent: 8,
+      bytesPerRow: 0,
+      space: CGColorSpaceCreateDeviceRGB(),
+      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else {
+      return nil
+    }
+    ctx.interpolationQuality = .high
+    ctx.draw(doc.cgImage, in: CGRect(x: 0, y: 0, width: CGFloat(w), height: CGFloat(h)))
+    ctx.translateBy(x: 0, y: CGFloat(h))
+    ctx.scaleBy(x: 1, y: -1)
+    for a in doc.annotations {
+      if case .blur = a {
+        draw(annotation: a, in: ctx, sourceImage: doc.cgImage)
+      }
+    }
     return ctx.makeImage()
   }
 

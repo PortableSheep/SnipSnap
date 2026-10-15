@@ -17,7 +17,7 @@ struct StoredColor: Codable {
   let alpha: CGFloat
 
   init(_ color: Color) throws {
-    guard let color = NSColor(color).usingColorSpace(.deviceRGB) else {
+    guard let color = NSColor(color).usingColorSpace(.sRGB) else {
       throw EditorProjectStoreError.unsupportedColor
     }
     red = color.redComponent

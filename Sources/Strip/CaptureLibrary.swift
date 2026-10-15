@@ -56,6 +56,10 @@ final class CaptureLibrary: ObservableObject {
 
   func delete(_ item: CaptureItem) throws {
     let fm = FileManager.default
+    defer {
+      thumbCache.removeAllObjects()
+      refresh()
+    }
 
     // Remove the capture file.
     if fm.fileExists(atPath: item.url.path) {
@@ -72,12 +76,6 @@ final class CaptureLibrary: ObservableObject {
     if fm.fileExists(atPath: editorProject.path) {
       try fm.removeItem(at: editorProject)
     }
-
-    // Drop cached thumbnail.
-    thumbCache.removeAllObjects()
-
-    // Refresh list.
-    refresh()
   }
 
   /// Deletes all captures older than the provided date.
